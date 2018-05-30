@@ -1,7 +1,6 @@
 # ZeroTrace
 
-ZeroTrace(ZT) is the first system that enabled instantiations of Oblivious-RAMs(ORAMs) on a server-device that supports Intel-SGX. ZT is also secure against known side-channel attacks against SGX. Oblivous RAM or ORAMs have been theoretically known for a long while now [1], with the advent of secure hardware modules like Intel SGX, we notice an opportunity to make these incredible cryptographic primitives, deployable in practical scenarios.
-(Caveat: That being said recently we have seen attacks against the Intel special service enclaves, that can compromise the enclaves key generation process. We expect Intel to patch these bugs, as these effectively cripple SGX as a whole.)
+ZeroTrace(ZT) is the first system that enabled instantiations of Oblivious-RAMs(ORAMs) on a server-device that supports Intel-SGX. ZT is also secure against known side-channel attacks against SGX.* Oblivous RAM or ORAMs have been theoretically known for a long while now [1], with the advent of secure hardware modules like Intel SGX, we notice an opportunity to make these incredible cryptographic primitives, deployable in practical scenarios.
 
 Sajin Sasy, Sergey Gorbunov, and Christopher Fletcher. "ZeroTrace: Oblivious memory primitives from Intel SGX." Symposium on Network and Distributed System Security (NDSS). 2018.
 
@@ -10,11 +9,13 @@ ZeroTrace employs an oblivious variant of traditional ORAM controller logic. To 
 Currently ZeroTrace supports two ORAM backends, PathORAM [2] and CircuitORAM [3]. Please refer the corresponding papers to get a more concrete understanding of how to parameterize these ORAMs for secure deployment scenarios.
 
 ## Pre-requisites:
-ZeroTrace requires a fully functional Intel SGX-SDK stack
+ZeroTrace requires a fully functional Intel SGX-SDK stack, we tested it with SGX SDK Linux 2.1 release. 
 To set up your SGX-SDK stack, please refer to:  https://github.com/intel/linux-sgx 
 
-Nasm
-Tested with nasm version 2.11.08 (Almost all 2.+ versions of nasm should be sufficient)
+ZeroTrace was tested with the following configuration :  
+* 64-bit Ubuntu 16.04 (with 4.4.0 kernel)  
+* gcc = 5.4.0  
+* nasm = 2.11.08 (Almost all 2.+ versions of nasm should be sufficient)
 
 ## Getting Started
 ZeroTrace takes a LOT of command line parameters. This was done in the interest of making it easy to instantiate ORAMs with different parameters to test performance across a wider range of possible parameters. In order to make it simpler to use, a shell script "exec_zt.sh" is provided, in which one can more conveniently customize the parameters to run ZeroTrace with. 
@@ -29,7 +30,7 @@ This will produce the ZeroTrace library (libZT.so) and copy it to the Sample_App
 To execute the Sample_Application provided by us, simply execute
 (Change the parameters in the zt_exec.sh script as needed by your application)
 ```
-./zt_exec.sh
+./exec_zt.sh
 ```
 The Sample_App is a simple example code that shows how to integrate ZT with native C/C++ code. But it should be sufficient in demonstrating how to use this. Do let us know if we can help you in anyway integrate it with your application/product.
 
@@ -65,3 +66,5 @@ sshsshy7@gmail.com
 2 - Stefanov, E., Van Dijk, M., Shi, E., Fletcher, C., Ren, L., Yu, X. and Devadas, S., 2013, November. Path ORAM: an extremely simple oblivious RAM protocol. In Proceedings of the 2013 ACM SIGSAC conference on Computer & communications security (pp. 299-310). ACM.
 
 3 - Wang, X., Chan, H. and Shi, E., 2015, October. Circuit oram: On tightness of the goldreich-ostrovsky lower bound. In Proceedings of the 22nd ACM SIGSAC Conference on Computer and Communications Security (pp. 850-861). ACM.
+
+* - Caveat: Recently we have seen attacks against the Intel special service enclaves, that can compromise the enclaves key generation process. We expect Intel to patch these bugs, as these effectively cripple SGX as a whole.
