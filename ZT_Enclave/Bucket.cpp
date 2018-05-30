@@ -1,0 +1,129 @@
+/*
+*    ZeroTrace: Oblivious Memory Primitives from Intel SGX 
+*    Copyright (C) 2018  Sajin (sshsshy)
+*
+*    This program is free software: you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation, version 3 of the License.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#include "Bucket.hpp"
+
+Bucket::Bucket(unsigned char* serialized_bucket, uint32_t data_size, uint8_t param_Z)
+{
+	//TODO: This might be wrong, recheck.
+	blocks = (Block*) malloc(Z*sizeof(Block*));
+	Z = param_Z;	
+
+	unsigned char *ptr = serialized_bucket;
+	for(uint8_t i=0;i<Z;i++){
+		blocks[i].fill(ptr,data_size);
+		ptr+=(data_size+NONCE_LENGTH+8);
+	}
+}
+
+Bucket::Bucket(uint8_t param_Z){
+	Z = param_Z;	
+}
+
+Bucket::~Bucket(){
+	if(blocks)
+		free(blocks);
+}
+
+void Bucket::initialize(uint32_t data_size, uint32_t gN){
+	blocks = (Block*) malloc(Z*sizeof(Block));
+	for(uint8_t i =0; i<Z; i++){
+		blocks[i].initialize(data_size, gN);	
+	}
+}
+
+void Bucket::reset_values(uint32_t gN){
+	for(uint8_t p=0;p<Z;p++){
+		blocks[p].treeLabel = 0;
+		blocks[p].id = gN;
+	} 		
+}
+
+void Bucket::sampleRandomness() {
+	for(uint8_t i =0;i< Z;i++) {
+		blocks[i].generate_r();
+	}
+			
+}
+
+void Bucket::displayBlocks(){
+	for(uint8_t i =0; i<Z; i++)
+		printf("(%d,%d),", blocks[i].id, blocks[i].treeLabel);
+	printf("\n");
+}
+
+void Bucket::aes_encryptBlocks(uint32_t data_size, unsigned char *aes_key) {
+	for(uint8_t e =0; e<Z; e++) {
+		#ifdef AES_NI
+			blocks[e].cwf_aes_ebc_enc(data_size);				
+		#else	
+			blocks[e].aes_enc(data_size, aes_key);
+		#endif
+	}
+}
+
+void Bucket::aes_decryptBlocks(uint32_t data_size, unsigned char *aes_key) {
+	for(uint8_t i =0;i< Z;i++) {
+		#ifdef AES_NI
+			blocks[i].cwf_aes_ebc_dec(data_size);
+		#else
+			blocks[i].aes_dec(data_size, aes_key);
+		#endif			
+	}
+}
+
+unsigned char* Bucket::serialize(uint32_t data_size) {
+	uint32_t size_of_bucket = Z * (data_size+ADDITIONAL_METADATA_SIZE);
+	uint32_t tdata_size = (data_size+ADDITIONAL_METADATA_SIZE);	
+	unsigned char* serialized_bucket = (unsigned char*) malloc (size_of_bucket);
+	unsigned char* ptr = serialized_bucket;
+	for(int i = 0; i < Z;i++) {
+		unsigned char* serial_block = blocks[i].serialize(data_size);
+		memcpy(ptr, serial_block,tdata_size);
+		free(serial_block);
+		ptr+=tdata_size;
+	}
+	return serialized_bucket;
+}
+
+void Bucket::serializeToBuffer(unsigned char* serializeBuffer, uint32_t data_size) {
+	unsigned char* buffer_iter = serializeBuffer;
+	uint32_t tdata_size = (data_size+8+NONCE_LENGTH);	
+	for(int i = 0; i < Z;i++) {
+		blocks[i].serializeToBuffer(buffer_iter,data_size);
+		buffer_iter += tdata_size;
+	}
+}
+
+void Bucket::fill(Block *b, uint32_t pos, uint32_t g_data_size) {
+	blocks[pos].id = b->id;
+	blocks[pos].treeLabel = b->treeLabel;
+	memcpy(blocks[pos].data,b->data, g_data_size);		
+}
+
+void Bucket::fill(unsigned char *serialized_block, uint32_t pos, uint32_t g_data_size) {
+	blocks[pos].id = getId(serialized_block);
+	blocks[pos].treeLabel = getTreeLabel(serialized_block);
+	memcpy(blocks[pos].data,serialized_block+24,g_data_size);		
+}
+
+void Bucket::fill(uint32_t data_size) {
+	for(uint8_t i=0;i<Z;i++) {
+		blocks[i].fill(data_size);
+	}
+}
+

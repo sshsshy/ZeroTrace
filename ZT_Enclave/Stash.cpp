@@ -1,0 +1,336 @@
+/*
+*    ZeroTrace: Oblivious Memory Primitives from Intel SGX 
+*    Copyright (C) 2018  Sajin (sshsshy)
+*
+*    This program is free software: you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation, version 3 of the License.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#include "Stash.hpp"
+
+//TODO: Include the list of 'extern' assembly functions to use for stash oblivious operations ! 
+
+//Oblivious Functions needed : 
+/*
+1) omove_buffer()
+2)
+
+*/
+
+//Other Functions needed :
+/*
+1) getID()
+2) getDataPtr(), isBlockDummy, getLabel, 
+3) ^ All of those permuting functions ! 
+
+*/
+Stash::Stash(){
+}
+
+Stash::Stash(uint32_t param_stash_data_size, uint32_t param_STASH_SIZE, uint32_t param_gN){
+	stash_data_size = param_stash_data_size;
+	STASH_SIZE = param_STASH_SIZE;
+	gN = param_gN;
+}
+
+void Stash::setParams(uint32_t param_stash_data_size, uint32_t param_STASH_SIZE, uint32_t param_gN){
+	stash_data_size = param_stash_data_size;
+	STASH_SIZE = param_STASH_SIZE;
+	gN = param_gN;
+}
+    
+void Stash::PerformAccessOperation(char opType, uint32_t id, uint32_t newleaf, unsigned char *data_in, unsigned char *data_out){
+	struct nodev2 *iter = getStart();
+	uint8_t cntr = 1;
+	uint32_t flag_id = 0, flag_w = 0, flag_r = 0;
+	unsigned char *data_ptr;
+	uint32_t *leaflabel_ptr;
+
+	#ifdef PAO_DEBUG
+		bool flag_found = false;
+	#endif
+    
+	#ifdef RESULTS_DEBUG
+		printf("Before PerformAccess, datasize = %d, Fetched Data :", stash_data_size);
+		for(uint32_t j=0; j < stash_data_size;j++){
+		    printf("%c", data_out[j]);
+		}
+		printf("\n");
+	#endif
+
+	while(iter&&cntr<=STASH_SIZE)	{
+		data_ptr = (unsigned char*) getDataPtr(iter->serialized_block);
+		leaflabel_ptr = getTreeLabelPtr(iter->serialized_block);
+		flag_id = ( getId(iter->serialized_block) == id);
+		#ifdef PAO_DEBUG
+			if(flag_id == true){
+				flag_found = true;
+				printf("Found, has data: \n");
+				unsigned char* data_ptr = getDataPtr(iter->serialized_block);
+				for(uint32_t j=0; j < stash_data_size;j++){
+				    printf("%c", data_ptr[j]);
+				}	
+				//setTreeLabel(iter->serialized_block,newleaf);
+				printf("\n");
+			}
+		#endif
+
+		//Replace leaflabel in block with newleaf
+		oassign_newlabel(leaflabel_ptr, newleaf, flag_id);
+		//omove_buffer(leaflabel_ptr, &newleaf, ID_SIZE_IN_BYTES, flag_id);
+		flag_w = (flag_id && opType == 'w');
+		omove_buffer((unsigned char*) data_ptr, data_in, stash_data_size, flag_w);
+		flag_r = (flag_id && opType == 'r');
+		#ifdef PAO_DEBUG
+			if(flag_found){
+				flag_found = false;
+				printf("flag_id = %d, optype=%c, flag_r = %d\n", flag_id, opType, flag_r);
+			}
+		#endif
+		omove_buffer(data_out, (unsigned char*) data_ptr, stash_data_size, flag_r);
+
+		iter = iter->next;
+		cntr++;
+	}
+	#ifdef RESULTS_DEBUG
+	printf("After PerformAccess, datasize = %d, Fetched Data :", stash_data_size);
+	for(uint32_t j=0; j < stash_data_size;j++){
+	    printf("%c", data_out[j]);
+	}
+	printf("\n");
+	#endif
+	#ifdef PAO_DEBUG
+	if(flag_found == false){
+	    printf("BLOCK NOT FOUND IN STASH\n");
+	}
+	#endif        
+}
+    
+void Stash::ObliviousFillResultData(uint32_t id, unsigned char *result_data) {
+    struct nodev2 *iter = getStart();
+    uint8_t cntr = 1;
+    uint32_t flag = 0;
+    uint32_t *data_ptr;
+    while(iter&&cntr<=STASH_SIZE)	{
+        flag = ( getId(iter->serialized_block) == id );
+        data_ptr = (uint32_t*) getDataPtr(iter->serialized_block);
+        omove_buffer(result_data, (unsigned char*) data_ptr, stash_data_size, flag);
+        iter = iter->next;
+        cntr++;
+    }
+}
+    
+uint32_t Stash::displayStashContents(uint32_t nlevel) {
+    uint32_t count = 0,cntr=1;
+    nodev2 *iter = getStart();
+    printf("Stash Contents : \n");
+    while(iter&&cntr<=STASH_SIZE)	{
+        if( (!isBlockDummy(iter->serialized_block, gN)) ) {
+            printf("loc = %d, (%d,%d) : ",cntr, getId(iter->serialized_block),getTreeLabel(iter->serialized_block));
+            uint32_t *tmp = (uint32_t*) iter->serialized_block+24;
+            uint32_t pbuckets = getTreeLabel(iter->serialized_block) + nlevel;
+            count++;
+            while(pbuckets>=1) {
+                printf("%d, ", pbuckets);
+                pbuckets = pbuckets>>1;
+            }
+            printf("\n");			
+        }
+        iter = iter->next;
+        cntr++;
+    }
+    printf("\n");
+    return count;
+}
+		
+uint32_t Stash::stashOccupancy() {
+    uint32_t count = 0,cntr=1;
+    nodev2 *iter = getStart();
+    while(iter&&cntr<=STASH_SIZE)	{
+        if( (!isBlockDummy(iter->serialized_block, gN)) ) {
+            count++;
+        }
+        iter = iter->next;
+        cntr++;
+    }
+    return count;
+}
+
+		/*
+		saveStash Format of serialized stash :
+		<DataSize>
+		<ID><Label><Data>
+		<ID><Label><Data>
+		<ID> = 4 bytes, <Label> = 4 bytes , <Data> = DataSize
+		NOTE : No \n's in between.
+		*/
+		/*
+		uint32_t saveStash(unsigned char *stash_serialized, uint32_t level)
+		{
+			if(start==NULL)	{
+				return 0;
+			}
+			else{
+				uint32_t datasize_ss;
+				if(level==-1){
+					datasize_ss = g_block_size;
+				}
+				else if(level==recursion_levels){
+					datasize_ss = g_block_size;
+				}	
+				else{
+					datasize_ss = recursion_block_size;
+				}
+				node *iter = start;
+				unsigned char *ptr = stash_serialized;
+				memcpy(ptr,&datasize_ss,4);
+				ptr+=4;
+				
+				uint32_t i=0;
+				while(iter) {
+					//Edl buffer direction needs to be fixed.
+					if(!(iter->block->isDummy())&&iter->occupied) {
+						memcpy(ptr,&(iter->block->id),4);
+						ptr+=4;
+						memcpy(stash_serialized,&(iter->block->treeLabel),4);						
+						ptr+=4;						
+						memcpy(stash_serialized,iter->block->data, datasize_ss);
+						ptr+=datasize_ss;
+					}
+					iter=iter->next;
+					i++;
+				}
+				uint32_t STASH_SIZE_total = 4 + ((datasize_ss+8) * i);
+				return STASH_SIZE_total;
+			}
+		}
+		void restoreStash(uint32_t *stash_serialized,uint32_t STASH_SIZE)
+		{
+			node *iter = start;
+			uint32_t i= 0;
+			while(STASH_SIZE!=0)
+			{
+				iter->block->id = stash_serialized[i];
+				i++;
+				iter->block->treeLabel = stash_serialized[i];
+				i++;
+				iter->occupied = true;
+				iter = iter->next;
+				STASH_SIZE--;
+			}
+		}
+		*/
+
+struct nodev2* Stash::getStart(){
+	return start;
+}
+
+void Stash::setStart(struct nodev2* new_start){
+	start = new_start;
+}
+
+void Stash::setup(uint32_t pstash_size, uint32_t pdata_size, uint32_t pgN)
+{	
+	gN = pgN;
+	STASH_SIZE = pstash_size;
+	stash_data_size = pdata_size;
+	for(uint32_t i = 0; i<STASH_SIZE; i++){
+		insert_new_block();
+	}
+}
+
+void Stash::setup_nonoblivious(uint32_t pdata_size, uint32_t pgN)
+{	
+	gN = pgN;
+	stash_data_size = pdata_size;
+}
+
+
+void Stash::insert_new_block()
+{
+    	Block block(stash_data_size, gN);
+	struct nodev2 *new_node = (struct nodev2*) malloc(sizeof(struct nodev2));			
+
+	if(current_size == STASH_SIZE){
+		printf("%d, Stash Overflow here\n", current_size);
+	}
+	else{
+		unsigned char *serialized_block = block.serialize(stash_data_size);
+		new_node->serialized_block = serialized_block;
+		new_node->next = getStart();
+		setStart(new_node);	
+		current_size+=1;
+	}
+}
+
+void Stash::remove(nodev2 *ptr, nodev2 *prev_ptr)
+{			
+    nodev2 *temp;
+    if(prev_ptr==NULL&&current_size==1) {
+        start=NULL;
+    }
+    else if(prev_ptr==NULL) {
+        start = ptr->next;			
+    }
+    else if(ptr->next==NULL) {
+        prev_ptr->next = NULL;
+    }
+    else {
+        prev_ptr->next = ptr->next;
+    }
+
+    free(ptr->serialized_block);
+    free(ptr);
+    current_size--;
+
+}
+
+void Stash::pass_insert(unsigned char *serialized_block, bool is_dummy)
+{
+    struct nodev2 *iter = start;
+    bool block_written = 0;
+    uint8_t cntr = 1;
+    #ifdef PATHORAM_STASH_OVERFLOW_DEBUG
+        bool inserted = false;
+    #endif
+    while(iter&&cntr<=STASH_SIZE)	{
+        bool flag = (!is_dummy && (isBlockDummy(iter->serialized_block, gN)) && !block_written);
+        #ifdef PATHORAM_STASH_OVERFLOW_DEBUG
+            inserted = inserted || flag;
+        #endif
+        stash_serialized_insert(iter->serialized_block, serialized_block, stash_data_size, flag, &block_written);
+        iter = iter->next;
+        cntr++;
+    }
+    #ifdef PATHORAM_STASH_OVERFLOW_DEBUG
+        if(!is_dummy && !inserted){
+            printf("STASH OVERFLOW \n");
+        }
+    #endif
+
+}		
+
+void Stash::insert( unsigned char *serialized_block)
+{
+    struct nodev2 *new_node = (struct nodev2*) malloc(sizeof(struct nodev2));			
+    struct nodev2 *temp_start = getStart();
+
+    if(current_size == STASH_SIZE){
+        printf("Stash Overflow \n");
+    }
+    else{
+        new_node->serialized_block = serialized_block;
+        new_node->next = getStart();
+        setStart(new_node);	
+        current_size+=1;
+    }
+}
