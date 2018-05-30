@@ -17,7 +17,7 @@ Nasm
 Tested with nasm version 2.11.08 (Almost all 2.+ versions of nasm should be sufficient)
 
 ## Getting Started
-ZeroTrace takes a LOT of command line parameters. This was done in the interest of making it extremely easy to instantiate ORAMs with different parameters to test performance across a wide range of parameters. In order to make simpler to use, a shell script "exec_zt.sh" is provided, in which one can more conveniently customize the parameters to run ZeroTrace with. 
+ZeroTrace takes a LOT of command line parameters. This was done in the interest of making it easy to instantiate ORAMs with different parameters to test performance across a wider range of possible parameters. In order to make it simpler to use, a shell script "exec_zt.sh" is provided, in which one can more conveniently customize the parameters to run ZeroTrace with. 
 
 To build the ZeroTrace library:
 In the ZeroTrace folder, execute:
@@ -56,7 +56,7 @@ Hence applications must use "memory" as the backend, and "new" for the new/resum
 4) An integrations with Eleos, is still pending, and on the TO-DO list, to bump performance up a bit more.
 
 ## Contact
-Feel free to reach out to me to get help in setting up our system/any other queries you may have:
+Feel free to reach out to me to get help in setting up our system or any other queries you may have related to ZeroTrace:
 sshsshy7@gmail.com
 
 # References
