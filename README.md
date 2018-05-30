@@ -67,4 +67,4 @@ sshsshy7@gmail.com
 
 3 - Wang, X., Chan, H. and Shi, E., 2015, October. Circuit oram: On tightness of the goldreich-ostrovsky lower bound. In Proceedings of the 22nd ACM SIGSAC Conference on Computer and Communications Security (pp. 850-861). ACM.
 
-* - Caveat: Recently we have seen attacks against the Intel special service enclaves, that can compromise the enclaves key generation process. We expect Intel to patch these bugs, as these effectively cripple SGX as a whole.
+\* Recently we have seen attacks against the Intel special service enclaves, that can compromise the enclave key generation process. We expect Intel to patch these bugs, as these effectively cripple SGX as a whole.
