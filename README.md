@@ -3,7 +3,7 @@
 ZeroTrace(ZT) is the first system that enabled instantiations of Oblivious-RAMs(ORAMs) on a server-device that supports Intel-SGX. ZT is also secure against known side-channel attacks against SGX. Oblivous RAM or ORAMs have been theoretically known for a long while now [1], with the advent of secure hardware modules like Intel SGX, we notice an opportunity to make these incredible cryptographic primitives, deployable in practical scenarios.
 (Caveat: That being said recently we have seen attacks against the Intel special service enclaves, that can compromise the enclaves key generation process. We expect Intel to patch these bugs, as these effectively cripple SGX as a whole.)
 
-Sasy, Sajin, Sergey Gorbunov, and Christopher Fletcher. "ZeroTrace: Oblivious memory primitives from Intel SGX." Symposium on Network and Distributed System Security (NDSS). 2018.
+Sajin Sasy, Sergey Gorbunov, and Christopher Fletcher. "ZeroTrace: Oblivious memory primitives from Intel SGX." Symposium on Network and Distributed System Security (NDSS). 2018.
 
 ZeroTrace employs an oblivious variant of traditional ORAM controller logic. To do so within an SGX environment, without being susceptible to side-channel attacks, the only truly TRUSTED space that we can use are the CPU registers. Hence function snippets that require conditional operations are rewritten to be oblivious via linear scans and assembly functions that leverage CMOV instructions wherever appropriate. 
 
@@ -41,6 +41,8 @@ The Sample_App is a simple example code that shows how to integrate ZT with nati
 **ZT_Access(args)** : This function is used to access (read/write) values to a previously-created ORAM Tree.
 
 **ZT_Bulk_Read(args)** : This is a newly supported function that enables users to do bulk reads, without performing enclave exits and entry for each request individually. 
+
+The file ZT.hpp can be used as a reference for the underlying arguments, the argument names are self-explanatory.
   
 # References
 1 - Goldreich, O. and Ostrovsky, R., 1996. Software protection and simulation on oblivious RAMs. Journal of the ACM (JACM), 43(3), pp.431-473.
