@@ -43,7 +43,22 @@ The Sample_App is a simple example code that shows how to integrate ZT with nati
 **ZT_Bulk_Read(args)** : This is a newly supported function that enables users to do bulk reads, without performing enclave exits and entry for each request individually. 
 
 The file ZT.hpp can be used as a reference for the underlying arguments, the argument names are self-explanatory.
-  
+
+## Other Notes:
+1) ZeroTrace assumes the enclave and client has already performed a Remote Attestation handshake and established a shared secret key. ZeroTrace was designed to be used as a framework for research, hence it uses a hardcoded key (as this shared secret key) and IV as you will notice from the source. It is easy to replace them with genuine key sampling functions (which in most cases are already present in the source, but just hijacked with static values to make it easy to debug and experiment).
+
+2) ZeroTrace was designed to be a framework for experimenting with different ORAMs, in this intersection of secure hardware and ORAMs. It is my hope that we will see other contributors use this tool to either develop ORAM backends for other known ORAM designs, or possibly even design their own ORAM schemes and test it out using ZeroTrace. You will notice that the class ORAMTree, provides a sufficient abstraction for rapid-deployment of almost any Tree-based ORAM scheme. 
+
+3) Currently, the HDD backend code is broken, so is the Store/Resume functionality.
+Hence applications must use "memory" as the backend, and "new" for the new/resume flag in the command line parameters/zt_exec.sh script.
+(I will be uploading patches to stabilize that soon.)
+
+4) An integrations with Eleos, is still pending, and on the TO-DO list, to bump performance up a bit more.
+
+## Contact
+Feel free to reach out to me to get help in setting up our system/any other queries you may have:
+sshsshy7@gmail.com
+
 # References
 1 - Goldreich, O. and Ostrovsky, R., 1996. Software protection and simulation on oblivious RAMs. Journal of the ACM (JACM), 43(3), pp.431-473.
 
