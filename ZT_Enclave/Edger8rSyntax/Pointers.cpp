@@ -37,7 +37,7 @@
 
 #include "sgx_trts.h"
 #include "sgx_lfence.h"
-#include "../Enclave.h"
+#include "../Globals_Enclave.hpp"
 #include "../Enclave_t.h"
 
 /* checksum_internal:

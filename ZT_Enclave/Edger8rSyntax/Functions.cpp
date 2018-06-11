@@ -35,7 +35,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../Enclave.h"
+#include "../Globals_Enclave.hpp"
 #include "../Enclave_t.h"
 
 /* ecall_function_calling_convs:

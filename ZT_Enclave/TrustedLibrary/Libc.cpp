@@ -34,7 +34,7 @@
 #include "sgx_cpuid.h"
 
 #include "sgx_trts.h"
-#include "../Enclave.h"
+#include "../Globals_Enclave.hpp"
 #include "../Enclave_t.h"
 
 /* ecall_malloc_free:

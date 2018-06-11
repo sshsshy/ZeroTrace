@@ -20,7 +20,6 @@
 	#include "ORAM_Interface.hpp"
 	#include <stdarg.h>
 	#include <stdio.h>      /* vsnprintf */
-	#include "Enclave.h"
 	#include "Enclave_t.h"  /* print_string */
 	#include <stdlib.h>
 	#include <stdio.h>
@@ -31,6 +30,7 @@
 	#include "Block.hpp"
 	#include "oasm_lib.h"
 	#include "../Globals.hpp"
+	#include <assert.h>
 
 	// define FLAGS :
 	#define ENCRYPTION_ON 1
@@ -103,6 +103,8 @@
 	    uint32_t position_in_id;
 	    uint32_t level;
 	};
+
+	void printf(const char *fmt, ...);
 
 	void displaySerializedBlock( unsigned char *serialized_result_block, uint32_t level, uint32_t recursion_levels, uint32_t x);
 

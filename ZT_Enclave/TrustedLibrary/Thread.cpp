@@ -30,7 +30,7 @@
  */
 
 
-#include "../Enclave.h"
+#include "../Globals_Enclave.hpp"
 #include "../Enclave_t.h"
 
 #include "sgx_thread.h"
