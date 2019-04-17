@@ -21,26 +21,55 @@ LocalStorage.hpp
 
 #pragma once
 
+
 class LocalStorage
 {
+
 public:
-	LocalStorage();
-	LocalStorage(LocalStorage &ls);
+  uint32_t Z;
+  //TODO: Probably should switch D out for D_level version?
+  uint32_t D;
+  uint8_t recursion_levels;
+  bool inmem;
 
-	void connect();
-	void fetchHash(uint32_t objectKey, unsigned char* hash_buffer, uint32_t hashsize, uint32_t recursion_level);
-	uint8_t uploadObject(unsigned char *serialized_bucket, uint32_t objectKey, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint32_t recursion_level);
-	unsigned char* downloadObject(unsigned char* data, uint32_t objectKey, unsigned char *hash, uint32_t hashsize,uint32_t level, uint32_t D_lev);
-	uint8_t uploadPath(unsigned char *serialized_path, uint32_t leafLabel, unsigned char *path_hash,uint32_t level, uint32_t D_level);
-	unsigned char* downloadPath(unsigned char* data, uint32_t leafLabel, unsigned char *path_hash, uint32_t path_hash_size, uint32_t level, uint32_t D);
-	void setParams(uint32_t maxBlocks, uint32_t D, uint32_t Z, uint32_t stashSize, uint32_t dataSize, bool inmem, uint32_t recursion_block_size, int8_t recursion_levels);
-	void saveState(unsigned char *posmap, uint32_t posmap_size, unsigned char *stash, uint32_t stashSize, unsigned char* merkle_root, uint32_t hash_and_key_size);
-	void savePosmapMerkleRoot(unsigned char* posmap_serialized, uint32_t posmap_size, unsigned char* merkle_root_and_aes_key, uint32_t hash_and_key_size);
-	void saveStashLevel(unsigned char *stash, uint32_t stash_size, uint32_t level);	
-	int8_t restoreState(uint32_t *posmap, uint32_t posmap_size, uint32_t *stash, uint32_t *stashSize, unsigned char* merkle_root, uint32_t hash_and_key_size);
-	void restorePosmap(uint32_t* posmap, uint32_t size);
-	void restoreMerkle(unsigned char* merkle, uint32_t size);
+  unsigned char** inmem_tree_l;
+  unsigned char** inmem_hash_l;
 
-	void deleteObject();
-	void copyObject();
+  uint64_t* blocks_in_level;
+  uint32_t* D_level;
+
+  uint32_t bucket_size;
+
+  uint32_t data_block_size;
+  uint32_t recursion_block_size;
+
+  // Variables for Hybrid Storage mechanism
+  uint32_t levels_on_disk = 0;
+  uint32_t objectkeylimit;
+
+  LocalStorage();
+  LocalStorage(LocalStorage &ls);
+
+  void setParams(uint32_t max_blocks, uint32_t D, uint32_t Z, uint32_t stash_size, uint32_t data_size, bool inmem, uint32_t recursion_block_size, uint8_t recursion_levels);
+
+  void fetchHash(uint32_t bucket_id, unsigned char* hash_buffer, uint32_t hash_size, uint8_t level);
+
+  // downloadBucket() is never used, as we typically operate with Paths
+  // uploadBucket() on the other hand is used, for initializing the ORAM tree, a bucket at a time.
+  // (So that we can initialize without having to maintain the entire ORAM tree in PRM space.)
+  uint8_t uploadBucket(uint32_t bucket_id, unsigned char *serialized_bucket, uint32_t bucket_size, unsigned char* hash, uint32_t hash_size, uint8_t level);
+  unsigned char* downloadBucket(uint32_t bucket_id, unsigned char* bucket, uint32_t bucket_size , unsigned char *hash, uint32_t hash_size, uint8_t level);
+
+  uint8_t uploadPath(uint32_t leaf_label, unsigned char *path, unsigned char *path_hash, uint8_t level, uint32_t D);
+  unsigned char* downloadPath(uint32_t leaf_label, unsigned char *path, unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D);
+
+  void saveState(unsigned char *posmap, uint32_t posmap_size, unsigned char *stash, uint32_t stashSize, unsigned char* merkle_root, uint32_t hash_and_key_size);
+  void savePosmapMerkleRoot(unsigned char* posmap_serialized, uint32_t posmap_size, unsigned char* merkle_root_and_aes_key, uint32_t hash_and_key_size);
+  void saveStashLevel(unsigned char *stash, uint32_t stash_size, uint8_t level);	
+  int8_t restoreState(uint32_t *posmap, uint32_t posmap_size, uint32_t *stash, uint32_t *stashSize, unsigned char* merkle_root, uint32_t hash_and_key_size);
+  void restorePosmap(uint32_t* posmap, uint32_t size);
+  void restoreMerkle(unsigned char* merkle, uint32_t size);
+
+  void deleteObject();
+  void copyObject();
 };

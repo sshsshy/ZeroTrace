@@ -48,34 +48,43 @@ enclave {
     from "TrustedLibrary/Libcxx.edl" import ecall_exception, ecall_map;
     from "TrustedLibrary/Thread.edl" import *;
 
-	trusted {
-		// public int8_t setEnclaveParams(uint32_t maxBlocks, uint32_t stashSize, uint32_t dataSize, uint32_t non_oblivious, uint32_t recursion_blockSize, uint32_t oram_type);
-		public uint32_t createNewORAMInstance(uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ);
-		public void accessInterface(uint32_t instance_id, uint8_t oram_type, [in, size = request_size] unsigned char* encrypted_request, [out, size = response_size] unsigned char *encrypted_response, [in, size = tag_size] unsigned char *tag_in, [out, size = tag_size] unsigned char *tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
-		public void accessBulkReadInterface(uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, [in, size = request_size] unsigned char* encrypted_request, [out, size = response_size] unsigned char *encrypted_response, [in, size = tag_size] unsigned char *tag_in, [out, size = tag_size] unsigned char *tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
-		// public uint8_t initialize_oram(uint32_t maxBlocks, uint32_t dataSize, [user_check] void* req, [user_check] void *resp);
-		// public void access_oram(uint32_t instance_id, char OpType, uint32_t loc, [in, size = data_size] unsigned char* data_in, [out, size = data_size] unsigned char *data_out, uint32_t data_size );
-		/*
-		public uint32_t store_enclave_state([out,size = posmap_size] unsigned char* posmap, uint32_t posmap_size, [out, size = stash_size] unsigned char *stash, uint32_t stash_size, [out,size = hash_size] unsigned char* merkle_root, uint32_t hash_size);
+  trusted {
+    public uint32_t createNewORAMInstance(uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ);
+    public uint32_t createNewLSORAMInstance(uint32_t key_size, uint32_t value_size, uint32_t num_blocks, uint8_t mem_mode, uint8_t oblivious_type, uint8_t dummy_populate);
+ 
+    public void accessInterface(uint32_t instance_id, uint8_t oram_type, [in, size = request_size] unsigned char* encrypted_request, [out, size = response_size] unsigned char *encrypted_response, [in, size = tag_size] unsigned char *tag_in, [out, size = tag_size] unsigned char *tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
+    public void accessBulkReadInterface(uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, [in, size = request_size] unsigned char* encrypted_request, [out, size = response_size] unsigned char *encrypted_response, [in, size = tag_size] unsigned char *tag_in, [out, size = tag_size] unsigned char *tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
+    public int8_t InitializeKeys([out, size = size_bin] unsigned char *bin_x, [out, size = size_bin] unsigned char* bin_y, [out, size = size_bin] unsigned char *bin_r, [out, size = size_bin] unsigned char *bin_s, uint32_t size_bin); 
+ 
+    public int8_t LSORAMInsert(uint32_t instance_id, [in, size=key_size] unsigned char *key, uint32_t key_size, [in, size = value_size] unsigned char*value, uint32_t value_size);
+    public int8_t LSORAMFetch(uint32_t instance_id, [in, size=key_size] unsigned char *key, uint32_t key_size, [out, size=value_size] unsigned char*value, uint32_t value_size);
+    public int8_t LSORAMEvict(uint32_t instance_id, [in, size=key_size] unsigned char* key, uint32_t key_size);
+    public uint8_t deleteLSORAMInstance(uint32_t instance_id);
+ 
+    /*
+    public uint32_t store_enclave_state([out,size = posmap_size] unsigned char* posmap, uint32_t posmap_size, [out, size = stash_size] unsigned char *stash, uint32_t stash_size, [out,size = hash_size] unsigned char* merkle_root, uint32_t hash_size);
    		public uint32_t restore_enclave_state(uint32_t maxBlocks, uint32_t dataSize, [in,size = posmap_size] uint32_t* posmap, uint32_t posmap_size, [in, size = stash_size] uint32_t *stash, uint32_t stash_size, [in,size=hash_size] unsigned char *merkle_root, uint32_t hash_size);
-		public uint32_t storePosmapMerkleRoot([out,size = posmap_size] unsigned char* posmap, uint32_t posmap_size, [out,size = hash_and_key_size] unsigned char* merkle_root_and_aes_key, uint32_t hash_and_key_size);
-		public uint32_t storeStashLevel([in,size = stash_size] unsigned char* stash, uint32_t stash_size, uint32_t level);
-		*/
-	};
+    public uint32_t storePosmapMerkleRoot([out,size = posmap_size] unsigned char* posmap, uint32_t posmap_size, [out,size = hash_and_key_size] unsigned char* merkle_root_and_aes_key, uint32_t hash_and_key_size);
+    public uint32_t storeStashLevel([in,size = stash_size] unsigned char* stash, uint32_t stash_size, uint32_t level);
+    */
+  };
     /* 
      * ocall_print_string - invokes OCALL to display string buffer inside the enclave.
      *  [in]: copy the string buffer to App outside.
      *  [string]: specifies 'str' is a NULL terminated buffer.
      */
-    untrusted {
-        void ocall_print_string([in, string] const char *str);
-	void build_fetchChildHash(uint32_t left, uint32_t right, [out, size=hash_size] unsigned char* lchild, [out, size=hash_size] unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level);
-     uint8_t uploadObject([in,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [in,size = hash_size] unsigned char* hash, uint32_t hash_size , uint32_t size_for_level, uint32_t recursion_level);
-	 uint8_t downloadObject([out,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [out,size = hash_size] unsigned char* hash, uint32_t hash_size,uint32_t level, uint32_t D_lev );
-	 uint8_t downloadPath([out,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label,[out,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint32_t level, uint32_t D_lev);
-	 uint8_t uploadPath([in,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label, [in,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint32_t level, uint32_t D_level);
-	 void time_report(uint8_t point);
-	//void ReturnResult([unsigned char *return_data, unsigned]);
-    };
+    
+  untrusted {
+    void ocall_print_string([in, string] const char *str);
+    unsigned char* getOutsidePtr_OCALL();
+    void* createLSORAM_OCALL(uint32_t id, uint32_t key_size, uint32_t value_size, uint32_t num_blocks_p, uint8_t oblv_mode);
+    void build_fetchChildHash(uint32_t left, uint32_t right, [out, size=hash_size] unsigned char* lchild, [out, size=hash_size] unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level);
+    uint8_t uploadBucket_OCALL([in,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [in,size = hash_size] unsigned char* hash, uint32_t hash_size , uint32_t size_for_level, uint8_t recursion_level);
+    uint8_t downloadBucket_OCALL([out,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [out,size = hash_size] unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t level);
+    uint8_t downloadPath_OCALL([out,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label,[out,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_lev);
+    uint8_t uploadPath_OCALL([in,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label, [in,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level);
+    void time_report(uint8_t point);
+    //void ReturnResult([unsigned char *return_data, unsigned]);
+  };
 
 };

@@ -34,11 +34,13 @@ typedef union union_foo_t {
 } union_foo_t;
 
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_string, (const char* str));
+unsigned char* SGX_UBRIDGE(SGX_NOCONVENTION, getOutsidePtr_OCALL, ());
+void* SGX_UBRIDGE(SGX_NOCONVENTION, createLSORAM_OCALL, (uint32_t id, uint32_t key_size, uint32_t value_size, uint32_t num_blocks_p, uint8_t oblv_mode));
 void SGX_UBRIDGE(SGX_NOCONVENTION, build_fetchChildHash, (uint32_t left, uint32_t right, unsigned char* lchild, unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level));
-uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadObject, (unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint32_t recursion_level));
-uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, downloadObject, (unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hash_size, uint32_t level, uint32_t D_lev));
-uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, downloadPath, (unsigned char* serialized_path, uint32_t path_size, uint32_t label, unsigned char* path_hash, uint32_t path_hash_size, uint32_t level, uint32_t D_lev));
-uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadPath, (unsigned char* serialized_path, uint32_t path_size, uint32_t label, unsigned char* path_hash, uint32_t path_hash_size, uint32_t level, uint32_t D_level));
+uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadBucket_OCALL, (unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t recursion_level));
+uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, downloadBucket_OCALL, (unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t level));
+uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, downloadPath_OCALL, (unsigned char* serialized_path, uint32_t path_size, uint32_t label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_lev));
+uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadPath_OCALL, (unsigned char* serialized_path, uint32_t path_size, uint32_t label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level));
 void SGX_UBRIDGE(SGX_NOCONVENTION, time_report, (uint8_t point));
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_pointer_user_check, (int* val));
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_pointer_in, (int* val));
@@ -53,8 +55,14 @@ int SGX_UBRIDGE(SGX_CDECL, sgx_thread_setwait_untrusted_events_ocall, (const voi
 int SGX_UBRIDGE(SGX_CDECL, sgx_thread_set_multiple_untrusted_events_ocall, (const void** waiters, size_t total));
 
 sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ);
+sgx_status_t createNewLSORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint32_t key_size, uint32_t value_size, uint32_t num_blocks, uint8_t mem_mode, uint8_t oblivious_type, uint8_t dummy_populate);
 sgx_status_t accessInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t oram_type, unsigned char* encrypted_request, unsigned char* encrypted_response, unsigned char* tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
 sgx_status_t accessBulkReadInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char* encrypted_request, unsigned char* encrypted_response, unsigned char* tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
+sgx_status_t InitializeKeys(sgx_enclave_id_t eid, int8_t* retval, unsigned char* bin_x, unsigned char* bin_y, unsigned char* bin_r, unsigned char* bin_s, uint32_t size_bin);
+sgx_status_t LSORAMInsert(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance_id, unsigned char* key, uint32_t key_size, unsigned char* value, uint32_t value_size);
+sgx_status_t LSORAMFetch(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance_id, unsigned char* key, uint32_t key_size, unsigned char* value, uint32_t value_size);
+sgx_status_t LSORAMEvict(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance_id, unsigned char* key, uint32_t key_size);
+sgx_status_t deleteLSORAMInstance(sgx_enclave_id_t eid, uint8_t* retval, uint32_t instance_id);
 sgx_status_t ecall_type_char(sgx_enclave_id_t eid, char val);
 sgx_status_t ecall_type_int(sgx_enclave_id_t eid, int val);
 sgx_status_t ecall_type_float(sgx_enclave_id_t eid, float val);

@@ -17,7 +17,7 @@
 
 #ifndef __ZT_OASM_LIB__
 	#define __ZT_OASM_LIB__	
-
+        #include "Block.hpp"
 	/*
 		oset_value :
 		On flag :
@@ -107,5 +107,5 @@
 	extern "C" void omove_block(Block *dest_block, Block *source_block, uint32_t BlockSize, uint32_t flag);
 	extern "C" void omove_serialized_block(unsigned char *dest_block, unsigned char *source_block, uint32_t data_size, uint32_t flag);
 	extern "C" void omove_buffer(unsigned char *dest, unsigned char *source, uint32_t buffersize, uint32_t flag);
-
+	extern "C" void ocomp_set_flag(unsigned char *buff1, unsigned char *buff2, uint32_t buffersize, uint32_t *flag);
 #endif

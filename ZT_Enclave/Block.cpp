@@ -16,8 +16,6 @@
 */
 
 #include "Block.hpp"
-#include "Globals_Enclave.hpp"	
-
 
 Block::Block(){
 	data = NULL;

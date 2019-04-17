@@ -22,8 +22,6 @@ section .text
 	global pt_settarget
 	global pd_setdeepest
 	global oblockcompare
-	global oblock_move_on_flag
-	global stash_insert
 	global oassign_newlabel
 	global ofix_recursion
 	global ostore_deepest
@@ -38,38 +36,99 @@ section .text
 	global pt_set_src_dest
 	global oset_return_value
 	global oset_value
+        global ocomp_set_flag
 	global stash_serialized_insert
 	global oincrement_value
 
 oset_value:
-		; oset_value(&dest, target[i], flag_t);
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
+	; oset_value(&dest, target[i], flag_t);
+	; Linux : rdi,rsi,rdx,rcx,r8,r9
 
-		mov r10d, [rdi]
-		
-		cmp edx, 1
-		
-		cmovz r10d, esi
-		
-		mov [rdi], r10d
+	mov r10d, [rdi]
+	
+	cmp edx, 1
+	
+	cmovz r10d, esi
+	
+	mov [rdi], r10d
 
-		ret
+	ret
+
+ocomp_set_flag:
+        ; Compare 2 buffers (buff1 and buff2) obliviously and set flag to true
+	; if they are equal
+	; ocomp_set_flag(buff1, buff2, buff_size, flag)
+	; Linux : rdi,rsi,rdx,rcx,
+	; Callee-saved : RBP, RBX, and R12–R15
+
+	push rbx
+	push rbp
+	push r12
+	push r13
+	push r14
+	push r15
+
+	; Move ptr to data from buff1 and buff2
+	mov r10, rdi
+	mov r11, rsi
+
+	;Store pointer to flag in some other register other than c
+	mov r12, rcx
+	mov r13, rdx
+
+	;Set loop parameters
+	mov ax, dx
+	xor rdx, rdx
+        xor rcx, rcx
+	mov bx, 8
+	div bx
+	mov cx, ax
+
+	; RCX will be lost for loop, so use RBP as flag
+	; Set flag to 1 at start, and move flag back at end
+        ; to location pointer at by rcx, with value from rbp (1 byte , so bpl)
+	mov ebp, 1
+        xor edx, edx
+
+	; Loop to fetch iter & res chunks till blk_size
+	loopstart_ocsf:
+		mov r14, qword [r10]
+		mov r15, qword [r11]
+		cmp r14, r15		;Compare bytes of the buff1&2
+		setz dl			;set r12l with 1 if r14 and r15 equal
+		and bpl, dl		;OR comparison outcome flag with bpl
+		add r10, 8
+		add r11, 8
+		loop loopstart_ocsf
+	mov dword [r12], ebp
+       
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbp
+	pop rbx
+
+	ret
+
+
+	
 
 oincrement_value:
-		; oincrement_value(&value, flag_t);
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
+	; oincrement_value(&value, flag_t);
+	; Linux : rdi,rsi,rdx,rcx,r8,r9
 
-		mov r10d, [rdi]
-		mov r9d, r10d
-		add r9d, 1
+	mov r10d, [rdi]
+	mov r9d, r10d
+	add r9d, 1
 
-		cmp edx, 1
-		
-		cmovz r10d, r9d
-		
-		mov [rdi], r10d
+	cmp edx, 1
+	
+	cmovz r10d, r9d
+	
+	mov [rdi], r10d
 
-		ret
+	ret
 
 
 oset_return_value:
@@ -292,194 +351,101 @@ omove_serialized_block:
 		ret
 
 omove_buffer:
-		; Take inputs,  1 ptr to dest_buffer, 2 ptr to source_buffer, 3 buffer_size, 4 flag
-		; Linux : 	rdi,rsi,rdx,rcx->rbp
+	; Take inputs,  1 ptr to dest_buffer, 2 ptr to source_buffer, 3 buffer_size, 4 flag
+	; Linux : 	rdi,rsi,rdx,rcx->rbp
 
-		; Callee-saved : RBP, RBX, and R12–R15
+	; Callee-saved : RBP, RBX, and R12–R15
 
-		push rbx
-		push rbp
-		push r12
-		push r13
-		push r14
-		push r15
+	push rbx
+	push rbp
+	push r12
+	push r13
+	push r14
+	push r15
 
-		; Move ptr to data from serialized_dest_block and serialized_source_blk
-		mov r10, rdi
-		mov r11, rsi
+	; Move ptr to data from serialized_dest_block and serialized_source_blk
+	mov r10, rdi
+	mov r11, rsi
 
-		;RCX will be lost for loop, store flag from rcx to rbp (1 byte , so bpl)
-		mov bpl, cl
+	;RCX will be lost for loop, store flag from rcx to rbp (1 byte , so bpl)
+	mov bpl, cl
 
-		; Oblivious evaluation of flag
+	; Oblivious evaluation of flag
+	cmp bpl, 1
+
+	;Set loop parameters
+	mov ax, dx
+	xor rdx, rdx
+	mov bx, 8
+	div bx
+	mov cx, ax
+
+	; Loop to fetch iter & res chunks till blk_size
+	loopstart5:
 		cmp bpl, 1
+		mov r14, qword [r10]
+		mov r15, qword [r11]
+		cmovz r14, r15 				;r14 / r15 based on the compare
+		mov qword [r10], r14
+		add r10, 8
+		add r11, 8
+		loop loopstart5
 
-		;Set loop parameters
-		mov ax, dx
-		xor rdx, rdx
-		mov bx, 8
-		div bx
-		mov cx, ax
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbp
+	pop rbx
 
-		; Loop to fetch iter & res chunks till blk_size
-		loopstart5:
-			cmp bpl, 1
-			mov r14, qword [r10]
-			mov r15, qword [r11]
-			cmovz r14, r15 				;r14 / r15 based on the compare
-			mov qword [r10], r14
-			add r10, 8
-			add r11, 8
-			loop loopstart3
+	ret
 
-		pop r15
-		pop r14
-		pop r13
-		pop r12
-		pop rbp
-		pop rbx
-
-		ret
-
-
-omove_block:
-		; Take inputs,  1 ptr to dest_block, 2 ptr to source_block, 3 blk_size, 4 flag
-		; Linux : 	rdi,rsi,rdx,rcx->rbp
-
-		; Callee-saved : RBP, RBX, and R12–R15
-
-		push rbx
-		push rbp
-		push r12
-		push r13
-		push r14
-		push r15
-
-		; Extract data ptr from dest_block and source_blk
-		mov R10, qword [rdi]
-		mov R11, qword [rsi]
-
-		; Extract treelabels from dest_block and source_blk
-		mov R12d, dword [rdi+12]
-		mov R13d, dword [rsi+12]
-
-		;RCX will be lost for loop, store flag from rcx to rbp (1 byte , so bpl)
-		mov bpl, cl
-
-		; Oblivious evaluation of flag
-		cmp bpl, 1
-
-		; Set source_block.treelabel -> dest_block.treelabel,  if flag is set
-		cmovz r12d,r13d
-		mov dword [rdi+12], r13d
-
-		; Extract id from block_hold and iter_blk
-		mov R12d, dword [rdi+8]
-		mov R13d, dword [rsi+8]
-
-		; Set source_block.id -> dest_block.id if flag is set
-		cmovz r12d,r13d
-		mov dword [rdi+8], r12d
-
-		;Set loop parameters
-		mov ax, dx
-		xor rdx, rdx
-		mov bx, 8
-		div bx
-		mov cx, ax
-
-		; Loop to fetch iter & res chunks till blk_size
-		loopstart4:
-			cmp bpl, 1
-			mov r14, qword [r10]
-			mov r15, qword [r11]
-			cmovz r14, r15 				;r14 / r15 based on the compare
-			mov qword [r10], r14
-			add r10, 8
-			add r11, 8
-			loop loopstart4
-
-		pop r15
-		pop r14
-		pop r13
-		pop r12
-		pop rbp
-		pop rbx
-
-		ret
 
 
 oassign_newlabel:
-		; Take inputs,  1 ptr to block->label, 2 newlabel, 3 flag
-		; Windows : rcx,rdx,r8 ,r9
-		; Linux : rdi,rsi,rdx,rcx->rbp
-		; Callee-saved : RBP, RBX, and R12–R15
+	; Take inputs,  1 ptr to block->label, 2 newlabel, 3 flag
+	; Windows : rcx,rdx,r8 ,r9
+	; Linux : rdi,rsi,rdx,rcx->rbp
+	; Callee-saved : RBP, RBX, and R12–R15
 
-		mov r9d, dword[rdi]
-		cmp rdx, 1
-		cmovz r9d, esi
-		mov dword[rdi], r9d
+	mov r9d, dword[rdi]
+	cmp rdx, 1
+	cmovz r9d, esi
+	mov dword[rdi], r9d
 
-		ret
+	ret
 
 ofix_recursion:
-		
-		; Take inputs,  1 ptr to block->data->ptr, 2 flag, 3 newlabel, 4 *nextleaf		
-		; Windows : rcx,rdx,r8 ,r9
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
-		; Callee-saved : RBP, RBX, and R12–R15
+	
+	; Take inputs,  1 ptr to block->data->ptr, 2 flag, 3 newlabel, 4 *nextleaf		
+	; Windows : rcx,rdx,r8 ,r9
+	; Linux : rdi,rsi,rdx,rcx,r8,r9
+	; Callee-saved : RBP, RBX, and R12–R15
 
-		mov r9d, dword[rcx]
-		mov r8d, dword[rdi]		
-		mov eax, dword[rdi]
-		cmp rsi,1
-		cmovz r9d, r8d
-		cmovz eax, edx
+	mov r9d, dword[rcx]
+	mov r8d, dword[rdi]		
+	mov eax, dword[rdi]
+	cmp rsi,1
+	cmovz r9d, r8d
+	cmovz eax, edx
 
-		mov dword[rcx], r9d
-		mov dword[rdi], eax		
+	mov dword[rcx], r9d
+	mov dword[rdi], eax		
 
-		ret
+	ret
 
 ostore_deepest:
-		; Take inputs,  1 block->treelabel, 2 leaf, 3 ptr to deepest, 4 D , isDummy() flag		
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
-		; Callee-saved : RBP, RBX, and R12–R15
-		
-		mov r9d, dword [rdx]
-
-		loop_deep:
-			mov r10d, dword [rdx]
-			
-			;Compare labels
-			cmp edi, esi
-			
-			;Move to r8 point where labels are same
-			cmovz r10d, edi
-			
-			;Check if r10 > rdx
-			cmp r10d, dword [rdx] 
-			cmova r9d, r10d
+	; Take inputs,  1 block->treelabel, 2 leaf, 3 ptr to deepest, 4 D , isDummy() flag		
+	; Linux : rdi,rsi,rdx,rcx,r8,r9
+	; Callee-saved : RBP, RBX, and R12–R15
 	
-			SHR edi,1
-			SHR esi,1
-			
-			mov dword [rdx], r9d
-			loop loop_deep
+	mov r9d, dword [rdx]
 
-		ret
-
-
-ostore_deepest_round:
-		; Take inputs,  1 label, 2 flag, 3 ptr to deepest, 	
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
-		; Callee-saved : RBP, RBX, and R12–R15
-		
-		mov r9d, dword [rdx]
+	loop_deep:
 		mov r10d, dword [rdx]
 		
-		;Check flag
-		cmp esi,1
+		;Compare labels
+		cmp edi, esi
 		
 		;Move to r8 point where labels are same
 		cmovz r10d, edi
@@ -487,260 +453,135 @@ ostore_deepest_round:
 		;Check if r10 > rdx
 		cmp r10d, dword [rdx] 
 		cmova r9d, r10d
+
+		SHR edi,1
+		SHR esi,1
 		
 		mov dword [rdx], r9d
+		loop loop_deep
 
-		ret
+	ret
+
+
+ostore_deepest_round:
+	; Take inputs,  1 label, 2 flag, 3 ptr to deepest, 	
+	; Linux : rdi,rsi,rdx,rcx,r8,r9
+	; Callee-saved : RBP, RBX, and R12–R15
+	
+	mov r9d, dword [rdx]
+	mov r10d, dword [rdx]
+	
+	;Check flag
+	cmp esi,1
+	
+	;Move to r8 point where labels are same
+	cmovz r10d, edi
+	
+	;Check if r10 > rdx
+	cmp r10d, dword [rdx] 
+	cmova r9d, r10d
+	
+	mov dword [rdx], r9d
+
+	ret
 
 oset_goal_source:
-		; Take inputs,  1 level_in_path, 2 value_to_put_i_goal 3 flag, 4 ptr to src, 5 ptr to goal		
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
-		; Callee-saved : RBP, RBX, and R12–R15
+	; Take inputs,  1 level_in_path, 2 value_to_put_i_goal 3 flag, 4 ptr to src, 5 ptr to goal		
+	; Linux : rdi,rsi,rdx,rcx,r8,r9
+	; Callee-saved : RBP, RBX, and R12–R15
 
-		mov r10d, dword[rcx]
-		mov r11d, dword[r8]
+	mov r10d, dword[rcx]
+	mov r11d, dword[r8]
+
+	;Check flag
+	cmp edx,1
 	
-		;Check flag
-		cmp edx,1
-		
-		;
-		cmovz r10d, edi
-		cmovz r11d, esi
-		
-		mov dword[rcx], r10d
-		mov dword[r8], r11d
+	;
+	cmovz r10d, edi
+	cmovz r11d, esi
+	
+	mov dword[rcx], r10d
+	mov dword[r8], r11d
 
-		ret
-
-oblock_move_on_flag:
-		; Take inputs,  1 ptr to res_blk, 2 ptr to blk, 3 data_size, 4 flag
-		; Windows : rcx,rdx,r8 ,r9
-		; Linux : 	rdi,rsi,rdx,rcx->rbp
-
-		; Callee-saved : RBP, RBX, and R12–R15
-
-		push rbx
-		push rbp
-		push r12
-		push r13
-		push r14
-		push r15
-
-		; Extract data ptr from res_blk and iter_blk
-		mov R10, qword [rdi]
-		mov R11, qword [rsi]
-
-		; Extract treelabels from res_blk and iter_blk
-		mov R12d, dword [rdi+12]
-		mov R13d, dword [rsi+12]
-
-		;RCX will be lost for loop, store flag from rcx to rbp (1 byte , so bpl)
-		mov bpl, cl
-
-		; Oblivious evaluation of flag
-		; Set iter_blk.treelabel to res_blk.treelabel if flag is set
-		cmp bpl, 1
-		cmovz r13d,r12d
-		mov dword [rsi+12], r13d
-
-		;Set loop parameters
-		mov ax, dx
-		xor rdx, rdx
-		mov bx, 8
-		div bx
-		mov cx, ax
-
-		; Loop to fetch iter & res chunks till data_size
-		loopstart2:
-			cmp bpl,1
-			mov r14, qword [r10]
-			mov r15, qword [r11]
-			cmovz r14, r15 				;r14 / r15 based on the compare
-			mov qword [r10], r14
-			add r10, 8
-			add r11, 8
-			loop loopstart2
-
-		pop r15
-		pop r14
-		pop r13
-		pop r12
-		pop rbp
-		pop rbx
-
-		ret
-
-stash_insert:
-		;Windows : RCX = iter->block, RDX = block, r8 = block_size, r9 = !(valid & !iter->occuppied (i.e. available) )
-		;Windows:rcx,rdx,r8 ,r9 ,r12->r8
-		;Linux : rdi,rsi,rdx,rcx,r8,r9
-		;Calle-save registers : rbp, rbx, r12, r13, r14, r15.
-		; Stash has the value of bool block_written
-
-		; block : data, id, treelabel, r
-
-		push rbx
-		push rbp
-		push r12
-		push r13
-		push r14
-		push r15
-
-		mov rbp,rcx
-
-		;Linux_NOTES : r12 should hold ptr to block_written (r8 by Linux calling convention)
-
-		; iter -> block -> data
-		; Pointer to iter->block moved to r10
-		mov r15, qword [rdi]
-		mov r10, qword [r15]
-		
-		; Pointer block-data in r11		
-		mov r11, qword [rsi]
-
-		;Pointer to occupied
-		add rdi, 8
-		mov rax, rdi
-
-		; pointer to occupied flag in node iter at r14
-		mov r14, rax
-
-		;Setup for transfer to written_flag
-		xor rax,rax
-		xor rbx,rbx
-
-		; Check flag (r9)
-		cmp bpl, 1
-
-		; Set block_written flag if flag is valid else leave present_value unchanged
-		mov al, 1
-		mov bl, byte [r8]
-		cmovz rbx, rax
-		mov byte [r8], bl
-
-		;Set occupied_flag if flag is true , else leave present_value unchanged;
-		mov bl, byte [r14]
-		cmovz rbx, rax
-		mov [r14], bl
-
-		; obliviously move id
-		mov r12d, dword [r15+8]
-		mov r13d, dword [rsi+8]
-		cmovz r12d, r13d
-		mov dword [r15+8], r12d
-
-		;obliviously move tree label
-		mov r12d, dword [r15+12]
-		mov r13d, dword [rsi+12]
-		cmovz r12d, r13d
-		mov dword [r15+12], r12d
-
-		;Set loop parameters
-		mov ax, dx
-		xor rdx, rdx
-		mov bx, 8
-		div bx
-		mov cx, ax
-
-		;Oblivious transfer to iter-block's data
-		loop_stash_insert:
-			;Check flag (r9)
-			cmp bpl, 1
-			mov r14, qword [r10]
-			mov r15, qword [r11]
-			cmovz r14, r15 				;r14 / r15 based on the compare
-			mov qword [r10], r14
-			add r10, 8
-			add r11, 8
-			loop loop_stash_insert
-
-		pop r15
-		pop r14
-		pop r13
-		pop r12
-		pop rbp
-		pop rbx
-
-		ret
-
+	ret
 
 stash_serialized_insert:
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
-		; Calle-save registers : rbp, rbx, r12, r13, r14, r15.
-		; Stash has the value of bool block_written
+	; Linux : rdi,rsi,rdx,rcx,r8,r9
+	; Calle-save registers : rbp, rbx, r12, r13, r14, r15.
+	; Stash has the value of bool block_written
 
-		; block : data, id, treelabel, r
+	; block : data, id, treelabel, r
 
-		push rbx
-		push rbp
-		push r12
-		push r13
-		push r14
-		push r15
+	push rbx
+	push rbp
+	push r12
+	push r13
+	push r14
+	push r15
 
-		mov rbp,rcx
+	mov rbp,rcx
 
-		;Linux_NOTES : r12 should hold ptr to block_written (r8 by Linux calling convention)
+	;Linux_NOTES : r12 should hold ptr to block_written (r8 by Linux calling convention)
 
-		; Ptr to data of iter
-		mov r10, rdi
-		add r10, 24		
+	; Ptr to data of iter
+	mov r10, rdi
+	add r10, 24		
 
-		; Pointer block-data in r11		
-		mov r11, rsi
-		add r11, 24
+	; Pointer block-data in r11		
+	mov r11, rsi
+	add r11, 24
 
-		;Setup for transfer to written_flag
-		xor rax,rax
-		xor rbx,rbx
+	;Setup for transfer to written_flag
+	xor rax,rax
+	xor rbx,rbx
 
-		; Check flag (r9)
+	; Check flag (r9)
+	cmp bpl, 1
+
+	; Set block_written flag if flag is valid else leave present_value unchanged
+	mov al, 1
+	mov bl, byte [r8]
+	cmovz rbx, rax
+	mov byte [r8], bl
+
+	; obliviously move id
+	mov r12d, dword [rdi+16]
+	mov r13d, dword [rsi+16]
+	cmovz r12d, r13d
+	mov dword [rdi+16], r12d
+
+	;obliviously move tree label
+	mov r12d, dword [rdi+20]
+	mov r13d, dword [rsi+20]
+	cmovz r12d, r13d
+	mov dword [rdi+20], r12d
+
+	;Set loop parameters
+	mov ax, dx
+	xor rdx, rdx
+	mov bx, 8
+	div bx
+	mov cx, ax
+
+	;Oblivious transfer to iter-block's data
+	loop_stash_insert2:
+		;Check flag (r9)
 		cmp bpl, 1
+		mov r14, qword [r10]
+		mov r15, qword [r11]
+		cmovz r14, r15 				;r14 / r15 based on the compare
+		mov qword [r10], r14
+		add r10, 8
+		add r11, 8
+		loop loop_stash_insert2
 
-		; Set block_written flag if flag is valid else leave present_value unchanged
-		mov al, 1
-		mov bl, byte [r8]
-		cmovz rbx, rax
-		mov byte [r8], bl
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbp
+	pop rbx
 
-		; obliviously move id
-		mov r12d, dword [rdi+16]
-		mov r13d, dword [rsi+16]
-		cmovz r12d, r13d
-		mov dword [rdi+16], r12d
-
-		;obliviously move tree label
-		mov r12d, dword [rdi+20]
-		mov r13d, dword [rsi+20]
-		cmovz r12d, r13d
-		mov dword [rdi+20], r12d
-
-		;Set loop parameters
-		mov ax, dx
-		xor rdx, rdx
-		mov bx, 8
-		div bx
-		mov cx, ax
-
-		;Oblivious transfer to iter-block's data
-		loop_stash_insert2:
-			;Check flag (r9)
-			cmp bpl, 1
-			mov r14, qword [r10]
-			mov r15, qword [r11]
-			cmovz r14, r15 				;r14 / r15 based on the compare
-			mov qword [r10], r14
-			add r10, 8
-			add r11, 8
-			loop loop_stash_insert2
-
-		pop r15
-		pop r14
-		pop r13
-		pop r12
-		pop rbp
-		pop rbx
-
-		ret
+	ret
 
 

@@ -15,18 +15,30 @@
 *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef __ZT_ORAM_INTERFACE__
+#include <string.h>
+#include <vector>
+#include "../Globals.hpp"
+#include "Globals_Enclave.hpp"
+#include "ORAMTree.hpp"
+#include "PathORAM_Enclave.hpp"
+#include "CircuitORAM_Enclave.hpp"
+#include "LinearScan_ORAM.hpp"
 
-	#include <stdint.h>	
+#include "tsgxsslio.h"
+#include <openssl/ec.h>
+#include <openssl/bn.h>
+#include <openssl/rsa.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 
-	class ORAM_Interface
-	{
-	    public:
-		//virtual void Create()=0;
-	    	virtual void Create(uint8_t pZ, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit) = 0;
-	    	virtual void Access(uint32_t id, char opType, unsigned char* data_in, unsigned char* data_out) = 0;
-		//virtual ~ORAM_Interface() {}
-	};
 
-	#define __ZT_ORAM_INTERFACE__
-#endif
+std::vector<PathORAM *> poram_instances;
+std::vector<CircuitORAM *> coram_instances;
+std::vector<LinearScan_ORAM *> lsoram_instances;
+
+uint32_t poram_instance_id=0;
+uint32_t coram_instance_id=0;
+uint32_t lsoram_instance_id = 0;
+
+
