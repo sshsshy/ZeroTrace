@@ -17,6 +17,21 @@
 
 #include "LinearScan_ORAM.hpp"
 
+
+void displayKeyValuePair(unsigned char *key, unsigned char *value, uint32_t key_size, uint32_t value_size){
+  printf("<");
+  for(int t=0; t<key_size; t++) {
+    char pc = 'A' + (key[t] % 26);
+    printf("%c", pc); 
+  }
+  printf(", ");  
+   for(int t=0; t<value_size; t++) {
+    char pc = 'A' + (value[t] % 26);
+    printf("%c", pc); 
+  }
+  printf(">\n");
+}
+
 LinearScan_ORAM::LinearScan_ORAM(uint32_t instance_id, uint32_t key_size_p, 
                uint32_t value_size_p, uint32_t num_blocks_p, uint8_t mode_p, 
                uint8_t oblv_mode, uint8_t dummy_populate=true) {
@@ -59,6 +74,15 @@ LinearScan_ORAM::LinearScan_ORAM(uint32_t instance_id, uint32_t key_size_p,
   if(dummy_populate) {
     populateDummyElements();
   } 
+}
+
+
+uint32_t LinearScan_ORAM::getKeySize(){
+  return key_size;
+}
+
+uint32_t LinearScan_ORAM::getValueSize(){
+  return value_size;
 }
 
 
@@ -105,7 +129,10 @@ int8_t LinearScan_ORAM::insert(unsigned char* key, uint32_t key_size_p, unsigned
     memcpy(t->key, key_l, key_size);
     memcpy(t->value, value_l, value_size);
     LSORAM_store->push_back(t);
-    printf("<%s,%s>", t->key, t->value);
+    #ifdef DEBUG_LSORAM
+      printf("In LSORAM enclave, Key-Value Pair inserted: \n");
+      displayKeyValuePair(t->key, t->value, key_size, value_size);
+    #endif
   }
   else{
     //insertLSORAM_OCALL();      
@@ -132,21 +159,39 @@ int8_t LinearScan_ORAM::fetch(unsigned char* key, uint32_t key_size_p, unsigned 
     for(uint8_t i = key_size_p; i<key_size; i++) {
       key_l[i]=0x00;
     }
-  } 
+  } else {
+    key_l = key; 
+  }
 
   uint32_t flag=0;
   uint8_t ctr = 0;
 
-  printf("Before vector iterator loop \n"); 
   for(std::vector<tuple*>::iterator it = LSORAM_store->begin(); it!=LSORAM_store->end(); ++it) { 
-    ocomp_set_flag(key_l, (*it)->key, key_size, &flag);
-    printf("After index %d, key was: %s, flag = %d\n" , ctr, (*it)->key,flag);
+    /*
+    printf("Index %d\n", ctr);
+    printf("Current KV Pair held:\n");
+    displayKeyValuePair(key_l, value, key_size, value_size);
+    */
 
-    omove_buffer(value, (*it)->value, value_size, flag);      
-    //printf("<%s,%s>\n", (*it)->key, (*it)->value);
+
     //Perform oblivious pass over iterator->key and key, and then iterator->value and value
+    ocomp_set_flag(key_l, (*it)->key, key_size, &flag);
+    omove_buffer(value, (*it)->value, value_size, flag);      
+    
+    /*
+    printf("Current record in LSORAM:\n");
+    displayKeyValuePair((*it)->key, (*it)->value, key_size, value_size);
+    printf("flag = %d\n", flag); 
+    printf("KV Pair held after oblivious compare and swap:\n");
+    displayKeyValuePair(key_l, value, key_size, value_size);
+    ctr++;
+    */
   }
 
+  #ifdef DEBUG_LSORAM
+    printf("In LinearScan ORAM: Fetched KV pair:\n");
+    displayKeyValuePair(key_l, value, key_size, value_size);
+  #endif
   return 1;
 }
 

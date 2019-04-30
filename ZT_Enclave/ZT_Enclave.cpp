@@ -1,5 +1,15 @@
 #include "ZT_Enclave.hpp"
 
+
+void displayKey(unsigned char *key, uint32_t key_size){
+  printf("<");
+  for(int t=0; t<key_size; t++) {
+    char pc = 'A' + (key[t] % 26);
+    printf("%c", pc); 
+  }
+  printf(">\n");
+}
+
 void serializeECCKeys(sgx_ec256_private_t *ZT_private_key, sgx_ec256_public_t *ZT_public_key, unsigned char *serialized_keys) {
   //Memcpy bytewise all three pieces of the keys into serialized_keys
   unsigned char *serialized_keys_ptr = serialized_keys;	
@@ -189,12 +199,18 @@ uint32_t createNewLSORAMInstance(uint32_t key_size, uint32_t value_size, uint32_
   return lsoram_instance_id++; 
 }
 
-int8_t LSORAMInsert(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size){
+
+int8_t LSORAMAccess(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size){
+  LinearScan_ORAM *current_instance = lsoram_instances[instance_id];
+  //return(current_instance->access(key, key_size, value, value_size));
+}
+
+int8_t processLSORAMInsert(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size){
   LinearScan_ORAM *current_instance = lsoram_instances[instance_id];
   return(current_instance->insert(key, key_size, value, value_size));
 }
 
-int8_t LSORAMFetch(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size){
+int8_t processLSORAMFetch(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size){
   LinearScan_ORAM *current_instance = lsoram_instances[instance_id];
   return(current_instance->fetch(key, key_size, value, value_size));
 }
@@ -279,7 +295,7 @@ void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *enc
 
 
 void accessBulkReadInterface(uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char *encrypted_request, unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* tag_out, uint32_t encrypted_request_size, uint32_t response_size, uint32_t tag_size){
-	//TODO : Would be nice to remove this dynamic allocation.
+  //TODO : Would be nice to remove this dynamic allocation.
   PathORAM *poram_current_instance;
   CircuitORAM *coram_current_instance;
   unsigned char *data_in, *request, *request_ptr, *response, *response_ptr;
@@ -353,3 +369,343 @@ void accessBulkReadInterface(uint32_t instance_id, uint8_t oram_type, uint32_t n
 
 }
 //Clean up all instances of ORAM on terminate.
+
+/*
+  Input: request, request_size
+  Output: Instantiate and populate req_key and req_value
+*/
+uint32_t parseInsertRequest(unsigned char *request, uint32_t request_size, unsigned char **req_key,
+         unsigned char** req_value, uint32_t *req_key_size, uint32_t *req_value_size) {
+  unsigned char* req_ptr = request;
+
+  memcpy(req_key_size, req_ptr, sizeof(uint32_t));;
+  req_ptr+=sizeof(uint32_t);
+
+  *req_key = (unsigned char*) malloc (*req_key_size);
+  memcpy(*req_key, req_ptr, *req_key_size);
+  req_ptr+=(*req_key_size);
+
+  memcpy(req_value_size, req_ptr, sizeof(uint32_t));
+  req_ptr+= sizeof(uint32_t);
+
+  *req_value = (unsigned char*) malloc (*req_value_size);
+  memcpy(*req_value, req_ptr, *req_value_size); 
+}
+
+
+uint32_t parseFetchRequest(unsigned char *request, uint32_t request_size, 
+         unsigned char **req_key, uint32_t *req_key_size) {
+
+  unsigned char* req_ptr = request;
+
+  memcpy(req_key_size, req_ptr, sizeof(uint32_t));;
+  req_ptr+=sizeof(uint32_t);
+
+  *req_key = (unsigned char*) malloc (*req_key_size);
+  memcpy(*req_key, req_ptr, *req_key_size);
+ 
+  req_ptr+=(*req_key_size);
+}
+
+
+/*
+Input: encrypted_request, tag_in, request_size, tag_size, client_pubkey, pubkey_size
+Output: aes_key, iv
+*/
+uint32_t DecryptRequest(unsigned char* encrypted_request, unsigned char **request, 
+         uint32_t request_size, unsigned char* tag_in, uint32_t tag_size, 
+         unsigned char *client_pubkey, uint32_t pubkey_size_x, uint32_t pubkey_size_y, 
+         unsigned char *aes_key, unsigned char *iv){
+
+  // Decrypt Request -> PT Request
+  //   Rebuild client_public_key to EC_KEY
+  EC_GROUP *curve = NULL;
+  EC_KEY *client_public_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+  BIGNUM *x, *y;
+  x = BN_new();
+  y = BN_new();
+  BN_CTX *bn_ctx = BN_CTX_new();
+  if(NULL == (curve = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)))
+    printf("Enclave: Setting EC_GROUP failed \n");
+	
+  EC_POINT *pub_point = EC_POINT_new(curve);
+  //unsigned char bin_x[SGX_ECP256_KEY_SIZE];
+  //unsigned char bin_y[SGX_ECP256_KEY_SIZE];
+  unsigned char *bin_x = (unsigned char*) malloc (pubkey_size_x);
+  unsigned char *bin_y = (unsigned char*) malloc (pubkey_size_y);
+  memcpy(bin_x, client_pubkey, pubkey_size_x);
+  memcpy(bin_y, client_pubkey + pubkey_size_x, pubkey_size_y);
+
+  /* 
+  printf("Serialized Client's Public Key in enclave :\n");
+  for(int t = 0; t < SGX_ECP256_KEY_SIZE; t++)
+  printf("%02X", bin_x[t]);
+  printf("\n");
+  printf("Serialized Client's Public Key in enclave :\n");
+  for(int t = 0; t < SGX_ECP256_KEY_SIZE; t++)
+    printf("%02X", bin_y[t]);
+  printf("\n"); 
+  printf("Encrypted Request Bytes in enclave :\n");
+  for(int t = 0; t<request_size; t++)
+    printf("%02X", encrypted_request[t]);
+  printf("\n"); 
+  */
+
+  const EC_POINT *point = EC_KEY_get0_public_key(sgx_EC_key_pair);
+  BIGNUM *x1, *y1;
+  x1 = BN_new();
+  y1 = BN_new();
+  EC_POINT_get_affine_coordinates_GFp(curve, point, x1, y1, bn_ctx);
+  unsigned char *bin_point = (unsigned char*) malloc(32*2);
+  BN_bn2bin(x1,bin_point);
+  BN_bn2bin(y1,bin_point+32);
+  x = BN_bin2bn(bin_x, pubkey_size_x, NULL);
+  y = BN_bin2bn(bin_y, pubkey_size_y, NULL);
+  if(EC_POINT_set_affine_coordinates_GFp(curve, pub_point, x, y, bn_ctx)==0)
+    printf("Enclave: EC_POINT_set_affine_coordinates FAILED \n");
+
+  if(EC_KEY_set_public_key(client_public_key, pub_point)==0)
+    printf("Enclave: EC_KEY_set_public_key FAILED \n");
+
+  //    ECDH_compute_secret with this public key and enclave private key
+  uint32_t field_size = EC_GROUP_get_degree(curve);
+  uint32_t secret_len = (field_size+7)/8;
+  unsigned char *secret = (unsigned char*) malloc(secret_len);
+  //    Returns a 32 byte secret	
+  secret_len = ECDH_compute_key(secret, secret_len, EC_KEY_get0_public_key(client_public_key),
+               sgx_EC_key_pair, NULL);
+	
+  //    Extract AES key and IV
+  //*aes_key =(unsigned char*) malloc(KEY_LENGTH);
+  //*iv = (unsigned char*) malloc(IV_LENGTH);
+  memcpy(aes_key, secret, KEY_LENGTH);
+  memcpy(iv, secret+KEY_LENGTH, IV_LENGTH);
+
+  /*
+  unsigned char *ptr = aes_key;
+  printf("ecdh_aes_key bytes: \n"); 
+  for(int t = 0; t < KEY_LENGTH; t++)
+    printf("%02X", ptr[t]);
+  printf("\n"); 
+
+  ptr = iv;
+  printf("iv bytes: \n"); 
+  for(int t = 0; t < IV_LENGTH; t++)
+    printf("%02X", ptr[t]);
+  printf("\n");
+
+  printf("tag_in bytes:\n"); 
+  for(int t =0; t <TAG_SIZE; t++)
+    printf("%02X", tag_in[t]);
+  printf("\n");  
+  */
+
+  *request = (unsigned char *) malloc (request_size);
+  sgx_status_t status = SGX_SUCCESS;
+
+  status = sgx_rijndael128GCM_decrypt((const sgx_aes_gcm_128bit_key_t *) aes_key,
+           (const uint8_t *) encrypted_request, 
+           request_size, (uint8_t *) *request, (const uint8_t *) iv, IV_LENGTH, 
+           NULL, 0, (const sgx_aes_gcm_128bit_tag_t*) tag_in);
+
+  /*
+  unsigned char *req_ptr = *request;
+  printf("Decrypted request bytes (%d) : \n", request_size); 
+  for(int t = 0; t<request_size; t++){
+    printf("%02X", req_ptr[t]);
+  } 
+  printf("\n");  
+  */
+
+  free(secret);
+  free(bin_x);
+  free(bin_y);
+  BN_CTX_free(bn_ctx); 
+}
+
+
+
+uint32_t EncryptResponse(unsigned char *response, uint32_t response_size,
+         unsigned char *aes_key, unsigned char *iv, unsigned char 
+         *encrypted_response, unsigned char *tag_out){
+
+  sgx_status_t status;
+  status = sgx_rijndael128GCM_encrypt((const sgx_aes_gcm_128bit_key_t *) aes_key, response, response_size,
+           (uint8_t *) encrypted_response, (const uint8_t *) iv, IV_LENGTH, NULL, 0,
+           (sgx_aes_gcm_128bit_tag_t *) tag_out);
+
+}
+
+int8_t LSORAMFetch(uint32_t instance_id, unsigned char *encrypted_request, uint32_t request_size,
+         unsigned char *encrypted_response, uint32_t response_size, unsigned char *tag_in, 
+         unsigned char *tag_out, uint32_t tag_size, unsigned char *client_pubkey,
+         uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y){
+
+  unsigned char aes_key[KEY_LENGTH];
+  unsigned char iv[IV_LENGTH];
+
+  unsigned char *response = (unsigned char*) malloc(response_size);
+  unsigned char *req_key, *request;
+  uint32_t req_key_size;
+
+  //DecryptRequest
+  DecryptRequest(encrypted_request, &request, request_size, tag_in, tag_size, client_pubkey, 
+                 pubkey_size_x, pubkey_size_y, aes_key, iv);
+  
+  parseFetchRequest(request, request_size, &req_key, &req_key_size);
+
+  //LSORAMFetch()
+  processLSORAMFetch(instance_id, req_key, req_key_size, response, response_size);
+ 
+  //EncryptResponse
+  EncryptResponse(response, response_size, aes_key, iv, encrypted_response, tag_out);
+  free(response);
+}
+
+int8_t LSORAMInsert(uint32_t instance_id, unsigned char *encrypted_request, uint32_t request_size,
+         unsigned char *tag_in, uint32_t tag_size, unsigned char *client_pubkey,
+         uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y){
+
+  //unsigned char *aes_key;
+  //unsigned char *iv;
+
+  unsigned char aes_key[KEY_LENGTH];
+  unsigned char iv[KEY_LENGTH];
+ 
+  LinearScan_ORAM *lsoram_instance = lsoram_instances[instance_id];
+  unsigned char *req_key, *req_value, *request;
+  uint32_t req_key_size, req_value_size;
+
+  //DecryptRequest
+  DecryptRequest(encrypted_request, &request, request_size, tag_in, tag_size, client_pubkey, 
+                 pubkey_size_x, pubkey_size_y, aes_key, iv);
+
+  parseInsertRequest(request, request_size, &req_key, &req_value, &req_key_size, &req_value_size);
+
+  //LSORAMInsert()
+  processLSORAMInsert(instance_id, req_key, req_key_size, req_value, req_value_size);
+
+}
+
+/*
+uint32_t LSORAMAccess_Handler(uint32_t instance_id, unsigned char *encrypted_request,
+         unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* 
+         tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size,
+         unsigned char *client_pubkey, uint32_t pubkey_size){
+   
+  // Decrypt Request -> PT Request
+  //   Rebuild client_public_key to EC_KEY
+  EC_GROUP *curve = NULL;
+  EC_KEY *client_public_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+  BIGNUM *x, *y;
+  x = BN_new();
+  y = BN_new();
+  BN_CTX *bn_ctx = BN_CTX_new();
+  if(NULL == (curve = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)))
+    printf("Enclave: Setting EC_GROUP failed \n");
+	
+  EC_POINT *pub_point = EC_POINT_new(curve);
+  unsigned char bin_x[SGX_ECP256_KEY_SIZE];
+  unsigned char bin_y[SGX_ECP256_KEY_SIZE];
+  memcpy(bin_x, client_pubkey, SGX_ECP256_KEY_SIZE);
+  memcpy(bin_y, client_pubkey + SGX_ECP256_KEY_SIZE, SGX_ECP256_KEY_SIZE);
+
+  
+  printf("Serialized Client's Public Key in enclave :\n");
+  for(int t = 0; t < SGX_ECP256_KEY_SIZE; t++)
+  printf("%02X", bin_x[t]);
+  printf("\n");
+  printf("Serialized Client's Public Key in enclave :\n");
+  for(int t = 0; t < SGX_ECP256_KEY_SIZE; t++)
+    printf("%02X", bin_y[t]);
+  printf("\n");
+  
+
+  const EC_POINT *point = EC_KEY_get0_public_key(sgx_EC_key_pair);
+  BIGNUM *x1, *y1;
+  x1 = BN_new();
+  y1 = BN_new();
+  EC_POINT_get_affine_coordinates_GFp(curve, point, x1, y1, bn_ctx);
+  unsigned char *bin_point = (unsigned char*) malloc(32*2);
+  BN_bn2bin(x1,bin_point);
+  BN_bn2bin(y1,bin_point+32);
+  x = BN_bin2bn(bin_x, SGX_ECP256_KEY_SIZE, NULL);
+  y = BN_bin2bn(bin_y, SGX_ECP256_KEY_SIZE, NULL);
+  if(EC_POINT_set_affine_coordinates_GFp(curve, pub_point, x, y, bn_ctx)==0)
+    printf("Enclave: EC_POINT_set_affine_coordinates FAILED \n");
+
+  if(EC_KEY_set_public_key(client_public_key, pub_point)==0)
+    printf("Enclave: EC_KEY_set_public_key FAILED \n");
+
+  //    ECDH_compute_secret with this public key and enclave private key
+  uint32_t field_size = EC_GROUP_get_degree(curve);
+  uint32_t secret_len = (field_size+7)/8;
+  unsigned char *secret = (unsigned char*) malloc(secret_len);
+  //    Returns a 32 byte secret	
+  secret_len = ECDH_compute_key(secret, secret_len, EC_KEY_get0_public_key(client_public_key),
+               sgx_EC_key_pair, NULL);
+
+  EC_POINT *mul_point = EC_POINT_new(curve);
+  const EC_POINT* p[1];
+  const BIGNUM* m[1];
+  p[0] = pub_point;
+  m[0] = EC_KEY_get0_private_key(sgx_EC_key_pair);
+  int ret = EC_POINTs_mul(curve, mul_point, NULL, 1, p, m, bn_ctx);
+
+  BIGNUM *t1, *t2;
+  t1 = BN_new();
+  t2 = BN_new();
+  ret = EC_POINT_get_affine_coordinates_GFp(curve, mul_point, t1, t2, bn_ctx);
+  unsigned char* bin_t1 = (unsigned char*) malloc(32);
+  BN_bn2bin(t1, bin_t1);	
+	
+  //    Extract AES key and IV
+  unsigned char aes_key[KEY_LENGTH];
+  unsigned char iv[IV_LENGTH];
+  memcpy(aes_key, secret, KEY_LENGTH);
+  memcpy(iv, secret+KEY_LENGTH, IV_LENGTH);
+
+  unsigned char* request = (unsigned char *) malloc (request_size);
+  unsigned char* response = (unsigned char *) malloc (response_size);	
+  sgx_status_t status = SGX_SUCCESS;
+ 
+  status = sgx_rijndael128GCM_decrypt((const sgx_aes_gcm_128bit_key_t *) aes_key, (const uint8_t *) encrypted_request, 
+           request_size, (uint8_t *) request, (const uint8_t *) iv, IV_LENGTH, 
+           NULL, 0, (const sgx_aes_gcm_128bit_tag_t*) tag_in);
+
+  free(secret);
+  BN_CTX_free(bn_ctx);
+
+  // Split PT Request -> Key, Value
+  unsigned char* req_ptr = request;
+  LinearScan_ORAM *lsoram_instace = lsoram_instances[instance_id];
+  unsigned char *req_key, *req_value;
+  uint32_t req_key_size, req_value_size;
+
+  memcpy(&req_key_size, req_ptr, sizeof(uint32_t));;
+  req_ptr+=sizeof(uint32_t);
+
+  req_key = (unsigned char*) malloc (req_key_size);
+  memcpy(req_key, req_ptr, req_key_size);
+  req_ptr+=req_key_size;
+
+  memcpy(&req_value_size, req_ptr, sizeof(uint32_t));
+  req_ptr+= sizeof(uint32_t);
+
+  req_value = (unsigned char*) malloc (req_value_size);
+  memcpy(req_value, req_ptr, req_value_size);
+  
+
+  // LSORAM_Access(Key,Value)
+
+  status = sgx_rijndael128GCM_encrypt((const sgx_aes_gcm_128bit_key_t *) aes_key, response, response_size,
+           (uint8_t *) encrypted_response, (const uint8_t *) iv, IV_LENGTH, NULL, 0,
+           (sgx_aes_gcm_128bit_tag_t *) tag_out);
+
+
+  free(request);
+  free(req_value);
+  free(req_key);
+  // return 
+}
+*/

@@ -49,6 +49,10 @@
     public:
       LinearScan_ORAM(uint32_t instance_id, uint32_t key_size, uint32_t value_size, uint32_t num_blocks, uint8_t mode, uint8_t oblivious_mode, uint8_t populate);
       ~LinearScan_ORAM();
+     
+      uint32_t getKeySize();
+      uint32_t getValueSize(); 
+     
       void populateDummyElements();
 
       //Test key doesn't already exist, sizes of key and value < key_size, value_size

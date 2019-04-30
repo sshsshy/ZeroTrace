@@ -16,6 +16,16 @@
 */
 
 #include "Sample_App.hpp"
+#include <iostream>
+#include <map>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string>
 #include "utils.hpp"
 
 int32_t min_expected_no_of_parameters = 7;
@@ -27,12 +37,13 @@ uint32_t value_size;
 uint8_t store_mode;
 uint8_t oblivious_mode;
 
-unsigned char *encrypted_request, *tag_in, *encrypted_response, *tag_out;
-uint32_t request_size, response_size;
-unsigned char *data_in;
-unsigned char *data_out;
 
-clock_t generate_request_start, generate_request_stop, extract_response_start, extract_response_stop, process_request_start, process_request_stop, generate_request_time, extract_response_time,  process_request_time;
+clock_t generate_request_start, generate_request_stop, extract_response_start,
+        extract_response_stop, process_request_start, process_request_stop, 
+        generate_request_time, extract_response_time, process_request_time;
+
+clock_t inserts_start, inserts_stop, inserts_time, insert_time;
+clock_t fetches_start, fetches_stop, fetches_time, fetch_time;
 
 void getParams(int argc, char* argv[])
 {
@@ -87,9 +98,6 @@ int initializeZeroTrace() {
   unsigned char *serialized_public_key = (unsigned char*) malloc (PRIME256V1_KEY_SIZE*2);
   memcpy(serialized_public_key, bin_x, PRIME256V1_KEY_SIZE);
   memcpy(serialized_public_key + PRIME256V1_KEY_SIZE, bin_y, PRIME256V1_KEY_SIZE);
-	  
-  sig_enclave->r = BN_bin2bn(signature_r, PRIME256V1_KEY_SIZE, NULL);
-  sig_enclave->s = BN_bin2bn(signature_s, PRIME256V1_KEY_SIZE, NULL);	
   
   ret = ECDSA_do_verify((const unsigned char*) serialized_public_key, PRIME256V1_KEY_SIZE*2, sig_enclave, enclave_verification_key);
   if(ret==1){
@@ -111,8 +119,138 @@ int initializeZeroTrace() {
 	  printf("EC_KEY_set_public_key FAILED \n");
 
   BN_CTX_free(bn_ctx);
-  free(serialized_public_key);
+  enclave_public_key = serialized_public_key;
 
+}
+
+int generateKeyValuePair(unsigned char *key, unsigned char *value, uint32_t key_size, uint32_t value_size){
+  int rfd = open("/dev/urandom", O_RDONLY);
+  if (rfd < 0 || read(rfd, key, key_size) < key_size) {
+    // Can't even read random data?
+    perror("reading random string");
+    exit(1);
+  }  
+  if (rfd < 0 || read(rfd, value, value_size) < value_size) {
+    // Can't even read random data?
+    perror("reading random string");
+    exit(1);
+  }
+  close(rfd); 
+  return 1;
+}
+
+void displayKeyValuePair(unsigned char *key, unsigned char *value, uint32_t key_size, uint32_t value_size){
+  printf("<");
+  for(int t=0; t<key_size; t++) {
+    char pc = 'A' + (key[t] % 26);
+    printf("%c", pc); 
+  }
+  printf(", ");  
+   for(int t=0; t<value_size; t++) {
+    char pc = 'A' + (value[t] % 26);
+    printf("%c", pc); 
+  }
+  printf(">\n");
+}
+
+void displayKey(unsigned char *key, uint32_t key_size){
+  printf("<");
+  for(int t=0; t<key_size; t++) {
+    char pc = 'A' + (key[t] % 26);
+    printf("%c", pc); 
+  }
+  printf(">\n");
+}
+
+int client_LSORAM_Insert(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char* value, uint32_t value_size){
+  unsigned char *serialized_request, *encrypted_request, *tag_in;
+  unsigned char *client_pubkey, *ecdh_aes_key, *iv;
+  uint32_t pubkey_size_x, pubkey_size_y;
+ 
+  uint32_t request_size = serializeLSORAMRequest(key, key_size, value, value_size, &serialized_request);
+  
+  encryptLSORAMRequest(ENCLAVE_PUBLIC_KEY, serialized_request, request_size, 
+         &encrypted_request, &client_pubkey, &pubkey_size_x, &pubkey_size_y, 
+         &ecdh_aes_key, &iv, &tag_in);
+
+  /* 
+  printf("Clientpubkey going into ZT_LSORAM_insert:\n");
+  printf("X: :\n");
+  for(int t = 0; t < 32; t++)
+  printf("%02X", client_pubkey[t]);
+  printf("\n");
+  printf("Y :\n");
+  for(int t = 0; t < 32; t++)
+    printf("%02X", client_pubkey[32+t]);
+  printf("\n");
+  */
+
+  ZT_LSORAM_insert(instance_id, encrypted_request, request_size,
+                   tag_in, TAG_SIZE, client_pubkey, pubkey_size_x, pubkey_size_y);
+
+  free(serialized_request);   
+}
+
+//TODO: Finish and Test client_LSORAM_Fetch
+int client_LSORAM_Fetch(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char* encrypted_value, uint32_t value_size){
+  //value needs to be populated by ZT_LSORAM_fetch
+  unsigned char *serialized_request, *encrypted_request, *tag_in;
+  unsigned char *client_pubkey, *ecdh_aes_key, *iv, *response;
+  uint32_t pubkey_size_x, pubkey_size_y;
+
+  // Response buffer and tag, populated by the enclave
+  unsigned char tag_out[TAG_SIZE];
+ 
+  generate_request_start = clock();
+
+  uint32_t request_size = serializeLSORAMRequest(key, key_size, encrypted_value, 0, &serialized_request);
+  
+  encryptLSORAMRequest(ENCLAVE_PUBLIC_KEY, serialized_request, request_size, 
+         &encrypted_request, &client_pubkey, &pubkey_size_x, &pubkey_size_y, &ecdh_aes_key, &iv, &tag_in);
+  
+  generate_request_stop = clock();
+  generate_request_time = generate_request_stop - generate_request_start;
+  printf("Request Generate time = %f ms\n",double(generate_request_time)/double(CLOCKS_PER_MS));
+
+  /* 
+  printf("Clientpubkey going into ZT_LSORAM_fetch:\n");
+  printf("X: :\n");
+  for(int t = 0; t < 32; t++)
+  printf("%02X", client_pubkey[t]);
+  printf("\n");
+  printf("Y :\n");
+  for(int t = 0; t < 32; t++)
+    printf("%02X", client_pubkey[32+t]);
+  printf("\n");
+  */
+
+  // TODO: Perform ZT_LSORAM_fetch
+  
+  process_request_start = clock();
+
+  ZT_LSORAM_fetch(instance_id, encrypted_request, request_size,
+                  encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
+                  client_pubkey, pubkey_size_x, pubkey_size_y);
+  
+  process_request_stop = clock();
+  process_request_time = process_request_stop - process_request_start;
+  printf("Process Request Time = %f ms\n",double(process_request_time)/double(CLOCKS_PER_MS));
+
+  //TODO: Decrypt Response
+
+  extract_response_start = clock();
+
+  decryptLSORAMResponse(encrypted_value, value_size, tag_out, ecdh_aes_key,
+                        iv, &response);
+
+  extract_response_stop = clock(); 
+  printf("Extract Response Time = %f ms\n\n",double(extract_response_time)/double(CLOCKS_PER_MS));
+ 
+  #ifdef DEBUG_LSORAM
+    printf("Obtained Key Value Pair:\n");
+    displayKeyValuePair(key, response, key_size, value_size);
+  #endif
+  free(serialized_request);   
 }
 
 int main(int argc, char *argv[]) {
@@ -123,10 +261,7 @@ int main(int argc, char *argv[]) {
   uint32_t zt_id = ZT_New_LSORAM(num_blocks, key_size, value_size, store_mode, oblivious_mode, 1);
   printf("Obtained zt_id = %d\n", zt_id);
 
-  unsigned char *key = (unsigned char *) malloc(key_size);
-  unsigned char *value = (unsigned char *) malloc(value_size);
-  unsigned char *value_returned = (unsigned char *) malloc(value_size);
- 
+  /* 
   for(int i =0; i<key_size-1;i++){
     key[i] = 'A';
   } 
@@ -135,42 +270,70 @@ int main(int argc, char *argv[]) {
   }
   key[key_size-1]='\0';
   value[value_size-1]='\0';
-   
-  printf("Before insert1\n"); 
-  ZT_LSORAM_insert(zt_id, key, key_size, value, value_size);
-  key[0]='B';
-  printf("Before insert2\n"); 
-  ZT_LSORAM_insert(zt_id, key, key_size, value, value_size);
-  key[0]='C';
-  printf("Before insert3\n"); 
-  ZT_LSORAM_insert(zt_id, key, key_size, value, value_size);
-  key[0]='B'; 
-  ZT_LSORAM_fetch(zt_id, key, key_size, value_returned, value_size);
+  */
  
-  uint32_t old_id = zt_id; 
+  //TODO: 
+  // 1) Automate Generate Insert/Access/Evict requests
+  // 2) Asymetric encrypt queries
+  // 3) ZT_LSORAM_access(zt_id, encrypted_request, request_size, encrypted_response, response_size);
   
-  zt_id = ZT_New_LSORAM(num_blocks, key_size, value_size, store_mode, oblivious_mode, 1);
-  key[0]='A'; 
-  ZT_LSORAM_insert(zt_id, key, key_size, value, value_size);
-  key[0]='B';
-  printf("Before insert2\n"); 
-  ZT_LSORAM_insert(zt_id, key, key_size, value, value_size);
-  key[0]='C';
-  printf("Before insert3\n"); 
-  ZT_LSORAM_insert(zt_id, key, key_size, value, value_size);
-  key[0]='A'; 
-  ZT_LSORAM_fetch(zt_id, key, key_size, value_returned, value_size);
-
-  ZT_LSORAM_evict(old_id, key, key_size);
-  ZT_LSORAM_evict(zt_id, key, key_size);
-
-  key[0]='C';
-  ZT_LSORAM_fetch(zt_id, key, key_size, value_returned, value_size);
-
+  std::map<std::string, std::string> kv_table;
+  
  
-  ZT_LSORAM_delete(old_id);
-  ZT_LSORAM_delete(zt_id);
+  // TODO: Maintain a map of key/value pairs inserted
+  
+  inserts_start = clock();
+  for (int i = 0; i <num_blocks; i++) { 
+    unsigned char *key = (unsigned char *) malloc(key_size);
+    unsigned char *value = (unsigned char *) malloc(value_size);
+
+    generateKeyValuePair(key, value, key_size, value_size);
+    #ifdef DEBUG_LSORAM
+      printf("In LS_Client, Key-Value pair to be inserted: \n");
+      displayKeyValuePair(key, value, key_size, value_size);
+    #endif
+    client_LSORAM_Insert(zt_id, key, key_size, value, value_size);
+
+    std::string key_str, value_str;
+    key_str.assign((const char*) key, key_size);
+    value_str.assign((const char*) value, value_size);
+    kv_table.insert(std::pair<std::string, std::string>(key_str, value_str));
+  }  
+  inserts_stop = clock();
+  inserts_time = inserts_stop - inserts_start;
+  
+  printf("Table size = %d\n", kv_table.size());
  
+  
+  // TODO: Send requests for inserted keys, check that value returned matches the one in map
+  std::map<std::string, std::string>::iterator it = kv_table.begin();
+  unsigned char *encrypted_value_returned = (unsigned char *) malloc(value_size);
+  
+  fetches_start = clock(); 
+  for (int i = 0; i <requestlength; i++) { 
+    //TODO: Iterate over keys
+    unsigned char *key = (unsigned char*) it->first.c_str();
+
+    #ifdef DEBUG_LSORAM
+      printf("In LS_Client, Key to be fetched: \n");
+      displayKey(key, key_size);
+    #endif
+
+    client_LSORAM_Fetch(zt_id, key, key_size, encrypted_value_returned, value_size);
+
+    it++;
+    if(it==kv_table.end())
+      it=kv_table.begin(); 
+    
+  } 
+  fetches_stop = clock();
+  fetches_time = fetches_stop-fetches_start;
+  
+
+  printf("Total insert time = %f\n", double(inserts_time)/double(CLOCKS_PER_MS)); 
+  printf("Per Record insert time = %f\n",(double(inserts_time)/double(CLOCKS_PER_MS))/double(num_blocks)); 
+  printf("Total fetch time = %f\n", double(fetches_time)/double(CLOCKS_PER_MS)); 
+  printf("Per Record fetch time = %f\n",(double(fetches_time)/double(CLOCKS_PER_MS))/double(requestlength)); 
   /* 
   //Variable declarations
   RandomRequestSource reqsource;

@@ -18,5 +18,5 @@
 
 
 EC_KEY *ENCLAVE_PUBLIC_KEY = NULL;
-
+unsigned char *enclave_public_key;
 

@@ -43,6 +43,9 @@
   void serializeRequest(uint32_t request_id, char op_type, unsigned char *data,
        uint32_t data_size, unsigned char* serialized_request);
 
+  int32_t serializeLSORAMRequest(unsigned char *key, uint32_t key_size, 
+           unsigned char *value, uint32_t value_size, unsigned char **serialized_request);
+
 //Crypto Functions
   int AES_GCM_128_encrypt (unsigned char *plaintext, int plaintext_len, unsigned char *aad,
       int aad_len, unsigned char *key, unsigned char *iv, int iv_len,
@@ -65,5 +68,10 @@
   int extractBulkResponse(unsigned char *encrypted_response, unsigned char *tag, 
       int response_size, unsigned char *data_out);
 
-
-  
+  //LSORAM:
+  int encryptLSORAMRequest(EC_KEY* target_public_key, unsigned char *serialized_request,
+     uint32_t request_size, unsigned char **encrypted_request, unsigned char **client_pubkey,
+     uint32_t *pubkey_size_x, uint32_t *pubkey_size_y,  unsigned char **aes_key, 
+     unsigned char **iv, unsigned char **tag);
+  int decryptLSORAMResponse(unsigned char *encrypted_response, uint32_t response_size, 
+    unsigned char *tag, unsigned char *aes_key, unsigned char *iv, unsigned char **response);

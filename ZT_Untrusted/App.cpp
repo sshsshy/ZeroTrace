@@ -372,19 +372,24 @@ uint32_t ZT_New_LSORAM( uint32_t num_blocks, uint32_t key_size, uint32_t value_s
   printf("End of ZT_New_LSORAM\n");
   return instance_id;
 }
-
-int8_t ZT_LSORAM_insert(uint32_t id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size) {
+  
+int8_t ZT_LSORAM_insert(uint32_t instance_id, unsigned char *encrypted_request, uint32_t request_size, 
+       unsigned char* tag_in, uint32_t tag_size, unsigned char *client_pubkey, uint32_t pubkey_size_x,
+       uint32_t pubkey_size_y) { 
   sgx_status_t sgx_return; 
   int8_t ret;
-  printf("In Untrusted insert : <%s,%s>\n", key, value);
-  sgx_return = LSORAMInsert(global_eid, &ret, id, key, key_size, value, value_size);
+  sgx_return = LSORAMInsert(global_eid, &ret, instance_id, encrypted_request,
+               request_size, tag_in, tag_size, client_pubkey, pubkey_size_x+pubkey_size_y, pubkey_size_x, pubkey_size_y);
   return ret;
 }
 
-int8_t ZT_LSORAM_fetch(uint32_t id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size){
+int8_t ZT_LSORAM_fetch(uint32_t instance_id, unsigned char *encrypted_request, uint32_t request_size, unsigned char *encrypted_response, 
+                       uint32_t response_size, unsigned char* tag_in, unsigned char* tag_out, uint32_t tag_size, 
+		       unsigned char *client_pubkey, uint32_t pubkey_size_x, uint32_t pubkey_size_y) { 
   sgx_status_t sgx_return; 
   int8_t ret;
-  sgx_return = LSORAMFetch(global_eid, &ret, id, key, key_size, value, value_size);
+  sgx_return = LSORAMFetch(global_eid, &ret, instance_id, encrypted_request, request_size, encrypted_response, response_size, 
+               tag_in, tag_out, tag_size, client_pubkey, pubkey_size_x + pubkey_size_y, pubkey_size_x, pubkey_size_y);
   return ret;
 }
 

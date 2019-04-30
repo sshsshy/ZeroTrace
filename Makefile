@@ -262,7 +262,8 @@ $(App_Name): ZT_Untrusted/Enclave_u.o $(App_Cpp_Objects)
 	#To build a dynamic-linked library ZeroTrace:
 	@$(CXX) $^ -shared -o libZT.so $(App_Link_Flags)
 	@echo "LINK =>  $@"
-	cp libZT.so Sample_App/
+	cp libZT.so Sample_App/ 
+	cp libZT.so ../
 	$(MAKE) -C Sample_App/
 
 .config_$(Build_Mode)_$(SGX_ARCH):
@@ -299,6 +300,7 @@ $(Enclave_Name): ZT_Enclave/Enclave_t.o $(Enclave_Cpp_Objects) $(Enclave_Asm_Obj
 $(Signed_Enclave_Name): $(Enclave_Name)
 	@$(SGX_ENCLAVE_SIGNER) sign -key ZT_Enclave/Enclave_private.pem -enclave $(Enclave_Name) -out $@ -config $(Enclave_Config_File)
 	cp $(Signed_Enclave_Name) Sample_App/
+	cp $(Signed_Enclave_Name) ../
 	@echo "SIGN =>  $@"
 
 .PHONY: clean

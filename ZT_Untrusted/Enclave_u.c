@@ -61,19 +61,30 @@ typedef struct ms_InitializeKeys_t {
 typedef struct ms_LSORAMInsert_t {
 	int8_t ms_retval;
 	uint32_t ms_instance_id;
-	unsigned char* ms_key;
-	uint32_t ms_key_size;
-	unsigned char* ms_value;
-	uint32_t ms_value_size;
+	unsigned char* ms_encrypted_request;
+	uint32_t ms_request_size;
+	unsigned char* ms_tag_in;
+	uint32_t ms_tag_size;
+	unsigned char* ms_client_pubkey;
+	uint32_t ms_pubkey_size;
+	uint32_t ms_pubkey_size_x;
+	uint32_t ms_pubkey_size_y;
 } ms_LSORAMInsert_t;
 
 typedef struct ms_LSORAMFetch_t {
 	int8_t ms_retval;
 	uint32_t ms_instance_id;
-	unsigned char* ms_key;
-	uint32_t ms_key_size;
-	unsigned char* ms_value;
-	uint32_t ms_value_size;
+	unsigned char* ms_encrypted_request;
+	uint32_t ms_request_size;
+	unsigned char* ms_encrypted_response;
+	uint32_t ms_response_size;
+	unsigned char* ms_tag_in;
+	unsigned char* ms_tag_out;
+	uint32_t ms_tag_size;
+	unsigned char* ms_client_pubkey;
+	uint32_t ms_pubkey_size;
+	uint32_t ms_pubkey_size_x;
+	uint32_t ms_pubkey_size_y;
 } ms_LSORAMFetch_t;
 
 typedef struct ms_LSORAMEvict_t {
@@ -592,29 +603,40 @@ sgx_status_t InitializeKeys(sgx_enclave_id_t eid, int8_t* retval, unsigned char*
 	return status;
 }
 
-sgx_status_t LSORAMInsert(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance_id, unsigned char* key, uint32_t key_size, unsigned char* value, uint32_t value_size)
+sgx_status_t LSORAMInsert(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance_id, unsigned char* encrypted_request, uint32_t request_size, unsigned char* tag_in, uint32_t tag_size, unsigned char* client_pubkey, uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y)
 {
 	sgx_status_t status;
 	ms_LSORAMInsert_t ms;
 	ms.ms_instance_id = instance_id;
-	ms.ms_key = key;
-	ms.ms_key_size = key_size;
-	ms.ms_value = value;
-	ms.ms_value_size = value_size;
+	ms.ms_encrypted_request = encrypted_request;
+	ms.ms_request_size = request_size;
+	ms.ms_tag_in = tag_in;
+	ms.ms_tag_size = tag_size;
+	ms.ms_client_pubkey = client_pubkey;
+	ms.ms_pubkey_size = pubkey_size;
+	ms.ms_pubkey_size_x = pubkey_size_x;
+	ms.ms_pubkey_size_y = pubkey_size_y;
 	status = sgx_ecall(eid, 5, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
 
-sgx_status_t LSORAMFetch(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance_id, unsigned char* key, uint32_t key_size, unsigned char* value, uint32_t value_size)
+sgx_status_t LSORAMFetch(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance_id, unsigned char* encrypted_request, uint32_t request_size, unsigned char* encrypted_response, uint32_t response_size, unsigned char* tag_in, unsigned char* tag_out, uint32_t tag_size, unsigned char* client_pubkey, uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y)
 {
 	sgx_status_t status;
 	ms_LSORAMFetch_t ms;
 	ms.ms_instance_id = instance_id;
-	ms.ms_key = key;
-	ms.ms_key_size = key_size;
-	ms.ms_value = value;
-	ms.ms_value_size = value_size;
+	ms.ms_encrypted_request = encrypted_request;
+	ms.ms_request_size = request_size;
+	ms.ms_encrypted_response = encrypted_response;
+	ms.ms_response_size = response_size;
+	ms.ms_tag_in = tag_in;
+	ms.ms_tag_out = tag_out;
+	ms.ms_tag_size = tag_size;
+	ms.ms_client_pubkey = client_pubkey;
+	ms.ms_pubkey_size = pubkey_size;
+	ms.ms_pubkey_size_x = pubkey_size_x;
+	ms.ms_pubkey_size_y = pubkey_size_y;
 	status = sgx_ecall(eid, 6, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;

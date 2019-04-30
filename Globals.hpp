@@ -58,6 +58,9 @@
     //#define ACCESS_CORAM_DEBUG3 1
     //#define ACCCES_DEBUG_EXITLESS 1
     //#define ACCESS_DEBUG_REBUILD 1 
+ 
+    // Linear Scan ORAM
+    //#define DEBUG_LSORAM 1
 
   //Variable #defines
   //define FLAGS :
@@ -74,6 +77,7 @@
   #define MILLION 1E6
   #define IV_LENGTH 12
   #define ID_SIZE_IN_BYTES 4
+  #define EC_KEY_SIZE 32
   #define KEY_LENGTH 16
   #define TAG_SIZE 16
   #define CLOCKS_PER_MS (CLOCKS_PER_SEC/1000)
