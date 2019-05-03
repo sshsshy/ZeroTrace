@@ -301,6 +301,7 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 	@$(SGX_ENCLAVE_SIGNER) sign -key ZT_Enclave/Enclave_private.pem -enclave $(Enclave_Name) -out $@ -config $(Enclave_Config_File)
 	cp $(Signed_Enclave_Name) Sample_App/
 	cp $(Signed_Enclave_Name) ../
+	cp $(Enclave_Name) ../
 	@echo "SIGN =>  $@"
 
 .PHONY: clean

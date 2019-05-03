@@ -394,17 +394,14 @@ uint32_t parseInsertRequest(unsigned char *request, uint32_t request_size, unsig
 
 
 uint32_t parseFetchRequest(unsigned char *request, uint32_t request_size, 
-         unsigned char **req_key, uint32_t *req_key_size) {
+         unsigned char **req_key) {
 
+  // Populate req_key with request_size bytes of request
+  // If request_size is < req_key_size, it gets padded and handled by LSORAM
   unsigned char* req_ptr = request;
 
-  memcpy(req_key_size, req_ptr, sizeof(uint32_t));;
-  req_ptr+=sizeof(uint32_t);
-
-  *req_key = (unsigned char*) malloc (*req_key_size);
-  memcpy(*req_key, req_ptr, *req_key_size);
- 
-  req_ptr+=(*req_key_size);
+  *req_key = (unsigned char*) malloc (request_size);
+  memcpy(*req_key, req_ptr, request_size); 
 }
 
 
@@ -546,16 +543,15 @@ int8_t LSORAMFetch(uint32_t instance_id, unsigned char *encrypted_request, uint3
 
   unsigned char *response = (unsigned char*) malloc(response_size);
   unsigned char *req_key, *request;
-  uint32_t req_key_size;
 
   //DecryptRequest
   DecryptRequest(encrypted_request, &request, request_size, tag_in, tag_size, client_pubkey, 
                  pubkey_size_x, pubkey_size_y, aes_key, iv);
   
-  parseFetchRequest(request, request_size, &req_key, &req_key_size);
+  parseFetchRequest(request, request_size, &req_key);
 
   //LSORAMFetch()
-  processLSORAMFetch(instance_id, req_key, req_key_size, response, response_size);
+  processLSORAMFetch(instance_id, req_key, request_size, response, response_size);
  
   //EncryptResponse
   EncryptResponse(response, response_size, aes_key, iv, encrypted_response, tag_out);

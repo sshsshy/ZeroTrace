@@ -203,9 +203,10 @@ int client_LSORAM_Fetch(uint32_t instance_id, unsigned char *key, uint32_t key_s
  
   generate_request_start = clock();
 
-  uint32_t request_size = serializeLSORAMRequest(key, key_size, encrypted_value, 0, &serialized_request);
-  
-  encryptLSORAMRequest(ENCLAVE_PUBLIC_KEY, serialized_request, request_size, 
+  //uint32_t request_size = serializeLSORAMRequest(key, key_size, encrypted_value, 0, &serialized_request);
+ 
+  //Request is just key encrypted for fetch 
+  encryptLSORAMRequest(ENCLAVE_PUBLIC_KEY, key, key_size, 
          &encrypted_request, &client_pubkey, &pubkey_size_x, &pubkey_size_y, &ecdh_aes_key, &iv, &tag_in);
   
   generate_request_stop = clock();
@@ -228,7 +229,7 @@ int client_LSORAM_Fetch(uint32_t instance_id, unsigned char *key, uint32_t key_s
   
   process_request_start = clock();
 
-  ZT_LSORAM_fetch(instance_id, encrypted_request, request_size,
+  ZT_LSORAM_fetch(instance_id, encrypted_request, key_size,
                   encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
                   client_pubkey, pubkey_size_x, pubkey_size_y);
   
@@ -250,7 +251,6 @@ int client_LSORAM_Fetch(uint32_t instance_id, unsigned char *key, uint32_t key_s
     printf("Obtained Key Value Pair:\n");
     displayKeyValuePair(key, response, key_size, value_size);
   #endif
-  free(serialized_request);   
 }
 
 int main(int argc, char *argv[]) {
@@ -278,10 +278,7 @@ int main(int argc, char *argv[]) {
   // 3) ZT_LSORAM_access(zt_id, encrypted_request, request_size, encrypted_response, response_size);
   
   std::map<std::string, std::string> kv_table;
-  
- 
-  // TODO: Maintain a map of key/value pairs inserted
-  
+   
   inserts_start = clock();
   for (int i = 0; i <num_blocks; i++) { 
     unsigned char *key = (unsigned char *) malloc(key_size);
@@ -302,7 +299,7 @@ int main(int argc, char *argv[]) {
   inserts_stop = clock();
   inserts_time = inserts_stop - inserts_start;
   
-  printf("Table size = %d\n", kv_table.size());
+  printf("Table size = %ld\n", kv_table.size());
  
   
   // TODO: Send requests for inserted keys, check that value returned matches the one in map

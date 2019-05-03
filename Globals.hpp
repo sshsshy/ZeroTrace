@@ -60,7 +60,7 @@
     //#define ACCESS_DEBUG_REBUILD 1 
  
     // Linear Scan ORAM
-    //#define DEBUG_LSORAM 1
+    #define DEBUG_LSORAM 1
 
   //Variable #defines
   //define FLAGS :

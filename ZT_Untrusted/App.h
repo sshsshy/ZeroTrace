@@ -58,7 +58,7 @@
 #endif
 
 # define TOKEN_FILENAME   "enclave.token"
-# define ENCLAVE_FILENAME "enclave.signed.so"
+# define ENCLAVE_FILENAME "/home/ssasy/Projects/pir-for-hidden-services/pirserver/enclave.signed.so"
 
 extern sgx_enclave_id_t global_eid;    /* global enclave id */
 

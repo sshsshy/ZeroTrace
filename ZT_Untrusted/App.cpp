@@ -205,14 +205,14 @@ void print_error_message(sgx_status_t ret) {
     for (idx = 0; idx < ttl; idx++) {
         if(ret == sgx_errlist[idx].err) {
             if(NULL != sgx_errlist[idx].sug)
-                printf("Info: %s\n", sgx_errlist[idx].sug);
-            printf("Error: %s\n", sgx_errlist[idx].msg);
+                fprintf(stderr, "ZT_LSORAM:Info: %s\n", sgx_errlist[idx].sug);
+            fprintf(stderr, "ZT_LSORAM:Error: %s\n", sgx_errlist[idx].msg);
             break;
         }
     }
     
     if (idx == ttl)
-        printf("Error: Unexpected error occurred.\n");
+        fprintf(stderr, "ZT_LSORAM:Error: Unexpected error occurred.\n");
 }
 
 /* Initialize the enclave:
@@ -245,7 +245,7 @@ int initialize_enclave(void) {
 
     FILE *fp = fopen(token_path, "rb");
     if (fp == NULL && (fp = fopen(token_path, "wb")) == NULL) {
-        printf("Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
+        fprintf(stderr, "ZT_LSORAM:Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
     }
 
     if (fp != NULL) {
@@ -254,7 +254,7 @@ int initialize_enclave(void) {
         if (read_num != 0 && read_num != sizeof(sgx_launch_token_t)) {
             /* if token is invalid, clear the buffer */
             memset(&token, 0x0, sizeof(sgx_launch_token_t));
-            printf("Warning: Invalid launch token read from \"%s\".\n", token_path);
+            fprintf(stderr, "ZT_LSORAM:Warning: Invalid launch token read from \"%s\".\n", token_path);
         }
     }
     /* Step 2: call sgx_create_enclave to initialize an enclave instance */
@@ -278,7 +278,7 @@ int initialize_enclave(void) {
     if (fp == NULL) return 0;
     size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
     if (write_num != sizeof(sgx_launch_token_t))
-        printf("Warning: Failed to save launch token to \"%s\".\n", token_path);
+        fprintf(stderr, "Warning: Failed to save launch token to \"%s\".\n", token_path);
     fclose(fp);
     return 0;
 }
