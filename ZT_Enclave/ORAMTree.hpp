@@ -18,8 +18,8 @@
 #ifndef __ZT_ORAMTREE__
   #include <string.h>
   #include "Globals_Enclave.hpp"
+  #include "Enclave_utils.hpp"
   #include "Bucket.hpp" 
-  #include "oasm_lib.h" 
   #include "Stash.hpp"
 
   class ORAMTree {

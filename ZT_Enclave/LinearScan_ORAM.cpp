@@ -200,7 +200,7 @@ int8_t LinearScan_ORAM::fetch(unsigned char* key, uint32_t key_size_p, unsigned 
 int8_t LinearScan_ORAM::evict(unsigned char* key, uint32_t key_size_p){
   unsigned char *key_l;
   if(key_size_p>key_size){
-    printf("Key or value size > declared size of LSORAM\n");
+    //printf("Key or value size > declared size of LSORAM\n");
     return -1;
   } else if(key_size_p < key_size) {
     // reintance new buffer for key with key_size, 

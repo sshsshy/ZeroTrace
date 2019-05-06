@@ -82,7 +82,7 @@ void ecall_thread_functions(void)
 
     assert(counter == 4*LOOPS_PER_THREAD);
 
-    printf("Info: executing thread synchronization, please wait...  \n");
+    //printf("Info: executing thread synchronization, please wait...  \n");
     /* condition variable */
     thread consumer1(data_consumer);
     thread producer0(data_producer);

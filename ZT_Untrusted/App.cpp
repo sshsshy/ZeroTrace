@@ -369,7 +369,6 @@ uint32_t ZT_New_LSORAM( uint32_t num_blocks, uint32_t key_size, uint32_t value_s
   uint32_t instance_id;
   sgx_return = createNewLSORAMInstance(global_eid, &instance_id, key_size, value_size, num_blocks, mode, oblivious_type, populate_flag);
 
-  printf("End of ZT_New_LSORAM\n");
   return instance_id;
 }
   
@@ -472,7 +471,9 @@ uint8_t downloadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32
   clock_t s,e;
   s = clock();
   clock_gettime(CLOCK_MONOTONIC, &download_start_time);
+  printf("Before ls.downloadPath\n");
   ls.downloadPath(leaf_label, path_array, path_hash, path_hash_size, level, D_level);
+  printf("After ls.downloadPath\n");
   e = clock();	
   clock_gettime(CLOCK_MONOTONIC, &download_end_time);
   double mtime = timetaken(&download_start_time, &download_end_time);

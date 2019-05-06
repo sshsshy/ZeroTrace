@@ -565,6 +565,7 @@ void ORAMTree::uploadPath(uint32_t leaf, unsigned char *path, uint64_t path_size
 
 //For non-recursive level = 0
 unsigned char* ORAMTree::downloadPath(uint32_t leaf, unsigned char *path_hash, uint8_t level) {
+  printf("Stating ORAMTree::downloadPath\n");
   uint32_t temp = leaf;
   uint8_t rt;
   uint32_t tdata_size;
@@ -652,84 +653,16 @@ void ORAMTree::createNewPathHash(unsigned char *path_ptr, unsigned char *old_pat
         sgx_sha256_update(new_path_hash_trail, HASH_LENGTH, sha_handle);
       }
       sgx_sha256_get_hash(sha_handle, (sgx_sha256_hash_t*) new_path_hash);
-      new_path_hash_trail+=HASH_LENGTH;
       if(i==d){
-        memcpy(merkle_root_hash_level[level], new_path_hash, HASH_LENGTH);
+        memcpy(merkle_root_hash_level[level], new_path_hash_trail, HASH_LENGTH);
       }
+      new_path_hash_trail+=HASH_LENGTH;
       new_path_hash+=HASH_LENGTH;
       sgx_sha256_close(sha_handle);
     }
     leaf_temp_prev = leaf_temp;
     leaf_temp = leaf_temp >> 1;
   }
-}
-
-void ORAMTree::addToNewPathHash(unsigned char *path_iter, unsigned char* old_path_hash, unsigned char* new_path_hash_trail, unsigned char* new_path_hash, uint32_t level_in_path, uint32_t leaf_temp_prev, uint32_t block_size, uint8_t level) {
-  uint32_t d = D_level[level];
-  if(level_in_path==d-1) {
-    sgx_sha256_msg(path_iter, (block_size*Z), (sgx_sha256_hash_t*) new_path_hash);
-    new_path_hash_trail = new_path_hash;
-    (new_path_hash)+=HASH_LENGTH;
-  }
-  else if(level_in_path == 0) {
-    sgx_sha_state_handle_t sha_handle;
-    sgx_sha256_init(&sha_handle);
-    sgx_sha256_update(path_iter, (block_size*Z), sha_handle);
-    if(leaf_temp_prev%2 == 0) {
-      sgx_sha256_update(new_path_hash_trail, HASH_LENGTH, sha_handle);
-      //Skip left child from old path :	reat				
-      (old_path_hash)+=HASH_LENGTH;					
-      sgx_sha256_update(old_path_hash, HASH_LENGTH, sha_handle);
-      (old_path_hash)+=HASH_LENGTH;				
-    }
-    else {
-      sgx_sha256_update(old_path_hash, HASH_LENGTH, sha_handle);
-      (old_path_hash)+=HASH_LENGTH;
-      //Skip right child from old path:
-      (old_path_hash)+=HASH_LENGTH;
-      sgx_sha256_update(new_path_hash_trail, HASH_LENGTH, sha_handle);
-    }			
-    sgx_sha256_get_hash(sha_handle, (sgx_sha256_hash_t*) new_path_hash);
-    new_path_hash_trail = new_path_hash;				
-    (new_path_hash)+=HASH_LENGTH;
-    #ifdef DEBUG_INTEGRITY
-      printf("\nROOT_MERKLE_LOCAL previous:");
-      for(uint8_t l = 0;l<HASH_LENGTH;l++){
-        printf("%c",(merkle_root_hash_level[level][l]%26)+'A');
-      }
-      memcpy(merkle_root_hash_level[level],new_path_hash_trail,HASH_LENGTH);
-      printf("\nROOT_MERKLE_LOCAL afterUpdate:");
-      for(uint8_t l = 0;l<HASH_LENGTH;l++){
-        printf("%c",(merkle_root_hash_level[level][l]%26)+'A');
-      }
-      printf("\n");
-    #endif				
-    sgx_sha256_close(sha_handle);				
-  }
-  else {
-  sgx_sha_state_handle_t sha_handle;
-  sgx_sha256_init(&sha_handle);
-  sgx_sha256_update(path_iter, (block_size*Z), sha_handle);
-  if(leaf_temp_prev%2 == 0)	{
-    sgx_sha256_update(new_path_hash_trail, HASH_LENGTH, sha_handle);
-    //Skip left child from old path :					
-    (old_path_hash)+=HASH_LENGTH;					
-    sgx_sha256_update(old_path_hash, HASH_LENGTH, sha_handle);
-    (old_path_hash)+=HASH_LENGTH;				
-  }
-  else {
-    sgx_sha256_update((old_path_hash), HASH_LENGTH, sha_handle);
-    (old_path_hash)+=HASH_LENGTH;
-    //Skip right child from old path:
-    (old_path_hash)+=HASH_LENGTH;
-    sgx_sha256_update(new_path_hash_trail, HASH_LENGTH, sha_handle);
-  }			
-  sgx_sha256_get_hash(sha_handle, (sgx_sha256_hash_t*) new_path_hash);
-  new_path_hash_trail = new_path_hash;				
-  new_path_hash+=HASH_LENGTH;
-  sgx_sha256_close(sha_handle);
-}					
-
 }
 
 void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, uint8_t level, uint32_t data_size, uint32_t block_size, uint32_t id, uint32_t position_in_id, uint32_t *nextLeaf, uint32_t newleaf, uint32_t sampledLeaf, int32_t newleaf_nextlevel) {

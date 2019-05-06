@@ -19,6 +19,7 @@
   #include <stdint.h>
   #include <string.h>
   #include "Globals_Enclave.hpp"
+  #include "Enclave_utils.hpp"
   #include "Block.hpp"
   #include "Bucket.hpp"
   #include "ORAMTree.hpp"

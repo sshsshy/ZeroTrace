@@ -17,12 +17,6 @@
 
 #include "PathORAM_Enclave.hpp"
 
-void oarray_search(uint32_t *array, uint32_t loc, uint32_t *leaf, uint32_t newLabel,uint32_t N_level) {
-  for(uint32_t i=0;i<N_level;i++) {
-    omove(i,&(array[i]),loc,leaf,newLabel);
-  }
-  return;
-}
 
 /*
 PathORAM::PathORAM(uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash_size, uint32_t oblivious, uint32_t s_recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit){

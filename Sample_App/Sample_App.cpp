@@ -516,7 +516,8 @@ int main(int argc, char *argv[]) {
   if(bulk_batch_size==0) {
 
     response_size = data_size;
-    data_out = (unsigned char*) malloc (data_size);
+    //+1 for simplicity printing a null-terminated string
+    data_out = (unsigned char*) malloc (data_size + 1);
 
     encrypted_request_size = computeCiphertextSize(data_size);
     encrypted_request = (unsigned char *) malloc (encrypted_request_size);				
@@ -547,6 +548,7 @@ int main(int argc, char *argv[]) {
       extractResponse(encrypted_response, tag_out, response_size, data_out);
       extract_response_stop = clock();
 
+      data_out[data_size]='\0';
       printf("Obtained data : %s\n", data_out);
 
       #ifdef RESULTS_DEBUG

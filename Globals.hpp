@@ -47,20 +47,20 @@
     #define BUILDTREE_VERIFICATION_DEBUG 1
     //#define SHOW_STASH_COUNT_DEBUG 1 
     //#define SHOW_STASH_CONTENTS 1
-    //#define DEBUG_EFO 1
+    #define DEBUG_EFO 1
     //#define RESULTS_DEBUG 1
     //#define PAO_DEBUG 1
 
     //#define PATHORAM_ACCESS_REBUILD_DEBUG 1
     //#define PATHORAM_STASH_OVERFLOW_DEBUG 1 
-    //#define ACCESS_CORAM_DEBUG 1
-    //#define ACCESS_CORAM_META_DEBUG 1
-    //#define ACCESS_CORAM_DEBUG3 1
+    #define ACCESS_CORAM_DEBUG 1
+    #define ACCESS_CORAM_META_DEBUG 1
+    #define ACCESS_CORAM_DEBUG3 1
     //#define ACCCES_DEBUG_EXITLESS 1
     //#define ACCESS_DEBUG_REBUILD 1 
  
     // Linear Scan ORAM
-    #define DEBUG_LSORAM 1
+    //#define DEBUG_LSORAM 1
 
   //Variable #defines
   //define FLAGS :

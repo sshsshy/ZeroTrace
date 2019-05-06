@@ -23,6 +23,7 @@
   #include "Block.hpp"
   #include "Bucket.hpp"
   #include "ORAMTree.hpp"
+  #include "Enclave_utils.hpp"
   #include "ORAM_Interface.hpp"
 
   class PathORAM: public ORAMTree, public ORAM_Interface 

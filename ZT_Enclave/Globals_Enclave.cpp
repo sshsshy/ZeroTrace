@@ -35,12 +35,12 @@ void printf(const char *fmt, ...)
 void displaySerializedBlock( unsigned char *serialized_result_block, uint32_t level, uint32_t recursion_levels, uint32_t x)
 {
         uint32_t i = 0;
-        uint32_t *data_ptr;			
+        unsigned char *data_ptr;			
         printf("Fetched Result_block : (%d,%d) : \n", getId(serialized_result_block), getTreeLabel(serialized_result_block));
         if(level != recursion_levels){
-            data_ptr = (uint32_t*) getDataPtr(serialized_result_block);
+            data_ptr = (unsigned char*) getDataPtr(serialized_result_block);
             for(i=0;i<x;i++) {
-                printf("%d,",(*data_ptr));
+                printf("%c,",(*data_ptr));
                 data_ptr++;
             }
         printf("\n");

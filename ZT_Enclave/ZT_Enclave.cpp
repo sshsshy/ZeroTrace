@@ -1,45 +1,5 @@
 #include "ZT_Enclave.hpp"
 
-
-void displayKey(unsigned char *key, uint32_t key_size){
-  printf("<");
-  for(int t=0; t<key_size; t++) {
-    char pc = 'A' + (key[t] % 26);
-    printf("%c", pc); 
-  }
-  printf(">\n");
-}
-
-void serializeECCKeys(sgx_ec256_private_t *ZT_private_key, sgx_ec256_public_t *ZT_public_key, unsigned char *serialized_keys) {
-  //Memcpy bytewise all three pieces of the keys into serialized_keys
-  unsigned char *serialized_keys_ptr = serialized_keys;	
-  memcpy(serialized_keys_ptr, ZT_private_key->r, SGX_ECP256_KEY_SIZE);
-  serialized_keys_ptr+=SGX_ECP256_KEY_SIZE;
-  memcpy(serialized_keys_ptr, ZT_public_key->gx, SGX_ECP256_KEY_SIZE);
-  serialized_keys_ptr+=SGX_ECP256_KEY_SIZE;
-  memcpy(serialized_keys_ptr, ZT_public_key->gy, SGX_ECP256_KEY_SIZE);
-}
-
-void enclave_sha256(char * string, uint32_t str_len){
-  sgx_status_t ret = SGX_SUCCESS;
-  sgx_sha256_hash_t p_hash;
-  sgx_sha256_msg((const uint8_t*) string, str_len, &p_hash);
-  printf("SHA256 Output Enclave: \n");
-  for(int i = 0; i < SGX_SHA256_HASH_SIZE ; i++) {
-    printf("%02x ", p_hash[i]);
-  }
-  printf("\n");
-}
-
-void SerializeBNPair(BIGNUM *x, BIGNUM *y, unsigned char **bin_x, unsigned char **bin_y){
-  uint32_t size_bin_x = BN_num_bytes(x);
-  uint32_t size_bin_y = BN_num_bytes(y);
-  *bin_x = (unsigned char*) malloc(size_bin_x);
-  *bin_y = (unsigned char*) malloc(size_bin_y);
-  BN_bn2bin(x, *bin_x);
-  BN_bn2bin(y, *bin_y);  
-}
-
 bool generateAndSealKeys(unsigned char *bin_x_p, unsigned char *bin_y_p, unsigned char *bin_r_p, unsigned char *bin_s_p){
   EC_KEY *ec_signing = NULL;
   ECDSA_SIG *sig_sgxssl = NULL, *sig_pubkey = NULL;
@@ -68,7 +28,6 @@ bool generateAndSealKeys(unsigned char *bin_x_p, unsigned char *bin_y_p, unsigne
   x = BN_new();
   y = BN_new();
   BN_CTX *bn_ctx = BN_CTX_new();
-  printf("HERE 1\n");
   EC_GROUP *ec_group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
   
   sgx_EC_key_pair = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
@@ -114,7 +73,6 @@ bool generateAndSealKeys(unsigned char *bin_x_p, unsigned char *bin_y_p, unsigne
   SerializeBNPair((BIGNUM*) sig_r, (BIGNUM*) sig_s, &bin_r, &bin_s);
   
   //Publish ephemeral key pair and the signature
-  printf("Sizes of : bin_x: %d, bin_y: %d, bin_r: %d, bin_s: %d\n", size_bin_x, size_bin_y, size_bin_r, size_bin_s);
   //PublishKey(bin_x, size_bin_x, bin_y, size_bin_y, bin_r, bin_s, size_bin_r, size_bin_s);
 	  
   memcpy(bin_x_p, bin_x, size_bin_x);
@@ -185,7 +143,10 @@ uint32_t createNewORAMInstance(uint32_t max_blocks, uint32_t data_size, uint32_t
     CircuitORAM *new_coram_instance = new CircuitORAM();
     coram_instances.push_back(new_coram_instance);
 
+    #ifdef DEBUG_ZT_ENCLAVE
     printf("Just before Create\n");
+    #endif
+
     new_coram_instance->Create(pZ, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, onchip_posmap_mem_limit);
     return coram_instance_id++;
   }
@@ -368,7 +329,10 @@ void accessBulkReadInterface(uint32_t instance_id, uint8_t oram_type, uint32_t n
   free(data_in);
 
 }
-//Clean up all instances of ORAM on terminate.
+
+
+
+// LinearScan ORAM Handler Functions:
 
 /*
   Input: request, request_size
