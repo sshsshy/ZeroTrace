@@ -65,6 +65,21 @@ enclave {
            [out, size = tag_size] unsigned char* tag_out, uint32_t tag_size, [in, size = pubkey_size] unsigned char *client_pubkey, 
            uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y); 
 
+
+    public int8_t HSORAMInsert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
+       uint32_t oram_index,
+       [in , size = request_size] unsigned char *encrypted_request, uint32_t request_size,
+       [in, size = tag_size] unsigned char *tag_in, 
+       uint32_t tag_size, [in, size = pubkey_size] unsigned char *client_pubkey,
+       uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y);
+
+    public int8_t HSORAMFetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
+       [in , size = request_size] unsigned char *encrypted_request, uint32_t request_size,
+       [out, size = response_size] unsigned char *encrypted_response, uint32_t response_size, 
+       [in, size = tag_size] unsigned char *tag_in, [out, size = tag_size] unsigned char *tag_out, 
+       uint32_t tag_size, [in, size = pubkey_size] unsigned char *client_pubkey,
+       uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y);
+
     public int8_t LSORAMEvict(uint32_t instance_id, [in, size=key_size] unsigned char* key, uint32_t key_size);
     public uint8_t deleteLSORAMInstance(uint32_t instance_id);
  

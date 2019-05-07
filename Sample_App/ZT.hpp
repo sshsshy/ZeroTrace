@@ -37,6 +37,19 @@ int8_t ZT_LSORAM_fetch(uint32_t instance_id, unsigned char *encrypted_request,
        uint32_t tag_size, unsigned char *client_pubkey, uint32_t pubkey_size_x,
        uint32_t pubkey_size_y); 
 
+
+int8_t ZT_HSORAM_insert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, 
+       uint32_t oram_index, unsigned char *encrypted_request, uint32_t request_size, 
+       unsigned char* tag_in, uint32_t tag_size, unsigned char *client_pubkey, 
+       uint32_t pubkey_size_x, uint32_t pubkey_size_y);
+
+int8_t ZT_HSORAM_fetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
+       unsigned char *encrypted_request, uint32_t request_size, 
+       unsigned char *encrypted_response, uint32_t response_size, 
+       unsigned char* tag_in, unsigned char* tag_out, uint32_t tag_size, 
+       unsigned char *client_pubkey, uint32_t pubkey_size_x,
+       uint32_t pubkey_size_y); 
+
 int8_t ZT_LSORAM_evict(uint32_t id, unsigned char *key, uint32_t key_size);
 void ZT_LSORAM_delete(uint32_t id);
 

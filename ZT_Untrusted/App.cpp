@@ -48,11 +48,7 @@ Note : parameters surrounded by quotes should entered in as is without the quote
 #define ANALYSIS 1
 #define MILLION 1E6
 #define HASH_LENGTH 32
-#define DEBUG_PRINT 1
-#define PRINT_REQ_DETAILS 1
-#define RESULTS_DEBUG 1
 
-#define RECURSION_LEVELS_DEBUG 1
 //#define NO_CACHING_APP 1
 //#define EXITLESS_MODE 1
 //#define POSMAP_EXPERIMENT 1
@@ -79,7 +75,7 @@ uint32_t recursion_levels_e = 0;
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
 bool resume_experiment = false;
-bool inmem_flag =false;
+bool inmem_flag = true;
 
 // Storage Backends:
 //TODO: Switch to LS for each LSORAM, Path, Circuit
@@ -392,6 +388,32 @@ int8_t ZT_LSORAM_fetch(uint32_t instance_id, unsigned char *encrypted_request, u
   return ret;
 }
 
+int8_t ZT_HSORAM_insert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, uint32_t oram_index,
+       unsigned char *encrypted_request, uint32_t request_size, 
+       unsigned char* tag_in, uint32_t tag_size, unsigned char *client_pubkey, uint32_t pubkey_size_x,
+       uint32_t pubkey_size_y) { 
+  sgx_status_t sgx_return; 
+  int8_t ret;
+  sgx_return = HSORAMInsert(global_eid, &ret, lsoram_iid, oram_iid, oram_type, 
+               oram_index, encrypted_request, request_size, tag_in, tag_size, 
+               client_pubkey, pubkey_size_x+pubkey_size_y, pubkey_size_x,
+               pubkey_size_y);
+  return ret;
+}
+
+int8_t ZT_HSORAM_fetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, 
+       unsigned char *encrypted_request, uint32_t request_size, 
+       unsigned char *encrypted_response, uint32_t response_size, 
+       unsigned char* tag_in, unsigned char* tag_out, uint32_t tag_size, 
+       unsigned char *client_pubkey, uint32_t pubkey_size_x, uint32_t pubkey_size_y) { 
+  sgx_status_t sgx_return; 
+  int8_t ret;
+  sgx_return = HSORAMFetch(global_eid, &ret, lsoram_iid, oram_iid, oram_type,
+               encrypted_request, request_size, encrypted_response, response_size, 
+               tag_in, tag_out, tag_size, client_pubkey, 
+               pubkey_size_x + pubkey_size_y, pubkey_size_x, pubkey_size_y);
+  return ret;
+}
 
 int8_t ZT_LSORAM_evict(uint32_t id, unsigned char *key, uint32_t key_size){
   sgx_status_t sgx_return; 
@@ -455,11 +477,8 @@ uint8_t uploadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32_t
 }
 
 uint8_t uploadBucket_OCALL(unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
-  printf("untrusted app: uploadobject()\n");
   clock_gettime(CLOCK_MONOTONIC, &upload_start_time);
-  printf("untrusted app: before ls.uploadobject()\n");
   ls.uploadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
-  printf("untrusted app: after ls.uploadobject()\n");
   clock_gettime(CLOCK_MONOTONIC, &upload_end_time);
   double mtime = timetaken(&upload_start_time, &upload_end_time);
   upload_time = mtime;
@@ -471,9 +490,7 @@ uint8_t downloadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32
   clock_t s,e;
   s = clock();
   clock_gettime(CLOCK_MONOTONIC, &download_start_time);
-  printf("Before ls.downloadPath\n");
   ls.downloadPath(leaf_label, path_array, path_hash, path_hash_size, level, D_level);
-  printf("After ls.downloadPath\n");
   e = clock();	
   clock_gettime(CLOCK_MONOTONIC, &download_end_time);
   double mtime = timetaken(&download_start_time, &download_end_time);
@@ -570,11 +587,11 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
   // RecursionLevels is really number of levels of ORAM
   // So if no recursion, recursion_levels = 1 
   recursion_levels = computeRecursionLevels(max_blocks, recursion_data_size, MEM_POSMAP_LIMIT);
-  printf("APP.cpp : ComputedRecursionLevels = %d", recursion_levels);
+  //printf("APP.cpp : ComputedRecursionLevels = %d", recursion_levels);
     
   uint32_t D = (uint32_t) ceil(log((double)max_blocks/4)/log((double)2));
-  printf("App.cpp: Parmas for LS : \n \(%d, %d, %d, %d, %d, %d, %d, %d)\n",
-         max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
+  //printf("App.cpp: Parmas for LS : \n \(%d, %d, %d, %d, %d, %d, %d, %d)\n",
+  //       max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
   
   // LocalStorage Module, just works with recursion_levels 0 to recursion_levels 
   // And functions without treating recursive and non-recursive backends differently
@@ -611,7 +628,7 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
     //Pass the On-chip Posmap Memory size limit as a parameter.    
     sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type, pZ);
     //sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type);
-    printf("INSTANCE_ID returned = %d\n", instance_id);
+    //printf("INSTANCE_ID returned = %d\n", instance_id);
   
     //(uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type)
     //sgx_return = createNewORAMInstance(global_eid, &urt, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type);

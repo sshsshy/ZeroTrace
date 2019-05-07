@@ -18,8 +18,6 @@
 #include "ORAMTree.hpp"
 
 ORAMTree::ORAMTree(){
-  printf("\n\nORAMTREE CONSTRUCTOR WAS CALLED\n\n");
-  printf("KEY_LENGTH = %d\n", KEY_LENGTH);
   aes_key = (unsigned char*) malloc (KEY_LENGTH);
   sgx_read_rand(aes_key, KEY_LENGTH);
 }
@@ -294,9 +292,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
   uint32_t cnt = 0;
 
   Bucket temp(Z);
-  printf("tdata_size = %d\n", tdata_size);
   temp.initialize(tdata_size, gN);
-  temp.displayBlocks();
 
   //Build Last Level of Tree
   uint32_t label = 0;
@@ -346,7 +342,6 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
     #endif			
     
     //TODO: No need to create and release memory for serialized bucket again and again
-    printf("After Encrypt call, before integrity stuff."); 
     unsigned char *serialized_bucket = temp.serialize(tdata_size);
     uint8_t ret;
 
@@ -471,9 +466,9 @@ void ORAMTree::Initialize() {
 
   //Fix stash_size for each level
   // 2.19498 log2(N) + 1.56669 * lambda - 10.98615
-  printf("RECURSION_LEVELS = %d\n", recursion_levels);
+  //printf("RECURSION_LEVELS = %d\n", recursion_levels);
   for(uint32_t i=0; i<recursion_levels; i++){
-    printf("recursion_level i=%d, gN = %d\n",i, gN);
+    //printf("recursion_level i=%d, gN = %d\n",i, gN);
     
     if(i!=recursion_levels-1 && recursion_levels!=1){
       if(oblivious_flag)
@@ -489,9 +484,9 @@ void ORAMTree::Initialize() {
     }        
   }
   
-  printf("In ORAMTree::Initialize(), Before BuildTreeRecursive\n"); 
+  //printf("In ORAMTree::Initialize(), Before BuildTreeRecursive\n"); 
   BuildTreeRecursive(recursion_levels-1, NULL);
-  printf("In ORAMTree::Initialize(), After BuildTreeRecursive\n");			
+  //printf("In ORAMTree::Initialize(), After BuildTreeRecursive\n");			
 
   uint32_t d_largest;
   if(recursion_levels==-1)
@@ -499,7 +494,7 @@ void ORAMTree::Initialize() {
   else
     d_largest = D_level[recursion_levels-1];
 
-  printf("Initialize , d_largest == %d!\n",d_largest);
+  //printf("Initialize , d_largest == %d!\n",d_largest);
 
   //Allocate encrypted_path and decrypted_path to be the largest path sizes the ORAM would ever need
   //So that we dont have to have costly malloc and free within access()
@@ -508,7 +503,7 @@ void ORAMTree::Initialize() {
   //PerformMemoryAllocations()
 
   uint64_t largest_path_size = Z*(data_size+ADDITIONAL_METADATA_SIZE)*(d_largest);
-  printf("Z=%d, data_size=%d, d_largest=%d, Largest_path_size = %ld\n", Z, data_size, d_largest, largest_path_size);
+  //printf("Z=%d, data_size=%d, d_largest=%d, Largest_path_size = %ld\n", Z, data_size, d_largest, largest_path_size);
   encrypted_path = (unsigned char*) malloc (largest_path_size);
   decrypted_path = (unsigned char*) malloc (largest_path_size);
   fetched_path_array = (unsigned char*) malloc (largest_path_size);
@@ -565,7 +560,6 @@ void ORAMTree::uploadPath(uint32_t leaf, unsigned char *path, uint64_t path_size
 
 //For non-recursive level = 0
 unsigned char* ORAMTree::downloadPath(uint32_t leaf, unsigned char *path_hash, uint8_t level) {
-  printf("Stating ORAMTree::downloadPath\n");
   uint32_t temp = leaf;
   uint8_t rt;
   uint32_t tdata_size;
@@ -958,9 +952,7 @@ void ORAMTree::SetParams(uint8_t pZ, uint32_t s_max_blocks, uint32_t s_data_size
   oblivious_flag = (oblivious==1);
   recursion_data_size = s_recursion_data_size;
   mem_posmap_limit = onchip_posmap_mem_limit;
-  printf("recursion_levels = %d\n", precursion_levels);
   recursion_levels = precursion_levels;
-  printf("precursion_levels = %d", precursion_levels);
   x = recursion_data_size/sizeof(uint32_t);
   Z = pZ;
        

@@ -30,8 +30,8 @@ LocalStorage.cpp
 
 #define HASH_LENGTH 32
 #define FILESTREAM_MODE 1
-#define DEBUG_LS 1
- #define DEBUG_INTEGRITY 1
+//#define DEBUG_LS 1
+//#define DEBUG_INTEGRITY 1
 // Utilization Parameter is the number of blocks of a bucket that is filled at start state. ( 4 = MAX_OCCUPANCY )
 #define UTILIZATION_PARAMETER 4
 #define ADDITIONAL_METADATA_SIZE 24
@@ -608,7 +608,7 @@ void LocalStorage::fetchHash(uint32_t bucket_id, unsigned char* hash, uint32_t h
 
 uint8_t LocalStorage::uploadBucket(uint32_t bucket_id, unsigned char *bucket, uint32_t bucket_size, unsigned char* hash, uint32_t hash_size, uint8_t recursion_level)
 {
-  printf("bucket_id = %d\n", bucket_id);
+  //printf("bucket_id = %d\n", bucket_id);
   uint64_t pos;
   std::string file_name_this, file_name_this_i;
   if(!inmem) {
@@ -1004,7 +1004,6 @@ For each node on path, returned path_hash contains <L-hash, R-Hash> pairs with t
 
 unsigned char* LocalStorage::downloadPath(uint32_t leaf_label, unsigned char *path, unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_lev)
 {
-  printf("In LS:download_Path\n");
   uint64_t pos;
   std::string file_name_this, file_name_this_i;
   uint32_t size_for_level;
@@ -1282,7 +1281,7 @@ unsigned char* LocalStorage::downloadPath(uint32_t leaf_label, unsigned char *pa
   }
   else {
     for(uint8_t i = 0;i<D_lev;i++) {
-      printf("LS: i = %d, temp = %d\n",i,temp);
+      //printf("LS: i = %d, temp = %d\n",i,temp);
       memcpy(path_iter,inmem_tree_l[level]+((Z*size_for_level)*(temp-1)),(Z*size_for_level));
       
       #ifndef PASSIVE_ADVERSARY
@@ -1351,7 +1350,6 @@ unsigned char* LocalStorage::downloadPath(uint32_t leaf_label, unsigned char *pa
       temp = temp>>1;		
     }		
   }
-  printf("LS::downloadPath, before return call\n");
   return path;
 }
 

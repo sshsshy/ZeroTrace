@@ -347,7 +347,7 @@ uint32_t computeCiphertextSize(uint32_t data_size){
   if((ID_SIZE_IN_BYTES+data_size)%AES_GCM_BLOCK_SIZE_IN_BYTES!=0)
     encrypted_request_size+=1;
   encrypted_request_size*=16;
-  printf("Request_size = %d\n", encrypted_request_size);
+  //printf("Request_size = %d\n", encrypted_request_size);
   return encrypted_request_size;
 }
 
@@ -493,7 +493,7 @@ int main(int argc, char *argv[]) {
   
   uint32_t zt_id = ZT_New(max_blocks, data_size, stash_size, oblivious, recursion_data_size, oram_type, Z);
   //Store returned zt_id, to make use of different ORAM instances!
-  printf("Obtained zt_id = %d\n", zt_id);    
+  //printf("Obtained zt_id = %d\n", zt_id);    
 
   //Variable declarations
   RandomRequestSource reqsource;
@@ -549,7 +549,7 @@ int main(int argc, char *argv[]) {
       extract_response_stop = clock();
 
       data_out[data_size]='\0';
-      printf("Obtained data : %s\n", data_out);
+      //printf("Obtained data : %s\n", data_out);
 
       #ifdef RESULTS_DEBUG
           printf("datasize = %d, Fetched Data :", data_size);

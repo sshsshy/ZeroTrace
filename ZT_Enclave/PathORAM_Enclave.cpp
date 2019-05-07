@@ -30,10 +30,8 @@ PathORAM::PathORAM(uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash
 */
 
 void PathORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, int8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
-  printf("In PathORAM::Initialize, Started Initialize\n");
   ORAMTree::SetParams(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels, onchip_posmap_mem_limit);
   ORAMTree::Initialize();
-  printf("Finished Initialize\n");
 }
 
 
@@ -152,7 +150,6 @@ void PathORAM::Access(uint32_t id, char opType, unsigned char* data_in, unsigned
 
 
 uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_in_id, uint32_t leaf, uint32_t newleaf, uint32_t newleaf_nextlevel, unsigned char* decrypted_path, unsigned char* path_hash, uint32_t level, unsigned char* data_in, unsigned char *data_out) {
-  printf("In PathORAM::PathORAM_Access\n");
   uint32_t i, nextLeaf = 0;
   uint32_t d = D_level[level];
   uint32_t n = N_level[level];
@@ -195,16 +192,12 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
 
   //All real blocks from Path get inserted into stash
   //The real blocks also get their ids replaced with dummy identifier.
-  printf("In PathORAM::PathORAM_Access, before PushBlocksFromPathIntoStash\n");
   PushBlocksFromPathIntoStash(decrypted_path_ptr, level, tdata_size, tblock_size, id, position_in_id, &nextLeaf, newleaf, sampledLeaf, newleaf_nextlevel);          
-  printf("In PathORAM::PathORAM_Access, after PushBlocksFromPathIntoStash\n");
 
   if(oblivious_flag) {                
     //TODO Scan Stash and Return Block here !
     if(level == recursion_levels-1){
-      printf("In PathORAM::PathORAM_Access, before stash.PerformAccessOperation\n");
       recursive_stash[level].PerformAccessOperation(opType, id, newleaf, data_in, data_out);
-      printf("In PathORAM::PathORAM_Access, after stash.PerformAccessOperation\n");
       //Optional TODO : Add layer of encryption to result, such that only real client (outside server stack) can decrypt.                
     }
     else{
@@ -243,7 +236,6 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
     if(level==recursion_levels-1)
       recursive_stash[level].displayStashContents(n);
   #endif
-  printf("After stash.displayStashContent\n");
 
   //Encrypt and Upload Path :
   #ifdef EXITLESS_MODE
@@ -268,9 +260,7 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
       
       uint32_t leaf_adj = leaf + n;
 
-      printf("PathORAM_Access: Before createNewPathHash\n");
       createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, data_size+ADDITIONAL_METADATA_SIZE, level);           	      
-      printf("PathORAM_Access: After createNewPathHash\n");
       /*
       for(i=0;i < ( Z * (D_level+1) ); i++) {
 	if(i%Z==0) {
@@ -285,9 +275,7 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
       
     #endif
 
-    printf("PathORAM_Access: Before uploadPath\n");
     uploadPath(leaf+n, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
-    printf("PathORAM_Access: After uploadPath\n");
   #endif
 
   //printf("nextLeaf = %d",nextLeaf);

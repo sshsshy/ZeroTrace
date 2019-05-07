@@ -154,12 +154,12 @@ uint32_t createNewORAMInstance(uint32_t max_blocks, uint32_t data_size, uint32_t
 
 uint32_t createNewLSORAMInstance(uint32_t key_size, uint32_t value_size, uint32_t num_blocks,
           uint8_t mode, uint8_t oblivious_type, uint8_t populate_flag) {
-  LinearScan_ORAM *new_lsoram_instance = new LinearScan_ORAM(lsoram_instance_id, key_size, value_size, num_blocks,
-                  mode, oblivious_type, populate_flag);
-  lsoram_instances.push_back(new_lsoram_instance);   
+  LinearScan_ORAM *new_lsoram_instance = new LinearScan_ORAM(lsoram_instance_id, 
+            key_size, value_size, num_blocks, mode, oblivious_type, populate_flag);
+
+  lsoram_instances.push_back(new_lsoram_instance); 
   return lsoram_instance_id++; 
 }
-
 
 int8_t LSORAMAccess(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char*value, uint32_t value_size){
   LinearScan_ORAM *current_instance = lsoram_instances[instance_id];
@@ -223,10 +223,8 @@ void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *enc
   //current_instance_2->Access();
   //current_instance_2->Access(id, opType, data_in, data_out);
   if(oram_type==0){
-    printf("In PathORAM instance \n");
     poram_current_instance = poram_instances[instance_id];
     //poram_current_instance->Access_temp(id, opType, data_in, data_out);
-    printf("Before Access call\n");	
     poram_current_instance->Access(id, opType, data_in, data_out);
   }
   else {
@@ -526,9 +524,6 @@ int8_t LSORAMInsert(uint32_t instance_id, unsigned char *encrypted_request, uint
          unsigned char *tag_in, uint32_t tag_size, unsigned char *client_pubkey,
          uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y){
 
-  //unsigned char *aes_key;
-  //unsigned char *iv;
-
   unsigned char aes_key[KEY_LENGTH];
   unsigned char iv[KEY_LENGTH];
  
@@ -545,6 +540,91 @@ int8_t LSORAMInsert(uint32_t instance_id, unsigned char *encrypted_request, uint
   //LSORAMInsert()
   processLSORAMInsert(instance_id, req_key, req_key_size, req_value, req_value_size);
 
+}
+
+int8_t HSORAMFetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
+       unsigned char *encrypted_request, uint32_t request_size,
+       unsigned char *encrypted_response, uint32_t response_size, unsigned char *tag_in, 
+       unsigned char *tag_out, uint32_t tag_size, unsigned char *client_pubkey,
+       uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y){
+  
+  unsigned char aes_key[KEY_LENGTH];
+  unsigned char iv[IV_LENGTH];
+
+  unsigned char *response = (unsigned char*) malloc(response_size);
+  unsigned char *data_in = (unsigned char*) malloc(response_size);
+  unsigned char *req_key, *request;
+  uint32_t oram_index;
+
+  //DecryptRequest
+  DecryptRequest(encrypted_request, &request, request_size, tag_in, tag_size, client_pubkey, 
+                 pubkey_size_x, pubkey_size_y, aes_key, iv);
+  
+  parseFetchRequest(request, request_size, &req_key);
+
+  //LSORAMFetch()
+  processLSORAMFetch(lsoram_iid, req_key, request_size, (unsigned char*) &oram_index, sizeof(uint32_t));
+
+  PathORAM *poram_current_instance;
+  CircuitORAM *coram_current_instance;
+  if(oram_type==0){
+    poram_current_instance = poram_instances[oram_iid];
+    poram_current_instance->Access(oram_index, 'r', data_in, response);
+  }
+  else {
+    coram_current_instance = coram_instances[oram_iid];
+    coram_current_instance->Access(oram_index, 'r', data_in, response);
+  }
+ 
+  //EncryptResponse
+  EncryptResponse(response, response_size, aes_key, iv, encrypted_response, tag_out);
+  free(response);
+  free(data_in);
+}
+
+//TODO: HSORAMInsert and HSORAMFetch handling and testing 
+// ZT_ORAMServer performs an HSORAMInsert identical to LSORAM insert. 
+// Here in HSORAM we split the Insert into an LSORAM <key, index> insert
+//      and an ORAM access <index, value>
+int8_t HSORAMInsert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
+         uint32_t oram_index,
+         unsigned char *encrypted_request, uint32_t request_size,
+         unsigned char *tag_in, uint32_t tag_size, unsigned char *client_pubkey,
+         uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y){
+
+  // oram_index is a uint32_t variable for indexing into the ORAM scheme 
+  unsigned char aes_key[KEY_LENGTH];
+  unsigned char iv[KEY_LENGTH];
+ 
+  LinearScan_ORAM *lsoram_instance = lsoram_instances[lsoram_iid];
+  unsigned char *req_key, *req_value, *request, *data_out;
+  uint32_t req_key_size, req_value_size;
+
+  //DecryptRequest
+  DecryptRequest(encrypted_request, &request, request_size, tag_in, tag_size, client_pubkey, 
+                 pubkey_size_x, pubkey_size_y, aes_key, iv);
+
+  parseInsertRequest(request, request_size, &req_key, &req_value, &req_key_size, &req_value_size);
+
+  //LSORAMInsert()
+  processLSORAMInsert(lsoram_iid, req_key, req_key_size, (unsigned char*) &oram_index, sizeof(uint32_t));
+
+  // Perform an LSORAM insert of <key, oram_index>
+  // Perform an ORAM insert of <oram_index, value>
+  // oram_index keeps increasing with insert.
+  // TODO: How to handle it exceeding max_blocks? 
+  PathORAM *poram_current_instance;
+  CircuitORAM *coram_current_instance;
+  data_out = (unsigned char*) malloc(req_value_size);
+  if(oram_type==0){
+    poram_current_instance = poram_instances[oram_iid];
+    poram_current_instance->Access(oram_index, 'w', req_value, data_out);
+  }
+  else {
+    coram_current_instance = coram_instances[oram_iid];
+    coram_current_instance->Access(oram_index, 'w', req_value, data_out);
+  }
+  free(data_out);
 }
 
 /*
