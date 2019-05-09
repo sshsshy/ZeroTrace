@@ -28,6 +28,21 @@
 #include <string>
 #include "utils.hpp"
 
+//#define HSORAM_MODE 1
+#define MAX_BLOCKS 1000
+#define OBLIVIOUS_TYPE_ORAM 1
+#define RECURSION_DATA_SIZE 64
+
+// PathORAM = 0, Stash size = 100
+// CircuitORAM = 1, Stash size = 10
+#define ORAM_TYPE 0
+#define STASH_SIZE 100
+#define Z 4
+
+#define INDEX_SIZE 4
+
+uint32_t oram_index =0;
+
 int32_t min_expected_no_of_parameters = 7;
 uint32_t num_blocks;
 int requestlength;
@@ -77,14 +92,15 @@ int initializeZeroTrace() {
   uint32_t max_buff_size = PRIME256V1_KEY_SIZE;
   unsigned char bin_x[PRIME256V1_KEY_SIZE], bin_y[PRIME256V1_KEY_SIZE], signature_r[PRIME256V1_KEY_SIZE], signature_s[PRIME256V1_KEY_SIZE];
   
-  ZT_Initialize(bin_x, bin_y, signature_r, signature_s, max_buff_size);
+
+  int8_t ret;
+  ret = ZT_Initialize(bin_x, bin_y, signature_r, signature_s, max_buff_size);
   
   EC_GROUP *curve;
   EC_KEY *enclave_verification_key = NULL;
   ECDSA_SIG *sig_enclave = ECDSA_SIG_new();	
-  BIGNUM *x, *y, *xh, *yh, *sig_r, *sig_s;
+  BIGNUM *x, *y, *xh, *yh;
   BN_CTX *bn_ctx = BN_CTX_new();
-  int ret;
 
   if(NULL == (curve = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)))
 	  printf("Setting EC_GROUP failed \n");
@@ -162,7 +178,7 @@ void displayKey(unsigned char *key, uint32_t key_size){
   printf(">\n");
 }
 
-int client_LSORAM_Insert(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char* value, uint32_t value_size){
+int client_LSORAM_Insert(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* value, uint32_t value_size){
   unsigned char *serialized_request, *encrypted_request, *tag_in;
   unsigned char *client_pubkey, *ecdh_aes_key, *iv;
   uint32_t pubkey_size_x, pubkey_size_y;
@@ -185,14 +201,20 @@ int client_LSORAM_Insert(uint32_t instance_id, unsigned char *key, uint32_t key_
   printf("\n");
   */
 
-  ZT_LSORAM_insert(instance_id, encrypted_request, request_size,
+  #ifdef HSORAM_MODE
+    ZT_HSORAM_insert(lsoram_iid, oram_iid, ORAM_TYPE, oram_index++, encrypted_request,
+       request_size, tag_in, TAG_SIZE, client_pubkey, pubkey_size_x, pubkey_size_y);
+  #else
+    ZT_LSORAM_insert(lsoram_iid, encrypted_request, request_size,
                    tag_in, TAG_SIZE, client_pubkey, pubkey_size_x, pubkey_size_y);
+  #endif
+
 
   free(serialized_request);   
 }
 
 //TODO: Finish and Test client_LSORAM_Fetch
-int client_LSORAM_Fetch(uint32_t instance_id, unsigned char *key, uint32_t key_size, unsigned char* encrypted_value, uint32_t value_size){
+int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* encrypted_value, uint32_t value_size){
   //value needs to be populated by ZT_LSORAM_fetch
   unsigned char *serialized_request, *encrypted_request, *tag_in;
   unsigned char *client_pubkey, *ecdh_aes_key, *iv, *response;
@@ -229,10 +251,18 @@ int client_LSORAM_Fetch(uint32_t instance_id, unsigned char *key, uint32_t key_s
   
   process_request_start = clock();
 
-  ZT_LSORAM_fetch(instance_id, encrypted_request, key_size,
+  #ifdef HSORAM_MODE
+    ZT_HSORAM_fetch(lsoram_iid, oram_iid, ORAM_TYPE, encrypted_request, key_size,
+       encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
+       client_pubkey, pubkey_size_x, pubkey_size_y);  
+  #else
+    ZT_LSORAM_fetch(lsoram_iid, encrypted_request, key_size,
                   encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
                   client_pubkey, pubkey_size_x, pubkey_size_y);
-  
+  #endif
+
+
+
   process_request_stop = clock();
   process_request_time = process_request_stop - process_request_start;
   printf("Process Request Time = %f ms\n",double(process_request_time)/double(CLOCKS_PER_MS));
@@ -257,29 +287,19 @@ int main(int argc, char *argv[]) {
   getParams(argc, argv);
 
   initializeZeroTrace();
-  
-  uint32_t zt_id = ZT_New_LSORAM(num_blocks, key_size, value_size, store_mode, oblivious_mode, 1);
-  printf("Obtained zt_id = %d\n", zt_id);
 
   /* 
-  for(int i =0; i<key_size-1;i++){
-    key[i] = 'A';
-  } 
-  for(int i =0; i<value_size-1;i++){
-    value[i] = 'E';
-  }
-  key[key_size-1]='\0';
-  value[value_size-1]='\0';
-  */
+  uint32_t zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, INDEX_SIZE, store_mode, oblivious_mode, 1);
+  printf("Obtained zt_lsoram_id = %d\n", zt_lsoram_id);
  
-  //TODO: 
-  // 1) Automate Generate Insert/Access/Evict requests
-  // 2) Asymetric encrypt queries
-  // 3) ZT_LSORAM_access(zt_id, encrypted_request, request_size, encrypted_response, response_size);
-  
+  uint32_t zt_oram_id = 0; 
+  #ifdef HSORAM_MODE
+    zt_oram_id = ZT_New(MAX_BLOCKS, value_size, STASH_SIZE, OBLIVIOUS_TYPE_ORAM, RECURSION_DATA_SIZE, ORAM_TYPE, Z);
+  #endif 
+ 
   std::map<std::string, std::string> kv_table;
-   
-  inserts_start = clock();
+  
+  inserts_time = 0; 
   for (int i = 0; i <num_blocks; i++) { 
     unsigned char *key = (unsigned char *) malloc(key_size);
     unsigned char *value = (unsigned char *) malloc(value_size);
@@ -289,15 +309,16 @@ int main(int argc, char *argv[]) {
       printf("In LS_Client, Key-Value pair to be inserted: \n");
       displayKeyValuePair(key, value, key_size, value_size);
     #endif
-    client_LSORAM_Insert(zt_id, key, key_size, value, value_size);
 
+    inserts_start = clock();
+    client_LSORAM_Insert(zt_lsoram_id, zt_oram_id, key, key_size, value, value_size);
+    inserts_stop = clock();
     std::string key_str, value_str;
     key_str.assign((const char*) key, key_size);
     value_str.assign((const char*) value, value_size);
     kv_table.insert(std::pair<std::string, std::string>(key_str, value_str));
+    inserts_time = inserts_stop - inserts_start;
   }  
-  inserts_stop = clock();
-  inserts_time = inserts_stop - inserts_start;
   
   printf("Table size = %ld\n", kv_table.size());
  
@@ -306,7 +327,8 @@ int main(int argc, char *argv[]) {
   std::map<std::string, std::string>::iterator it = kv_table.begin();
   unsigned char *encrypted_value_returned = (unsigned char *) malloc(value_size);
   
-  fetches_start = clock(); 
+  fetches_time = 0;
+
   for (int i = 0; i <requestlength; i++) { 
     //TODO: Iterate over keys
     unsigned char *key = (unsigned char*) it->first.c_str();
@@ -316,115 +338,24 @@ int main(int argc, char *argv[]) {
       displayKey(key, key_size);
     #endif
 
-    client_LSORAM_Fetch(zt_id, key, key_size, encrypted_value_returned, value_size);
+    fetches_start = clock(); 
+    client_LSORAM_Fetch(zt_lsoram_id, zt_oram_id, key, key_size, encrypted_value_returned, value_size);
+    fetches_stop = clock();
 
     it++;
     if(it==kv_table.end())
       it=kv_table.begin(); 
     
+    fetches_time+=(fetches_stop-fetches_start);
   } 
-  fetches_stop = clock();
-  fetches_time = fetches_stop-fetches_start;
-  
+ 
 
   printf("Total insert time = %f\n", double(inserts_time)/double(CLOCKS_PER_MS)); 
   printf("Per Record insert time = %f\n",(double(inserts_time)/double(CLOCKS_PER_MS))/double(num_blocks)); 
   printf("Total fetch time = %f\n", double(fetches_time)/double(CLOCKS_PER_MS)); 
   printf("Per Record fetch time = %f\n",(double(fetches_time)/double(CLOCKS_PER_MS))/double(requestlength)); 
-  /* 
-  //Variable declarations
-  RandomRequestSource reqsource;
-  clock_t start,end,tclock;  
-  int *rs = reqsource.GenerateRandomSequence(requestlength,max_blocks-1);
-  uint32_t i = 0;
-
-  uint32_t encrypted_request_size;
-  request_size = ID_SIZE_IN_BYTES + data_size;
-  tag_in = (unsigned char*) malloc (TAG_SIZE);
-  tag_out = (unsigned char*) malloc (TAG_SIZE);
-  data_in = (unsigned char*) malloc (data_size);
-
-  start = clock();
-
-  #ifdef PRINT_REQ_DETAILS	
-    printf("Starting Actual Access requests\n");
-  #endif	
-
-  response_size = data_size;
-  data_out = (unsigned char*) malloc (data_size);
-
-  encrypted_request_size = computeCiphertextSize(data_size);
-  encrypted_request = (unsigned char *) malloc (encrypted_request_size);				
-  encrypted_response = (unsigned char *) malloc (response_size);		
-
-  for(i=0;i<requestlength;i++) {
-    #ifdef PRINT_REQ_DETAILS		
-      printf("---------------------------------------------------\n\nRequest no : %d\n",i);
-      printf("Access ID: %d\n",rs[i]);
-    #endif
-
-    //TODO: Patch this along with instances patch		
-    uint32_t instance_id = 0;	
-    
-    //Prepare Request:
-    //request = rs[i]
-    generate_request_start = clock();
-    encryptRequest(0, 'r', data_in, data_size, encrypted_request, tag_in, encrypted_request_size);
-    generate_request_stop = clock();		
-
-    //Process Request:
-    process_request_start = clock();		
-    ZT_Access(instance_id, oram_type, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE);
-    process_request_stop = clock();				
-
-    //Extract Response:
-    extract_response_start = clock();
-    extractResponse(encrypted_response, tag_out, response_size, data_out);
-    extract_response_stop = clock();
-
-    printf("Obtained data : %s\n", data_out);
-
-    #ifdef RESULTS_DEBUG
-	printf("datasize = %d, Fetched Data :", data_size);
-	for(uint32_t j=0; j < data_size;j++){
-      printf("%c", data_out[j]);
-	}
-	printf("\n");
-    #endif
-
-    #ifdef ANALYSIS
-
-      //TIME in CLOCKS
-      generate_request_time = generate_request_stop - generate_request_start;
-      process_request_time = process_request_stop - process_request_start;			
-      extract_response_time = extract_response_stop - extract_response_start;
-      fprintf(iquery_file,"%f\t%f\t%f\n", double(generate_request_time)/double(CLOCKS_PER_MS), double(process_request_time)/double(CLOCKS_PER_MS), double(extract_response_time)/double(CLOCKS_PER_MS));
-    
-      #ifdef NO_CACHING_APP
-	system("sudo sync");
-	system("sudo echo 3 > /proc/sys/vm/drop_caches");
-      #endif
-    #endif
-  }
-
-  
-  printf("Requests Fin\n");	
-
-  end = clock();
-  tclock = end - start;
-
-  //Time in CLOCKS :
-  printf("%ld\n",tclock);
-  printf("Per query time = %f ms\n",(1000 * ( (double)tclock/ ( (double)requestlength) ) / (double) CLOCKS_PER_SEC));	
-
-  free(encrypted_request);
-  free(encrypted_response);
-  free(tag_in);
-  free(tag_out);
-  free(data_in);
-  free(data_out);
-  */
   return 0;
+  */
 }
 
 

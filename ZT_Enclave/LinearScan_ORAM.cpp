@@ -61,7 +61,8 @@ LinearScan_ORAM::LinearScan_ORAM(uint32_t instance_id, uint32_t key_size_p,
     }
 
     case OUTSIDE_PRM:{
-      //Invoke untrusted function to create a vector and return pointer to vector
+      //Invoke untrusted function to create a vector and return pointer to vector 
+      //printf("Before createLSORAM_OCALL\n");
       ret = createLSORAM_OCALL((void **) &LSORAM_store, instance_id, key_size, value_size, num_blocks, oblivious_mode);
       if(oblv_mode == FULL_OBLV){
         //Instantiate num_blocks_p ( would be done by createLSORAM_OCALL)

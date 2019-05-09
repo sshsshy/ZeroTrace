@@ -304,8 +304,8 @@ void CircuitORAM::EvictOnceFast(uint32_t *deepest, uint32_t *target, int32_t* de
         oset_value(&write_flag, (uint32_t) 0, flag_w);
 
 
-        printf("EVERY PATHBLOCK: serialized_path_ptr2 : ID = %d, treeLabel = %d\n",getId(serialized_path_ptr2),
-              getTreeLabel(serialized_path_ptr2));			
+        //printf("EVERY PATHBLOCK: serialized_path_ptr2 : ID = %d, treeLabel = %d\n",getId(serialized_path_ptr2),
+        //getTreeLabel(serialized_path_ptr2));			
         serialized_path_ptr2-=tblock_size;
       }
     }
@@ -415,9 +415,8 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
       path_ptr = decrypted_path;
     #endif
 
-    printf("CircuitORAM_Access: Before createNewPathHash\n");
-    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, tblock_size, level);           	      
-    printf("CircuitORAM_Access: After createNewPathHash\n");
+    //printf("CircuitORAM_Access: Before createNewPathHash\n");
+    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, tblock_size, level);           	     //printf("CircuitORAM_Access: After createNewPathHash\n");
    
    /* 
    for(i=0;i < Z * dlevel; i++) {
@@ -576,10 +575,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
       path_ptr = eviction_path_left;
     #endif
   
-    printf("CircuitORAM_Access: Before createNewPathHash\n");
     createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, tblock_size, level);           	      
-    printf("CircuitORAM_Access: After createNewPathHash\n");
-
     /*
     for(i=0;i < ( Z * dlevel ); i++) {
       if(i%Z==0) {
@@ -645,10 +641,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
       path_ptr = eviction_path_right;
     #endif
 
-    printf("CircuitORAM_Access: Before createNewPathHash\n");
     createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, tblock_size, level);           	      
-    printf("CircuitORAM_Access: After createNewPathHash\n");
-
     /*
     for(i=0;i < Z*dlevel; i++) {
       if(i%Z==0) {
@@ -732,7 +725,7 @@ uint32_t CircuitORAM::access(uint32_t id, int32_t position_in_id, char opType, u
     }	
     time_report(1);	
  
-    printf("In CircuitORAM::access: leaf = %d\n",leaf); 
+    //printf("In CircuitORAM::access: leaf = %d\n",leaf); 
     decrypted_path = downloadPath(leaf+N_level[0], path_hash, 0);			
     CircuitORAM_Access(opType, id, -1, leaf, newleaf, -1, decrypted_path, path_hash, level, data_in, data_out);
   }

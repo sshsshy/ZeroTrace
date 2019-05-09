@@ -255,7 +255,7 @@ int encryptLSORAMRequest(EC_KEY* target_public_key, unsigned char *serialized_re
   unsigned char *bin_x, *bin_y;
   uint32_t size_bin_x = BN_num_bytes(x);
   uint32_t size_bin_y = BN_num_bytes(y);
-  printf("(%d, %d)\n", size_bin_x, size_bin_y);
+  //printf("(%d, %d)\n", size_bin_x, size_bin_y);
   bin_x = (unsigned char*) malloc(EC_KEY_SIZE);
   bin_y = (unsigned char*) malloc(EC_KEY_SIZE);
   BN_bn2bin(x, bin_x);

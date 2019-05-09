@@ -17,15 +17,15 @@
 #
 
 #N = Number of data blocks
-N=100
+N=10000
 #no_of_req
-no_of_req=1
+no_of_req=100
 #stash_size
 #Note refer to PathORAM and CircuitORAM papers to understand stash size bounds.
 #It is typically sufficient to use 150 for PathORAM and 10 for CircuitORAM
-stash_size=100
+stash_size=10
 #block_size
-block_size=1024
+block_size=16384
 #new/resume
 #New/Resume flag, Previously ZT had a State Store/Resume mechanism which is currently broken. So hence always use new till this is fixed
 new="new"
@@ -36,7 +36,7 @@ oblivious_flag=1
 #recursion_data_size can be used to tailor the data size of the recursive ORAM trees, since currently ZT uses ids of 4 bytes, recursion size of 64, gives us a compression factor of 16 with each level of recursion.
 recursion_data_size=64
 #ZT supports circuit/path oram options as the type of underlying ORAM. Remember to adjust stash sizes according to the choice of ORAM_type
-oram_type="path"
+oram_type="circuit"
 #Z is the number of blocks in a bucket of the ORAMTree, typically PathORAM uses Z=4. But Z can be adjusted to make trade-offs on the security VS performance bar. Read more about this in the original Circuit ORAM/ Path ORAM papers. 
 Z=4
 #ZT supports a bulk_read_interface (designed for an application we are working on). Setting bulk_request_size to 0, will perform each request in the no_of_req individually, setting any larger value will cause the untrusted components of ZT to chunk the requests into bulk chunks of that size, the enclave will then perform all the requests in the chunk before it returns the response back to the untrusted part of the program.
