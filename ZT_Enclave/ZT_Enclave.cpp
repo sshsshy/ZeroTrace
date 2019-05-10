@@ -542,6 +542,12 @@ int8_t LSORAMInsert(uint32_t instance_id, unsigned char *encrypted_request, uint
 
 }
 
+int8_t LSORAMInsert_pt(uint32_t instance_id, unsigned char *key, uint32_t key_size, 
+       unsigned char *value, uint32_t value_size){
+
+  processLSORAMInsert(instance_id, key, key_size, value, value_size);
+}
+
 int8_t HSORAMFetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
        unsigned char *encrypted_request, uint32_t request_size,
        unsigned char *encrypted_response, uint32_t response_size, unsigned char *tag_in, 

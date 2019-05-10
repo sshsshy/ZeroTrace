@@ -59,6 +59,8 @@ enclave {
     public int8_t LSORAMInsert(uint32_t instance_id, [in, size=request_size] unsigned char *encrypted_request, uint32_t request_size, 
            [in, size = tag_size] unsigned char* tag_in, uint32_t tag_size, 
            [in, size = pubkey_size] unsigned char *client_pubkey, uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y); 
+    public int8_t LSORAMInsert_pt(uint32_t instance_id, [in, size = key_size] unsigned char *key, uint32_t key_size, 
+       [in, size = value_size] unsigned char *value, uint32_t value_size);
 
     public int8_t LSORAMFetch(uint32_t instance_id, [in, size=request_size] unsigned char *encrypted_request, uint32_t request_size, 
            [out, size = response_size] unsigned char *encrypted_response, uint32_t response_size, [in, size = tag_size] unsigned char* tag_in, 

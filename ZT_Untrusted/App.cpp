@@ -378,6 +378,41 @@ int8_t ZT_LSORAM_insert(uint32_t instance_id, unsigned char *encrypted_request, 
   return ret;
 }
 
+int8_t ZT_LSORAM_oprm_insert_pt(uint32_t instance_id, unsigned char *key_l, 
+       uint32_t key_size, unsigned char *value_l, uint32_t value_size){
+
+  std::vector<tuple *> *LSORAM_store;
+  auto search = ls_LSORAM.find(instance_id); 
+  if(search != ls_LSORAM.end()){
+    LSORAM_store = search->second;
+  }
+  else{
+    return -1;
+  }
+
+  int8_t ret;
+  tuple *t = (tuple *) malloc(sizeof(tuple));
+  t->key = (unsigned char*) malloc (key_size);
+  t->value = (unsigned char*) malloc (value_size);
+  memcpy(t->key, key_l, key_size);
+  memcpy(t->value, value_l, value_size);
+  LSORAM_store->push_back(t);
+    
+  return ret;
+}
+
+int8_t ZT_LSORAM_iprm_insert_pt(uint32_t instance_id, unsigned char *key_l, 
+       uint32_t key_size, unsigned char *value_l, uint32_t value_size){
+
+  int8_t ret;
+  sgx_status_t sgx_return;
+  sgx_return = LSORAMInsert_pt(global_eid, &ret, instance_id, key_l, 
+               key_size, value_l, value_size);  
+ 
+  return ret;
+}
+
+
 int8_t ZT_LSORAM_fetch(uint32_t instance_id, unsigned char *encrypted_request, uint32_t request_size, unsigned char *encrypted_response, 
                        uint32_t response_size, unsigned char* tag_in, unsigned char* tag_out, uint32_t tag_size, 
 		       unsigned char *client_pubkey, uint32_t pubkey_size_x, uint32_t pubkey_size_y) { 

@@ -114,7 +114,10 @@ int initializeZeroTrace() {
   unsigned char *serialized_public_key = (unsigned char*) malloc (PRIME256V1_KEY_SIZE*2);
   memcpy(serialized_public_key, bin_x, PRIME256V1_KEY_SIZE);
   memcpy(serialized_public_key + PRIME256V1_KEY_SIZE, bin_y, PRIME256V1_KEY_SIZE);
-  
+ 
+  sig_enclave->r = BN_bin2bn(signature_r, PRIME256V1_KEY_SIZE, NULL);
+  sig_enclave->s = BN_bin2bn(signature_s, PRIME256V1_KEY_SIZE, NULL);
+ 
   ret = ECDSA_do_verify((const unsigned char*) serialized_public_key, PRIME256V1_KEY_SIZE*2, sig_enclave, enclave_verification_key);
   if(ret==1){
 	  printf("GetEnclavePublishedKey : Verification Successful! \n");
@@ -288,14 +291,16 @@ int main(int argc, char *argv[]) {
 
   initializeZeroTrace();
 
-  /* 
-  uint32_t zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, INDEX_SIZE, store_mode, oblivious_mode, 1);
-  printf("Obtained zt_lsoram_id = %d\n", zt_lsoram_id);
- 
+  uint32_t zt_lsoram_id;
   uint32_t zt_oram_id = 0; 
+
   #ifdef HSORAM_MODE
+    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, INDEX_SIZE, store_mode, oblivious_mode, 1);
     zt_oram_id = ZT_New(MAX_BLOCKS, value_size, STASH_SIZE, OBLIVIOUS_TYPE_ORAM, RECURSION_DATA_SIZE, ORAM_TYPE, Z);
-  #endif 
+  #else
+    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, value_size, store_mode, oblivious_mode, 1);
+  #endif
+  printf("Obtained zt_lsoram_id = %d\n", zt_lsoram_id); 
  
   std::map<std::string, std::string> kv_table;
   
@@ -311,7 +316,14 @@ int main(int argc, char *argv[]) {
     #endif
 
     inserts_start = clock();
-    client_LSORAM_Insert(zt_lsoram_id, zt_oram_id, key, key_size, value, value_size);
+   
+    if(store_mode==1){
+      ZT_LSORAM_oprm_insert_pt(zt_lsoram_id, key, key_size, value, value_size);
+    }
+    else{
+      ZT_LSORAM_iprm_insert_pt(zt_lsoram_id, key, key_size, value, value_size);
+      //client_LSORAM_Insert(zt_lsoram_id, zt_oram_id, key, key_size, value, value_size);
+    }
     inserts_stop = clock();
     std::string key_str, value_str;
     key_str.assign((const char*) key, key_size);
@@ -355,7 +367,6 @@ int main(int argc, char *argv[]) {
   printf("Total fetch time = %f\n", double(fetches_time)/double(CLOCKS_PER_MS)); 
   printf("Per Record fetch time = %f\n",(double(fetches_time)/double(CLOCKS_PER_MS))/double(requestlength)); 
   return 0;
-  */
 }
 
 
