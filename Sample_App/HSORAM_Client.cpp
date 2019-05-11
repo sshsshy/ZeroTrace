@@ -28,22 +28,13 @@
 #include <string>
 #include "utils.hpp"
 
-//#define HSORAM_MODE 1
-#define MAX_BLOCKS 1000
-#define OBLIVIOUS_TYPE_ORAM 1
-#define RECURSION_DATA_SIZE 64
-
 // PathORAM = 0, Stash size = 100
 // CircuitORAM = 1, Stash size = 10
-#define ORAM_TYPE 0
-#define STASH_SIZE 100
-#define Z 4
-
 #define INDEX_SIZE 4
 
 uint32_t oram_index =0;
 
-int32_t min_expected_no_of_parameters = 8;
+int32_t min_expected_no_of_parameters = 13;
 uint32_t num_blocks;
 int requestlength;
 uint32_t data_size;
@@ -53,6 +44,12 @@ uint8_t store_mode;
 uint8_t oblivious_mode;
 std::string logfile;
 
+uint32_t stash_size;
+bool inmem_flag = true;
+uint32_t recursion_data_size;
+uint32_t oram_type;
+uint32_t double_oblivious;
+uint32_t Z;
 
 clock_t generate_request_start, generate_request_stop, extract_response_start,
         extract_response_stop, process_request_start, process_request_stop, 
@@ -65,9 +62,10 @@ void getParams(int argc, char* argv[])
 {
   if(argc<min_expected_no_of_parameters) {
     printf("Command line parameters error, expected :\n");
-    printf(" <N> <No_of_requests> <key_size> <value_size> <0/1 = Store In-PRM/Outside-PRM> <0/1 = Access-Oblivious/Full-Oblivious> <Logfile>\n");
+    printf(" <N> <No_of_requests> <key_size> <value_size> <0/1 = Store In-PRM/Outside-PRM> <0/1 = Access-Oblivious/Full-Oblivious> \n");
   }
 
+  //LS Params for indexing ORAM:
   std::string str = argv[1];
   num_blocks = std::stoi(str);
   str = argv[2];
@@ -75,14 +73,34 @@ void getParams(int argc, char* argv[])
   str = argv[3];
   key_size = std::stoi(str);
   str = argv[4];
+  // Value size will get used for the ORAM,
+  // The LS will internally use value size as size(uint32_t)
+  // for indexes of the ORAM scheme
   value_size = std::stoi(str);	
   str = argv[5];
   store_mode = std::stoi(str);
   str = argv[6];
   oblivious_mode = std::stoi(str);
-  str = argv[7];
-  logfile = str;
 
+  //ORAM parameters 
+  str = argv[7];
+  stash_size = std::stoi(str);
+  str = argv[8];
+  if(str=="1")
+    double_oblivious = 1;
+  str = argv[9];	
+  recursion_data_size = std::stoi(str);
+  str = argv[10];
+  if(str=="path")
+    oram_type = 0;
+  if(str=="circuit")
+    oram_type = 1;
+  str=argv[11];
+  Z = std::stoi(str);
+
+  //Logfile
+  str = argv[12];
+  logfile = str;
 }
 
 struct node{
@@ -185,7 +203,7 @@ void displayKey(unsigned char *key, uint32_t key_size){
   printf(">\n");
 }
 
-int client_LSORAM_Insert(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* value, uint32_t value_size){
+int client_HSORAM_Insert(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* value, uint32_t value_size){
   unsigned char *serialized_request, *encrypted_request, *tag_in;
   unsigned char *client_pubkey, *ecdh_aes_key, *iv;
   uint32_t pubkey_size_x, pubkey_size_y;
@@ -208,20 +226,13 @@ int client_LSORAM_Insert(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *
   printf("\n");
   */
 
-  #ifdef HSORAM_MODE
-    ZT_HSORAM_insert(lsoram_iid, oram_iid, ORAM_TYPE, oram_index++, encrypted_request,
+  ZT_HSORAM_insert(lsoram_iid, oram_iid, oram_type, oram_index++, encrypted_request,
        request_size, tag_in, TAG_SIZE, client_pubkey, pubkey_size_x, pubkey_size_y);
-  #else
-    ZT_LSORAM_insert(lsoram_iid, encrypted_request, request_size,
-                   tag_in, TAG_SIZE, client_pubkey, pubkey_size_x, pubkey_size_y);
-  #endif
-
 
   free(serialized_request);   
 }
 
-//TODO: Finish and Test client_LSORAM_Fetch
-int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* encrypted_value, uint32_t value_size){
+int client_HSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* encrypted_value, uint32_t value_size){
   //value needs to be populated by ZT_LSORAM_fetch
   unsigned char *serialized_request, *encrypted_request, *tag_in;
   unsigned char *client_pubkey, *ecdh_aes_key, *iv, *response;
@@ -254,27 +265,15 @@ int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *k
   printf("\n");
   */
 
-  // TODO: Perform ZT_LSORAM_fetch
-  
   process_request_start = clock();
 
-  #ifdef HSORAM_MODE
-    ZT_HSORAM_fetch(lsoram_iid, oram_iid, ORAM_TYPE, encrypted_request, key_size,
-       encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
-       client_pubkey, pubkey_size_x, pubkey_size_y);  
-  #else
-    ZT_LSORAM_fetch(lsoram_iid, encrypted_request, key_size,
-                  encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
-                  client_pubkey, pubkey_size_x, pubkey_size_y);
-  #endif
-
-
+  ZT_HSORAM_fetch(lsoram_iid, oram_iid, oram_type, encrypted_request, key_size,
+     encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
+     client_pubkey, pubkey_size_x, pubkey_size_y);  
 
   process_request_stop = clock();
   process_request_time = process_request_stop - process_request_start;
   printf("Process Request Time = %f ms\n",double(process_request_time)/double(CLOCKS_PER_MS));
-
-  //TODO: Decrypt Response
 
   extract_response_start = clock();
 
@@ -297,16 +296,11 @@ int main(int argc, char *argv[]) {
 
   double ftime[requestlength];
 
-  uint32_t zt_lsoram_id;
-  uint32_t zt_oram_id = 0; 
+  uint32_t zt_lsoram_id, zt_oram_id; 
 
-  #ifdef HSORAM_MODE
-    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, INDEX_SIZE, store_mode, oblivious_mode, 1);
-    zt_oram_id = ZT_New(MAX_BLOCKS, value_size, STASH_SIZE, OBLIVIOUS_TYPE_ORAM, RECURSION_DATA_SIZE, ORAM_TYPE, Z);
-  #else
-    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, value_size, store_mode, oblivious_mode, 1);
-  #endif
-  printf("Obtained zt_lsoram_id = %d\n", zt_lsoram_id); 
+  zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, INDEX_SIZE, store_mode, oblivious_mode, 1);
+  zt_oram_id = ZT_New(num_blocks, value_size, stash_size, double_oblivious,
+               recursion_data_size, oram_type, Z);
  
   std::map<std::string, std::string> kv_table;
   
@@ -357,7 +351,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     fetches_start = clock(); 
-    client_LSORAM_Fetch(zt_lsoram_id, zt_oram_id, key, key_size, encrypted_value_returned, value_size);
+    client_HSORAM_Fetch(zt_lsoram_id, zt_oram_id, key, key_size, encrypted_value_returned, value_size);
     fetches_stop = clock();
     ftime[i]=double(fetches_stop-fetches_start)/double(CLOCKS_PER_MS);
 
