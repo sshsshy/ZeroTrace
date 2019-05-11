@@ -43,7 +43,7 @@
 
 uint32_t oram_index =0;
 
-int32_t min_expected_no_of_parameters = 7;
+int32_t min_expected_no_of_parameters = 8;
 uint32_t num_blocks;
 int requestlength;
 uint32_t data_size;
@@ -51,6 +51,7 @@ uint32_t key_size;
 uint32_t value_size;
 uint8_t store_mode;
 uint8_t oblivious_mode;
+std::string logfile;
 
 
 clock_t generate_request_start, generate_request_stop, extract_response_start,
@@ -79,6 +80,9 @@ void getParams(int argc, char* argv[])
   store_mode = std::stoi(str);
   str = argv[6];
   oblivious_mode = std::stoi(str);
+  str = argv[7];
+  logfile = str;
+
 }
 
 struct node{
@@ -291,6 +295,8 @@ int main(int argc, char *argv[]) {
 
   initializeZeroTrace();
 
+  double ftime[requestlength];
+
   uint32_t zt_lsoram_id;
   uint32_t zt_oram_id = 0; 
 
@@ -353,6 +359,7 @@ int main(int argc, char *argv[]) {
     fetches_start = clock(); 
     client_LSORAM_Fetch(zt_lsoram_id, zt_oram_id, key, key_size, encrypted_value_returned, value_size);
     fetches_stop = clock();
+    ftime[i]=double(fetches_stop-fetches_start)/double(CLOCKS_PER_MS);
 
     it++;
     if(it==kv_table.end())
@@ -362,10 +369,20 @@ int main(int argc, char *argv[]) {
   } 
  
 
+  double fetch_time=(double(fetches_time)/double(CLOCKS_PER_MS))/double(requestlength);
+  double insert_time=(double(inserts_time)/double(CLOCKS_PER_MS))/double(num_blocks);
+
   printf("Total insert time = %f\n", double(inserts_time)/double(CLOCKS_PER_MS)); 
-  printf("Per Record insert time = %f\n",(double(inserts_time)/double(CLOCKS_PER_MS))/double(num_blocks)); 
+  printf("Per Record insert time = %f\n",insert_time); 
   printf("Total fetch time = %f\n", double(fetches_time)/double(CLOCKS_PER_MS)); 
-  printf("Per Record fetch time = %f\n",(double(fetches_time)/double(CLOCKS_PER_MS))/double(requestlength)); 
+  printf("Per Record fetch time = %f\n",fetch_time); 
+  
+  FILE *fptr = fopen(logfile.c_str(), "a");
+  double stddev=compute_stddev((double*) ftime, requestlength);
+
+  fprintf(fptr, "%d,%f,%f\n", num_blocks, fetch_time, stddev);
+  fclose(fptr);
+
   return 0;
 }
 

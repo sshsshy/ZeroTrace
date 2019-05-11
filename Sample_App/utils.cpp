@@ -17,6 +17,21 @@
 
 #include "utils.hpp"
 
+double compute_stddev(double *elements, uint32_t num_elements){
+  double mean = 0, var = 0, stddev;
+  for(uint32_t i=0; i<num_elements; i++){
+    mean+=elements[i];   
+  }
+  mean=(mean/num_elements);
+  for(uint32_t i=0; i<num_elements; i++){
+    double diff = mean - elements[i];
+    var+=(diff*diff);
+  }
+  var=var/num_elements;
+  stddev = sqrt(var);
+  return stddev;
+}
+
 double time_taken(timespec *start, timespec *end){
   long seconds, nseconds;
   seconds = end->tv_sec - start->tv_sec;

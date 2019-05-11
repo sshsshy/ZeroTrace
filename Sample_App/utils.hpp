@@ -22,6 +22,7 @@
 #include <iostream>
 #include <string.h>
 #include <random>
+#include <math.h>
 #include "ZT.hpp"
 #include "RandomRequestSource.hpp"
 #include <openssl/ec.h>
@@ -75,3 +76,6 @@
      unsigned char **iv, unsigned char **tag);
   int decryptLSORAMResponse(unsigned char *encrypted_response, uint32_t response_size, 
     unsigned char *tag, unsigned char *aes_key, unsigned char *iv, unsigned char **response);
+
+  //Timing and other functions
+  double compute_stddev(double *elements, uint32_t num_elements);
