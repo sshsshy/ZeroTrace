@@ -62,7 +62,7 @@ void getParams(int argc, char* argv[])
 {
   if(argc<min_expected_no_of_parameters) {
     printf("Command line parameters error, expected :\n");
-    printf(" <N> <No_of_requests> <key_size> <value_size> <0/1 = Store In-PRM/Outside-PRM> <0/1 = Access-Oblivious/Full-Oblivious> \n");
+    printf(" <N> <No_of_requests> <key_size> <value_size> <0/1 = Store In-PRM/Outside-PRM> <0/1 = Access-Oblivious/Full-Oblivious> <ORAM Type(\"circuit\" or \"path\")> <stash_size> <double_oblivious> <recursion_data_size> <Z=4>\n");
   }
 
   //LS Params for indexing ORAM:
@@ -84,17 +84,17 @@ void getParams(int argc, char* argv[])
 
   //ORAM parameters 
   str = argv[7];
-  stash_size = std::stoi(str);
-  str = argv[8];
-  if(str=="1")
-    double_oblivious = 1;
-  str = argv[9];	
-  recursion_data_size = std::stoi(str);
-  str = argv[10];
   if(str=="path")
     oram_type = 0;
   if(str=="circuit")
     oram_type = 1;
+  str = argv[8];
+  stash_size = std::stoi(str);
+  str = argv[9];
+  if(str=="1")
+    double_oblivious = 1;
+  str = argv[10];	
+  recursion_data_size = std::stoi(str);
   str=argv[11];
   Z = std::stoi(str);
 
