@@ -30,9 +30,9 @@
 
 // PathORAM = 0, Stash size = 100
 // CircuitORAM = 1, Stash size = 10
-#define INDEX_SIZE 4
+#define INDEX_SIZE 8
 
-uint32_t oram_index =0;
+uint64_t oram_index =0;
 
 int32_t min_expected_no_of_parameters = 13;
 uint32_t num_blocks;
@@ -61,8 +61,9 @@ clock_t fetches_start, fetches_stop, fetches_time, fetch_time;
 void getParams(int argc, char* argv[])
 {
   if(argc<min_expected_no_of_parameters) {
-    printf("Command line parameters error, expected :\n");
-    printf(" <N> <No_of_requests> <key_size> <value_size> <0/1 = Store In-PRM/Outside-PRM> <0/1 = Access-Oblivious/Full-Oblivious> <ORAM Type(\"circuit\" or \"path\")> <stash_size> <double_oblivious> <recursion_data_size> <Z=4>\n");
+    printf("Command line parameters error, received %d,  expected %d:\n",
+            argc, min_expected_no_of_parameters);
+    printf(" <N> <No_of_requests> <key_size> <value_size> <0/1 = Store In-PRM/Outside-PRM> <0/1 = Access-Oblivious/Full-Oblivious> <ORAM Type(\"circuit\" or \"path\")> <stash_size> <double_oblivious> <recursion_data_size> <Z=4> <Logfile>\n");
   }
 
   //LS Params for indexing ORAM:

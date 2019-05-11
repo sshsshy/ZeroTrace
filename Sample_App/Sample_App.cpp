@@ -20,7 +20,7 @@
 uint32_t no_of_elements;
 uint32_t no_of_accesses;
 uint32_t *element;
-uint32_t min_expected_no_of_parameters = 10;
+uint32_t min_expected_no_of_parameters = 13;
 bool resume_experiment;
 bool inmem_flag;
 uint32_t data_size;
@@ -37,6 +37,7 @@ uint32_t request_size, response_size;
 unsigned char *data_in;
 unsigned char *data_out;
 uint32_t bulk_batch_size=0;
+std::string log_file;
 
 clock_t generate_request_start, generate_request_stop, extract_response_start, extract_response_stop, process_request_start, process_request_stop, generate_request_time, extract_response_time,  process_request_time;
 uint8_t Z;
@@ -385,9 +386,12 @@ int extractBulkResponse(unsigned char *encrypted_response, unsigned char *tag, i
 
 void getParams(int argc, char* argv[])
 {
-  if(argc<min_expected_no_of_parameters) {
-    printf("Command line parameters error, expected :\n");
-    printf(" <N> <No_of_requests> <Stash_size> <Data_block_size> <\"resume\"/\"new\"> <\"memory\"/\"hdd\"> <0/1 = Non-oblivious/Oblivious> <Recursion_block_size> <\"auto\"/\"path\"/\"circuit\"> <Z>\n\n");
+  printf("Started getParams\n");
+  if(argc!=min_expected_no_of_parameters) {
+    printf("Command line parameters error, received: %d, expected :%d\n",
+           argc, min_expected_no_of_parameters);
+    printf(" <N> <No_of_requests> <Stash_size> <Data_block_size> <\"resume\"/\"new\"> <\"memory\"/\"hdd\"> <0/1 = Non-oblivious/Oblivious> <Recursion_block_size> <\"auto\"/\"path\"/\"circuit\"> <Z> <bulk_batch_size> <LogFile>\n\n");
+    exit(0);
   }
 
   std::string str = argv[1];
@@ -419,10 +423,12 @@ void getParams(int argc, char* argv[])
   Z = std::stoi(str);
   str=argv[11];
   bulk_batch_size = std::stoi(str);
+  str = argv[12];
+  log_file = str;
 
+  
   std::string qfile_name = "ZT_"+std::to_string(max_blocks)+"_"+std::to_string(data_size);
   iquery_file = fopen(qfile_name.c_str(),"w");
-  
 }
 
 

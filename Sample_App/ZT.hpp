@@ -39,7 +39,7 @@ int8_t ZT_LSORAM_fetch(uint32_t instance_id, unsigned char *encrypted_request,
 
 
 int8_t ZT_HSORAM_insert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, 
-       uint32_t oram_index, unsigned char *encrypted_request, uint32_t request_size, 
+       uint64_t oram_index, unsigned char *encrypted_request, uint32_t request_size, 
        unsigned char* tag_in, uint32_t tag_size, unsigned char *client_pubkey, 
        uint32_t pubkey_size_x, uint32_t pubkey_size_y);
 

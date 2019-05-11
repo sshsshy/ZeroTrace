@@ -560,6 +560,9 @@ int8_t HSORAMFetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
   unsigned char *response = (unsigned char*) malloc(response_size);
   unsigned char *data_in = (unsigned char*) malloc(response_size);
   unsigned char *req_key, *request;
+  //Hacky here because Oblivious functions currentyly work at 8 byte granularity
+  //So we convert from 8 byte back to 4 byte index into ORAM scheme.
+  uint64_t oram_index_t;
   uint32_t oram_index;
 
   //DecryptRequest
@@ -569,8 +572,9 @@ int8_t HSORAMFetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
   parseFetchRequest(request, request_size, &req_key);
 
   //LSORAMFetch()
-  processLSORAMFetch(lsoram_iid, req_key, request_size, (unsigned char*) &oram_index, sizeof(uint32_t));
+  processLSORAMFetch(lsoram_iid, req_key, request_size, (unsigned char*) &oram_index_t, sizeof(uint64_t));
 
+  oram_index = (uint32_t) oram_index_t;
   PathORAM *poram_current_instance;
   CircuitORAM *coram_current_instance;
   if(oram_type==0){
@@ -593,7 +597,7 @@ int8_t HSORAMFetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
 // Here in HSORAM we split the Insert into an LSORAM <key, index> insert
 //      and an ORAM access <index, value>
 int8_t HSORAMInsert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
-         uint32_t oram_index,
+         uint64_t oram_index_p,
          unsigned char *encrypted_request, uint32_t request_size,
          unsigned char *tag_in, uint32_t tag_size, unsigned char *client_pubkey,
          uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y){
@@ -605,6 +609,8 @@ int8_t HSORAMInsert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
   LinearScan_ORAM *lsoram_instance = lsoram_instances[lsoram_iid];
   unsigned char *req_key, *req_value, *request, *data_out;
   uint32_t req_key_size, req_value_size;
+  uint64_t oram_index_t = oram_index_p;
+  uint32_t oram_index = (uint32_t) oram_index_t;
 
   //DecryptRequest
   DecryptRequest(encrypted_request, &request, request_size, tag_in, tag_size, client_pubkey, 
@@ -613,7 +619,7 @@ int8_t HSORAMInsert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
   parseInsertRequest(request, request_size, &req_key, &req_value, &req_key_size, &req_value_size);
 
   //LSORAMInsert()
-  processLSORAMInsert(lsoram_iid, req_key, req_key_size, (unsigned char*) &oram_index, sizeof(uint32_t));
+  processLSORAMInsert(lsoram_iid, req_key, req_key_size, (unsigned char*) &oram_index_t, sizeof(uint64_t));
 
   // Perform an LSORAM insert of <key, oram_index>
   // Perform an ORAM insert of <oram_index, value>

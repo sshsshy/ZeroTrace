@@ -101,7 +101,7 @@ typedef struct ms_HSORAMInsert_t {
 	uint32_t ms_lsoram_iid;
 	uint32_t ms_oram_iid;
 	uint8_t ms_oram_type;
-	uint32_t ms_oram_index;
+	uint64_t ms_oram_index;
 	unsigned char* ms_encrypted_request;
 	uint32_t ms_request_size;
 	unsigned char* ms_tag_in;
@@ -699,7 +699,7 @@ sgx_status_t LSORAMFetch(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance
 	return status;
 }
 
-sgx_status_t HSORAMInsert(sgx_enclave_id_t eid, int8_t* retval, uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, uint32_t oram_index, unsigned char* encrypted_request, uint32_t request_size, unsigned char* tag_in, uint32_t tag_size, unsigned char* client_pubkey, uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y)
+sgx_status_t HSORAMInsert(sgx_enclave_id_t eid, int8_t* retval, uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, uint64_t oram_index, unsigned char* encrypted_request, uint32_t request_size, unsigned char* tag_in, uint32_t tag_size, unsigned char* client_pubkey, uint32_t pubkey_size, uint32_t pubkey_size_x, uint32_t pubkey_size_y)
 {
 	sgx_status_t status;
 	ms_HSORAMInsert_t ms;

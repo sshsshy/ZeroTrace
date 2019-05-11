@@ -69,7 +69,7 @@ enclave {
 
 
     public int8_t HSORAMInsert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type,
-       uint32_t oram_index,
+       uint64_t oram_index,
        [in , size = request_size] unsigned char *encrypted_request, uint32_t request_size,
        [in, size = tag_size] unsigned char *tag_in, 
        uint32_t tag_size, [in, size = pubkey_size] unsigned char *client_pubkey,

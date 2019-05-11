@@ -55,7 +55,7 @@ Note : parameters surrounded by quotes should entered in as is without the quote
 
 // Global Variables Declarations
 uint64_t ORAM_INSTANCE_MEM_POSMAP_LIMIT = 1024;
-uint32_t MEM_POSMAP_LIMIT = 10 * 1024;
+uint32_t MEM_POSMAP_LIMIT = 100 * 1024;
 uint64_t PATH_SIZE_LIMIT = 1 * 1024 * 1024;
 uint32_t aes_key_size = 16;
 uint32_t hash_size = 32;	
@@ -423,7 +423,7 @@ int8_t ZT_LSORAM_fetch(uint32_t instance_id, unsigned char *encrypted_request, u
   return ret;
 }
 
-int8_t ZT_HSORAM_insert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, uint32_t oram_index,
+int8_t ZT_HSORAM_insert(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type, uint64_t oram_index,
        unsigned char *encrypted_request, uint32_t request_size, 
        unsigned char* tag_in, uint32_t tag_size, unsigned char *client_pubkey, uint32_t pubkey_size_x,
        uint32_t pubkey_size_y) { 
