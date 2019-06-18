@@ -23,5 +23,10 @@
 #define ID_SIZE_IN_BYTES 4
 #define KEY_LENGTH 16
 #define TAG_SIZE 16
+
+#define HYBRID_ENCRYPTION 1
 const char SHARED_AES_KEY[KEY_LENGTH] = {"AAAAAAAAAAAAAAA"};
 const char HARDCODED_IV[IV_LENGTH] = {"AAAAAAAAAAA"};
+const char PUBLISH_FILE_NAME[] = "ENCLAVE_PUBLIC_KEY";
+static unsigned char ecdh_shared_aes_key[KEY_LENGTH];
+static unsigned char ecdh_shared_iv[IV_LENGTH];

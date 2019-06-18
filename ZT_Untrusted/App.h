@@ -33,14 +33,8 @@
 #ifndef _APP_H_
 #define _APP_H_
 
-#include <assert.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
-#include "sgx_error.h"       /* sgx_status_t */
-#include "sgx_eid.h"     /* sgx_enclave_id_t */
-
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -48,6 +42,26 @@
 #include <random>
 #include <cstdint>
 #include <time.h>
+#include <assert.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <pwd.h>
+#include "sgx_error.h"       /* sgx_status_t */
+#include "sgx_eid.h"     /* sgx_enclave_id_t */
+#include "sgx_urts.h"
+#include "Enclave_u.h"
+#include "LocalStorage.hpp"
+#include "RandomRequestSource.hpp"
+#include "../Globals.hpp"
+
+#include <openssl/bn.h>
+#include <openssl/pem.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/obj_mac.h>
 
 #ifndef TRUE
 # define TRUE 1

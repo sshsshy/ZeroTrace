@@ -18,9 +18,9 @@
 #/bin/sh
 
 #N = Number of data blocks
-N=10000
+N=1000
 #no_of_req
-no_of_req=1000
+no_of_req=2
 #stash_size
 #Note refer to PathORAM and CircuitORAM papers to understand stash size bounds.
 #It is typically sufficient to use 150 for PathORAM and 10 for CircuitORAM

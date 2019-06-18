@@ -59,6 +59,16 @@ else
 	SGX_EDGER8R := $(SGX_SDK)/bin/x64/sgx_edger8r
 endif
 
+ifeq ($(DEBUG), 1)
+        SGX_COMMON_CFLAGS += -O0 -g
+		SGXSSL_Library_Name := sgx_tsgxssld
+		OpenSSL_Crypto_Library_Name := sgx_tsgxssl_cryptod
+else
+        SGX_COMMON_CFLAGS += -O2 -D_FORTIFY_SOURCE=2
+		SGXSSL_Library_Name := sgx_tsgxssl
+		OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
+endif
+
 ifeq ($(SGX_DEBUG), 1)
 ifeq ($(SGX_PRERELEASE), 1)
 $(error Cannot set SGX_DEBUG and SGX_PRERELEASE at the same time!!)
@@ -100,7 +110,7 @@ else
 endif
 
 App_Cpp_Flags := $(App_C_Flags) -std=c++11
-App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread
+App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -lsgx_usgxssl -L$(SGX_LIBRARY_PATH)
 
 
 Lib_services_Cpp_Files := $(wildcard common/*.cpp) $(wildcard untrusted/*.cpp)
@@ -127,13 +137,15 @@ else
 endif
 Crypto_Library_Name := sgx_tcrypto
 services_lib = /home/ssasy/Projects/oram_tester/eleos/eleos_core/trustedlib_lib_services
+SGXSSL_INCLUDE_PATH := /home/ssasy/intel-sgx-ssl/Linux/package/include
 
 Enclave_Cpp_Files := ZT_Enclave/Globals_Enclave.cpp ZT_Enclave/ZT_Enclave.cpp ZT_Enclave/Block.cpp ZT_Enclave/Bucket.cpp ZT_Enclave/Stash.cpp ZT_Enclave/ORAMTree.cpp ZT_Enclave/PathORAM_Enclave.cpp ZT_Enclave/CircuitORAM_Enclave.cpp $(wildcard ZT_Enclave/Edger8rSyntax/*.cpp) $(wildcard ZT_Enclave/TrustedLibrary/*.cpp)
-Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport 
+Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport -I$(SGXSSL_INCLUDE_PATH)
 #-I$(services_lib)/static_trusted -I$(services_lib)/common
 
 Enclave_C_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Enclave_Include_Paths)
 Enclave_Cpp_Flags := $(Enclave_C_Flags) -std=c++11 -nostdinc++
+SgxSSL_Link_Libraries := -L$(OPENSSL_LIBRARY_PATH) -Wl,--whole-archive -l$(SGXSSL_Library_Name) -Wl,--no-whole-archive \
 
 # To generate a proper enclave, it is recommended to follow below guideline to link the trusted libraries:
 #    1. Link sgx_trts with the `--whole-archive' and `--no-whole-archive' options,
@@ -143,6 +155,7 @@ Enclave_Cpp_Flags := $(Enclave_C_Flags) -std=c++11 -nostdinc++
 # Do NOT move the libraries linked with `--start-group' and `--end-group' within `--whole-archive' and `--no-whole-archive' options.
 # Otherwise, you may get some undesirable errors.
 Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
+	-Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive -lsgx_tsgxssl_crypto\
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
@@ -210,7 +223,7 @@ endif
 
 $(UNTRUSTED_DIR)/lib_services_u.c: $(SGX_EDGER8R) static_trusted/lib_services.edl
 	@mkdir -p $(UNTRUSTED_DIR)
-	@cd $(UNTRUSTED_DIR) && $(SGX_EDGER8R) --untrusted ../static_trusted/lib_services.edl --search-path ../static_trusted --search-path $(SGX_SDK)/include
+	@cd $(UNTRUSTED_DIR) && $(SGX_EDGER8R) --search-path $(SGXSSL_INCLUDE_PATH) --untrusted ../static_trusted/lib_services.edl --search-path ../static_trusted --search-path $(SGX_SDK)/include 
 	@echo "GEN  =>  $@"
 
 $(UNTRUSTED_DIR)/lib_services_u.o: $(UNTRUSTED_DIR)/lib_services_u.c

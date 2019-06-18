@@ -37,6 +37,8 @@ typedef struct ms_accessBulkReadInterface_t {
 	uint32_t ms_request_size;
 	uint32_t ms_response_size;
 	uint32_t ms_tag_size;
+	unsigned char* ms_encrypted_keys;
+	uint32_t ms_encrypted_keys_size;
 } ms_accessBulkReadInterface_t;
 
 typedef struct ms_ecall_type_char_t {
@@ -147,6 +149,42 @@ typedef struct ms_ecall_sgx_cpuid_t {
 typedef struct ms_ecall_increase_counter_t {
 	size_t ms_retval;
 } ms_ecall_increase_counter_t;
+
+typedef struct ms_PushSampledKeysOut_t {
+	unsigned char* ms_private_key;
+	uint32_t ms_key_size;
+	unsigned char* ms_ZT_public_key_gx;
+	unsigned char* ms_ZT_public_key_gy;
+} ms_PushSampledKeysOut_t;
+
+typedef struct ms_VerifySignatureOutside_t {
+	uint32_t ms_key_size;
+	unsigned char* ms_signature_x;
+	unsigned char* ms_signature_y;
+	unsigned char* ms_private_key;
+	unsigned char* ms_public_key_x;
+	unsigned char* ms_public_key_y;
+	unsigned char* ms_signature_r;
+	unsigned char* ms_signature_s;
+} ms_VerifySignatureOutside_t;
+
+typedef struct ms_VerifySignature_t {
+	unsigned char* ms_signature_x;
+	unsigned char* ms_signature_y;
+	uint32_t ms_sig_size_x;
+	uint32_t ms_sig_size_y;
+} ms_VerifySignature_t;
+
+typedef struct ms_PublishKey_t {
+	unsigned char* ms_bin_x;
+	uint32_t ms_size_bin_x;
+	unsigned char* ms_bin_y;
+	uint32_t ms_size_bin_y;
+	unsigned char* ms_signature_r;
+	unsigned char* ms_signature_s;
+	uint32_t ms_sig_r_size;
+	uint32_t ms_sig_s_size;
+} ms_PublishKey_t;
 
 typedef struct ms_ocall_print_string_t {
 	char* ms_str;
@@ -260,6 +298,38 @@ typedef struct ms_sgx_thread_set_multiple_untrusted_events_ocall_t {
 	void** ms_waiters;
 	size_t ms_total;
 } ms_sgx_thread_set_multiple_untrusted_events_ocall_t;
+
+static sgx_status_t SGX_CDECL Enclave_PushSampledKeysOut(void* pms)
+{
+	ms_PushSampledKeysOut_t* ms = SGX_CAST(ms_PushSampledKeysOut_t*, pms);
+	PushSampledKeysOut(ms->ms_private_key, ms->ms_key_size, ms->ms_ZT_public_key_gx, ms->ms_ZT_public_key_gy);
+
+	return SGX_SUCCESS;
+}
+
+static sgx_status_t SGX_CDECL Enclave_VerifySignatureOutside(void* pms)
+{
+	ms_VerifySignatureOutside_t* ms = SGX_CAST(ms_VerifySignatureOutside_t*, pms);
+	VerifySignatureOutside(ms->ms_key_size, ms->ms_signature_x, ms->ms_signature_y, ms->ms_private_key, ms->ms_public_key_x, ms->ms_public_key_y, ms->ms_signature_r, ms->ms_signature_s);
+
+	return SGX_SUCCESS;
+}
+
+static sgx_status_t SGX_CDECL Enclave_VerifySignature(void* pms)
+{
+	ms_VerifySignature_t* ms = SGX_CAST(ms_VerifySignature_t*, pms);
+	VerifySignature(ms->ms_signature_x, ms->ms_signature_y, ms->ms_sig_size_x, ms->ms_sig_size_y);
+
+	return SGX_SUCCESS;
+}
+
+static sgx_status_t SGX_CDECL Enclave_PublishKey(void* pms)
+{
+	ms_PublishKey_t* ms = SGX_CAST(ms_PublishKey_t*, pms);
+	PublishKey(ms->ms_bin_x, ms->ms_size_bin_x, ms->ms_bin_y, ms->ms_size_bin_y, ms->ms_signature_r, ms->ms_signature_s, ms->ms_sig_r_size, ms->ms_sig_s_size);
+
+	return SGX_SUCCESS;
+}
 
 static sgx_status_t SGX_CDECL Enclave_ocall_print_string(void* pms)
 {
@@ -406,10 +476,14 @@ static sgx_status_t SGX_CDECL Enclave_sgx_thread_set_multiple_untrusted_events_o
 
 static const struct {
 	size_t nr_ocall;
-	void * table[18];
+	void * table[22];
 } ocall_table_Enclave = {
-	18,
+	22,
 	{
+		(void*)Enclave_PushSampledKeysOut,
+		(void*)Enclave_VerifySignatureOutside,
+		(void*)Enclave_VerifySignature,
+		(void*)Enclave_PublishKey,
 		(void*)Enclave_ocall_print_string,
 		(void*)Enclave_build_fetchChildHash,
 		(void*)Enclave_uploadObject,
@@ -430,6 +504,13 @@ static const struct {
 		(void*)Enclave_sgx_thread_set_multiple_untrusted_events_ocall,
 	}
 };
+sgx_status_t InitializeKeys(sgx_enclave_id_t eid)
+{
+	sgx_status_t status;
+	status = sgx_ecall(eid, 0, &ocall_table_Enclave, NULL);
+	return status;
+}
+
 sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ)
 {
 	sgx_status_t status;
@@ -443,7 +524,7 @@ sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint3
 	ms.ms_onchip_posmap_mem_limit = onchip_posmap_mem_limit;
 	ms.ms_oram_type = oram_type;
 	ms.ms_pZ = pZ;
-	status = sgx_ecall(eid, 0, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 1, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -461,11 +542,11 @@ sgx_status_t accessInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t
 	ms.ms_request_size = request_size;
 	ms.ms_response_size = response_size;
 	ms.ms_tag_size = tag_size;
-	status = sgx_ecall(eid, 1, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 2, &ocall_table_Enclave, &ms);
 	return status;
 }
 
-sgx_status_t accessBulkReadInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char* encrypted_request, unsigned char* encrypted_response, unsigned char* tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size)
+sgx_status_t accessBulkReadInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char* encrypted_request, unsigned char* encrypted_response, unsigned char* tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size, unsigned char* encrypted_keys, uint32_t encrypted_keys_size)
 {
 	sgx_status_t status;
 	ms_accessBulkReadInterface_t ms;
@@ -479,7 +560,9 @@ sgx_status_t accessBulkReadInterface(sgx_enclave_id_t eid, uint32_t instance_id,
 	ms.ms_request_size = request_size;
 	ms.ms_response_size = response_size;
 	ms.ms_tag_size = tag_size;
-	status = sgx_ecall(eid, 2, &ocall_table_Enclave, &ms);
+	ms.ms_encrypted_keys = encrypted_keys;
+	ms.ms_encrypted_keys_size = encrypted_keys_size;
+	status = sgx_ecall(eid, 3, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -488,7 +571,7 @@ sgx_status_t ecall_type_char(sgx_enclave_id_t eid, char val)
 	sgx_status_t status;
 	ms_ecall_type_char_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 3, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 4, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -497,7 +580,7 @@ sgx_status_t ecall_type_int(sgx_enclave_id_t eid, int val)
 	sgx_status_t status;
 	ms_ecall_type_int_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 4, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 5, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -506,7 +589,7 @@ sgx_status_t ecall_type_float(sgx_enclave_id_t eid, float val)
 	sgx_status_t status;
 	ms_ecall_type_float_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 5, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 6, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -515,7 +598,7 @@ sgx_status_t ecall_type_double(sgx_enclave_id_t eid, double val)
 	sgx_status_t status;
 	ms_ecall_type_double_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 6, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 7, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -524,7 +607,7 @@ sgx_status_t ecall_type_size_t(sgx_enclave_id_t eid, size_t val)
 	sgx_status_t status;
 	ms_ecall_type_size_t_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 7, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 8, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -533,7 +616,7 @@ sgx_status_t ecall_type_wchar_t(sgx_enclave_id_t eid, wchar_t val)
 	sgx_status_t status;
 	ms_ecall_type_wchar_t_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 8, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 9, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -542,7 +625,7 @@ sgx_status_t ecall_type_struct(sgx_enclave_id_t eid, struct struct_foo_t val)
 	sgx_status_t status;
 	ms_ecall_type_struct_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 9, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 10, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -552,7 +635,7 @@ sgx_status_t ecall_type_enum_union(sgx_enclave_id_t eid, enum enum_foo_t val1, u
 	ms_ecall_type_enum_union_t ms;
 	ms.ms_val1 = val1;
 	ms.ms_val2 = val2;
-	status = sgx_ecall(eid, 10, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 11, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -562,7 +645,7 @@ sgx_status_t ecall_pointer_user_check(sgx_enclave_id_t eid, size_t* retval, void
 	ms_ecall_pointer_user_check_t ms;
 	ms.ms_val = val;
 	ms.ms_sz = sz;
-	status = sgx_ecall(eid, 11, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 12, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -572,7 +655,7 @@ sgx_status_t ecall_pointer_in(sgx_enclave_id_t eid, int* val)
 	sgx_status_t status;
 	ms_ecall_pointer_in_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 12, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 13, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -581,7 +664,7 @@ sgx_status_t ecall_pointer_out(sgx_enclave_id_t eid, int* val)
 	sgx_status_t status;
 	ms_ecall_pointer_out_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 13, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 14, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -590,7 +673,7 @@ sgx_status_t ecall_pointer_in_out(sgx_enclave_id_t eid, int* val)
 	sgx_status_t status;
 	ms_ecall_pointer_in_out_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 14, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 15, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -600,7 +683,7 @@ sgx_status_t ecall_pointer_string(sgx_enclave_id_t eid, char* str)
 	ms_ecall_pointer_string_t ms;
 	ms.ms_str = (char*)str;
 	ms.ms_str_len = str ? strlen(str) + 1 : 0;
-	status = sgx_ecall(eid, 15, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 16, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -610,7 +693,7 @@ sgx_status_t ecall_pointer_string_const(sgx_enclave_id_t eid, const char* str)
 	ms_ecall_pointer_string_const_t ms;
 	ms.ms_str = (char*)str;
 	ms.ms_str_len = str ? strlen(str) + 1 : 0;
-	status = sgx_ecall(eid, 16, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 17, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -620,7 +703,7 @@ sgx_status_t ecall_pointer_size(sgx_enclave_id_t eid, void* ptr, size_t len)
 	ms_ecall_pointer_size_t ms;
 	ms.ms_ptr = ptr;
 	ms.ms_len = len;
-	status = sgx_ecall(eid, 17, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 18, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -630,7 +713,7 @@ sgx_status_t ecall_pointer_count(sgx_enclave_id_t eid, int* arr, int cnt)
 	ms_ecall_pointer_count_t ms;
 	ms.ms_arr = arr;
 	ms.ms_cnt = cnt;
-	status = sgx_ecall(eid, 18, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 19, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -640,14 +723,14 @@ sgx_status_t ecall_pointer_isptr_readonly(sgx_enclave_id_t eid, buffer_t buf, si
 	ms_ecall_pointer_isptr_readonly_t ms;
 	ms.ms_buf = (buffer_t)buf;
 	ms.ms_len = len;
-	status = sgx_ecall(eid, 19, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 20, &ocall_table_Enclave, &ms);
 	return status;
 }
 
 sgx_status_t ocall_pointer_attr(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 20, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 21, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -656,7 +739,7 @@ sgx_status_t ecall_array_user_check(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_user_check_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 21, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 22, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -665,7 +748,7 @@ sgx_status_t ecall_array_in(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_in_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 22, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 23, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -674,7 +757,7 @@ sgx_status_t ecall_array_out(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_out_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 23, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 24, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -683,7 +766,7 @@ sgx_status_t ecall_array_in_out(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_in_out_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 24, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 25, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -692,21 +775,21 @@ sgx_status_t ecall_array_isary(sgx_enclave_id_t eid, array_t arr)
 	sgx_status_t status;
 	ms_ecall_array_isary_t ms;
 	ms.ms_arr = (array_t *)&arr[0];
-	status = sgx_ecall(eid, 25, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 26, &ocall_table_Enclave, &ms);
 	return status;
 }
 
 sgx_status_t ecall_function_calling_convs(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 26, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 27, &ocall_table_Enclave, NULL);
 	return status;
 }
 
 sgx_status_t ecall_function_public(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 27, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 28, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -714,7 +797,7 @@ sgx_status_t ecall_function_private(sgx_enclave_id_t eid, int* retval)
 {
 	sgx_status_t status;
 	ms_ecall_function_private_t ms;
-	status = sgx_ecall(eid, 28, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 29, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -722,7 +805,7 @@ sgx_status_t ecall_function_private(sgx_enclave_id_t eid, int* retval)
 sgx_status_t ecall_malloc_free(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 29, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 30, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -732,21 +815,21 @@ sgx_status_t ecall_sgx_cpuid(sgx_enclave_id_t eid, int cpuinfo[4], int leaf)
 	ms_ecall_sgx_cpuid_t ms;
 	ms.ms_cpuinfo = (int*)cpuinfo;
 	ms.ms_leaf = leaf;
-	status = sgx_ecall(eid, 30, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 31, &ocall_table_Enclave, &ms);
 	return status;
 }
 
 sgx_status_t ecall_exception(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 31, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 32, &ocall_table_Enclave, NULL);
 	return status;
 }
 
 sgx_status_t ecall_map(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 32, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 33, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -754,7 +837,7 @@ sgx_status_t ecall_increase_counter(sgx_enclave_id_t eid, size_t* retval)
 {
 	sgx_status_t status;
 	ms_ecall_increase_counter_t ms;
-	status = sgx_ecall(eid, 33, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 34, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -762,14 +845,14 @@ sgx_status_t ecall_increase_counter(sgx_enclave_id_t eid, size_t* retval)
 sgx_status_t ecall_producer(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 34, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 35, &ocall_table_Enclave, NULL);
 	return status;
 }
 
 sgx_status_t ecall_consumer(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 35, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 36, &ocall_table_Enclave, NULL);
 	return status;
 }
 

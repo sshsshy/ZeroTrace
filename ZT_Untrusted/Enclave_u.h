@@ -33,6 +33,10 @@ typedef union union_foo_t {
 	uint64_t union_foo_3;
 } union_foo_t;
 
+void SGX_UBRIDGE(SGX_NOCONVENTION, PushSampledKeysOut, (unsigned char* private_key, uint32_t key_size, unsigned char* ZT_public_key_gx, unsigned char* ZT_public_key_gy));
+void SGX_UBRIDGE(SGX_NOCONVENTION, VerifySignatureOutside, (uint32_t key_size, unsigned char* signature_x, unsigned char* signature_y, unsigned char* private_key, unsigned char* public_key_x, unsigned char* public_key_y, unsigned char* signature_r, unsigned char* signature_s));
+void SGX_UBRIDGE(SGX_NOCONVENTION, VerifySignature, (unsigned char* signature_x, unsigned char* signature_y, uint32_t sig_size_x, uint32_t sig_size_y));
+void SGX_UBRIDGE(SGX_NOCONVENTION, PublishKey, (unsigned char* bin_x, uint32_t size_bin_x, unsigned char* bin_y, uint32_t size_bin_y, unsigned char* signature_r, unsigned char* signature_s, uint32_t sig_r_size, uint32_t sig_s_size));
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_string, (const char* str));
 void SGX_UBRIDGE(SGX_NOCONVENTION, build_fetchChildHash, (uint32_t left, uint32_t right, unsigned char* lchild, unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level));
 uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadObject, (unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint32_t recursion_level));
@@ -52,9 +56,10 @@ int SGX_UBRIDGE(SGX_CDECL, sgx_thread_set_untrusted_event_ocall, (const void* wa
 int SGX_UBRIDGE(SGX_CDECL, sgx_thread_setwait_untrusted_events_ocall, (const void* waiter, const void* self));
 int SGX_UBRIDGE(SGX_CDECL, sgx_thread_set_multiple_untrusted_events_ocall, (const void** waiters, size_t total));
 
+sgx_status_t InitializeKeys(sgx_enclave_id_t eid);
 sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ);
 sgx_status_t accessInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t oram_type, unsigned char* encrypted_request, unsigned char* encrypted_response, unsigned char* tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
-sgx_status_t accessBulkReadInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char* encrypted_request, unsigned char* encrypted_response, unsigned char* tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
+sgx_status_t accessBulkReadInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char* encrypted_request, unsigned char* encrypted_response, unsigned char* tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size, unsigned char* encrypted_keys, uint32_t encrypted_keys_size);
 sgx_status_t ecall_type_char(sgx_enclave_id_t eid, char val);
 sgx_status_t ecall_type_int(sgx_enclave_id_t eid, int val);
 sgx_status_t ecall_type_float(sgx_enclave_id_t eid, float val);

@@ -17,6 +17,7 @@
 
 #include "Sample_App.hpp"
 #define MILLION 1E6
+#define PUBLIC_KEY_FILE "../enclave_public_key"
 
 uint32_t no_of_elements;
 uint32_t no_of_accesses;
@@ -38,6 +39,8 @@ uint32_t request_size, response_size;
 unsigned char *data_in;
 unsigned char *data_out;
 uint32_t bulk_batch_size=0;
+
+bool ecdh_completed = false;
 
 clock_t generate_request_start, generate_request_stop, extract_response_start, extract_response_stop, process_request_start, process_request_stop, generate_request_time, extract_response_time,  process_request_time;
 uint8_t Z;
@@ -190,13 +193,27 @@ void serializeRequest(uint32_t request_id, char op_type, unsigned char *data, ui
 }
 
 
-int encryptRequest(int request_id, char op_type, unsigned char *data, uint32_t data_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size){
+int encryptRequest(int request_id, char op_type, unsigned char *data, uint32_t data_size, unsigned char *encrypted_request, unsigned char *tag){
+	
+	int encrypted_request_size;	
+	//1 from op_type
+	unsigned char *serialized_request = (unsigned char*) malloc (1+ID_SIZE_IN_BYTES+data_size);
+	serializeRequest(request_id, op_type, data, data_size, serialized_request);
+
+	encrypted_request_size = AES_GCM_128_encrypt(serialized_request, request_size, NULL, 0, (unsigned char*) SHARED_AES_KEY, (unsigned char*) HARDCODED_IV, IV_LENGTH, encrypted_request, tag);
+
+	free(serialized_request);
+	return encrypted_request_size;
+}
+
+/*
+int encryptReadRequest(int request_id, char op_type, unsigned char *data, uint32_t data_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size){
 	int encrypted_request_size;	
 	//Sample IV;
 	unsigned char *iv = (unsigned char *) malloc (IV_LENGTH);
 	//1 from op_type
-	unsigned char *serialized_request = (unsigned char*) malloc (1+ID_SIZE_IN_BYTES+data_size);
-	serializeRequest(request_id, op_type, data, data_size, serialized_request);
+	unsigned char *serialized_request = (unsigned char*) malloc (ID_SIZE_IN_BYTES);
+	serializeReadRequest(request_id, op_type, data, data_size, serialized_request);
 
 	encrypted_request_size = AES_GCM_128_encrypt(serialized_request, request_size, NULL, 0, (unsigned char*) SHARED_AES_KEY, (unsigned char*) HARDCODED_IV, IV_LENGTH, encrypted_request, tag);
 	//printf("encrypted_request_size returned for AES_GCM_128_encrypt = %d\n", encrypted_request_size);
@@ -205,11 +222,97 @@ int encryptRequest(int request_id, char op_type, unsigned char *data, uint32_t d
 	free(iv);
 	return encrypted_request_size;
 }
+*/
 
-int encryptBulkReadRequest(int *rs, uint32_t req_counter, uint32_t bulk_batch_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size ){
-	int encrypted_request_size;	
+int encryptBulkReadRequest(int *rs, uint32_t req_counter, uint32_t bulk_batch_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size, unsigned char *iv, unsigned char** serialized_client_public_key ){
+	int ret;
+	#ifdef HYBRID_ENCRYPTION
+		EC_KEY *ephemeral_key = NULL;
+		BIGNUM *x, *y;
+		x = BN_new();
+		y = BN_new();
+		BN_CTX *bn_ctx = BN_CTX_new();
+		const EC_GROUP *curve = NULL;
+
+		if(NULL == (curve = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)))
+			printf("Setting EC_GROUP failed \n");
+
+		ephemeral_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+		if(ephemeral_key==NULL)
+			printf("Client: EC_KEY_new_by_curve_name Fail\n");
+		ret = EC_KEY_generate_key(ephemeral_key);
+		if(ret!=1)
+			printf("Client: EC_KEY_generate_key Fail\n");
+
+		const EC_POINT *pub_point;
+		pub_point = EC_KEY_get0_public_key((const EC_KEY *) ephemeral_key);
+		if(pub_point == NULL)
+			printf("Client: EC_KEY_get0_public_key Fail\n");
+	
+		ret = EC_POINT_get_affine_coordinates_GFp(curve, pub_point, x, y, bn_ctx);
+		if(ret==0)
+			printf("Client: EC_POINT_get_affine_coordinates_GFp Failed \n");
+	
+		//TODO : Fill serialized_client_public_key with the sampled keys pub key.
+		unsigned char *bin_x, *bin_y;
+		uint32_t size_bin_x = BN_num_bytes(x);
+		uint32_t size_bin_y = BN_num_bytes(y);
+		bin_x = (unsigned char*) malloc(size_bin_x);
+		bin_y = (unsigned char*) malloc(size_bin_y);
+		BN_bn2bin(x, bin_x);
+		BN_bn2bin(y, bin_y);
+		*serialized_client_public_key = (unsigned char*) malloc(size_bin_x + size_bin_y);
+		memcpy(*serialized_client_public_key, bin_x, size_bin_x);
+		memcpy(*(serialized_client_public_key) + size_bin_x, bin_y, size_bin_y);
+
+
+		//TEST snippet for key comparison at client and enclave
+		const EC_POINT *point = EC_KEY_get0_public_key(ENCLAVE_PUBLIC_KEY);
+		BIGNUM *x1, *y1;
+		x1 = BN_new();
+		y1 = BN_new();
+		ret = EC_POINT_get_affine_coordinates_GFp(curve, point, x1, y1, bn_ctx);
+		unsigned char *bin_point = (unsigned char*) malloc(32*2);
+		BN_bn2bin(x1,bin_point);
+		BN_bn2bin(y1,bin_point+32);	
+
+		/*
+		printf("Serialized Client's Public Key at Client :\n");
+		for(int t = 0; t < size_bin_x+size_bin_y; t++)
+			printf("%02X", (*serialized_client_public_key)[t]);
+		printf("\n");
+
+		printf("Serialized Enclave's Public Key at Client :\n");
+		for(int t = 0; t < size_bin_x+size_bin_y; t++)
+			printf("%02X", bin_point[t]);
+		printf("\n");
+		*/
+	
+		uint32_t field_size = EC_GROUP_get_degree(EC_KEY_get0_group(ENCLAVE_PUBLIC_KEY));
+		uint32_t secret_len = (field_size+7)/8;
+		unsigned char *secret = (unsigned char*) malloc(secret_len);
+		//Returns a 32 byte secret	
+		secret_len = ECDH_compute_key(secret, secret_len, EC_KEY_get0_public_key(ENCLAVE_PUBLIC_KEY),
+							ephemeral_key, NULL);
+
+		/*	
+		printf("Secret computed by Client :\n");
+		for(int t = 0; t < secret_len; t++)
+			printf("%02X", secret[t]);
+		printf("\n");
+		*/
+	
+
+		//Sample IV;
+		//TODO : Replace IV with sampling? Check with IG
+		//TODO : KDF over the shared_secret!
+		memcpy(ecdh_shared_aes_key, secret, KEY_LENGTH);
+		memcpy(ecdh_shared_iv, secret + KEY_LENGTH, IV_LENGTH);
+		BN_CTX_free(bn_ctx);
+	#endif
+
+	int encrypted_request_size = ID_SIZE_IN_BYTES * bulk_batch_size;	
 	//Sample IV;
-	unsigned char *iv = (unsigned char *) malloc (IV_LENGTH);
 	unsigned char *serialized_request = (unsigned char*) malloc (encrypted_request_size);
 	unsigned char *serialized_request_ptr = serialized_request;
 	for(int i =0;i<bulk_batch_size;i++){
@@ -217,13 +320,15 @@ int encryptBulkReadRequest(int *rs, uint32_t req_counter, uint32_t bulk_batch_si
 		serialized_request_ptr+=ID_SIZE_IN_BYTES;
 	}
 
-	encrypted_request_size = AES_GCM_128_encrypt(serialized_request, request_size, NULL, 0, (unsigned char*) SHARED_AES_KEY, (unsigned char*) HARDCODED_IV, IV_LENGTH, encrypted_request, tag);
-	//printf("encrypted_request_size returned for AES_GCM_128_encrypt = %d\n", encrypted_request_size);
+	#ifdef HYBRID_ENCRYPTION
+		encrypted_request_size = AES_GCM_128_encrypt(serialized_request, request_size, NULL, 0, (unsigned char*) ecdh_shared_aes_key, (unsigned char*) ecdh_shared_iv, IV_LENGTH, encrypted_request, tag);
+	#else
+		encrypted_request_size = AES_GCM_128_encrypt(serialized_request, request_size, NULL, 0, (unsigned char*) SHARED_AES_KEY, (unsigned char*) HARDCODED_IV, IV_LENGTH, encrypted_request, tag);
+	#endif	
+
 
 	free(serialized_request);
-	free(iv);
 	return encrypted_request_size;
-
 }
 
 void decryptBulkReadRequest(uint32_t bulk_batch_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size){
@@ -278,7 +383,11 @@ int extractResponse(unsigned char *encrypted_response, unsigned char *tag, int r
 }
 
 int extractBulkResponse(unsigned char *encrypted_response, unsigned char *tag, int response_size, unsigned char *data_out) {
-	AES_GCM_128_decrypt(encrypted_response, response_size, NULL, 0, tag, (unsigned char*) SHARED_AES_KEY, (unsigned char*) HARDCODED_IV, IV_LENGTH, data_out);
+	#ifdef HYBRID_ENCRYPTION
+		AES_GCM_128_decrypt(encrypted_response, response_size, NULL, 0, tag, (unsigned char*) ecdh_shared_aes_key, (unsigned char*) ecdh_shared_iv, IV_LENGTH, data_out);
+	#else
+		AES_GCM_128_decrypt(encrypted_response, response_size, NULL, 0, tag, (unsigned char*) SHARED_AES_KEY, (unsigned char*) HARDCODED_IV, IV_LENGTH, data_out);
+	#endif
 	return response_size;
 }
 
@@ -318,7 +427,7 @@ void getParams(int argc, char* argv[])
 	str=argv[11];
 		bulk_batch_size = std::stoi(str);
 
-	std::string qfile_name = "ZT_"+std::to_string(max_blocks)+"_"+std::to_string(data_size);
+	std::string qfile_name = "ZT_"+std::to_string(max_blocks)+"_"+std::to_string(data_size)+"_"+std::to_string(bulk_batch_size);
 	iquery_file = fopen(qfile_name.c_str(),"w");
 }
 
@@ -329,11 +438,117 @@ struct node{
 	struct node *left, *right;
 };
 
+void GetEnclavePublishedKey(){
+	
+	FILE *fp = fopen(PUBLISH_FILE_NAME,"r");
+	uint32_t max_buff_size = (ceil((float)PRIME256V1_KEY_SIZE/float(3)) * 4) + 1; 
+	unsigned char bin_x_b64[max_buff_size], bin_y_b64[max_buff_size], signature_r_b64[max_buff_size], signature_s_b64[max_buff_size];
+	unsigned char bin_x[PRIME256V1_KEY_SIZE], bin_y[PRIME256V1_KEY_SIZE], signature_r[PRIME256V1_KEY_SIZE], signature_s[PRIME256V1_KEY_SIZE];
+
+	
+	fgets((char *)bin_x_b64, max_buff_size, fp);
+	fseek(fp, 1, SEEK_CUR);	
+	//printf("bin_x_64: %s\n", bin_x_b64);
+	fgets((char *)bin_y_b64, max_buff_size, fp);
+	fseek(fp, 1, SEEK_CUR);
+	//printf("bin_y_64: %s\n", bin_y_b64);
+	fgets((char *)signature_r_b64, max_buff_size, fp);
+	fseek(fp, 1, SEEK_CUR);
+	//printf("signature_r_64: %s\n", signature_r_b64);
+	fgets((char *)signature_s_b64, max_buff_size, fp);
+	//printf("signature_s_64: %s\n", signature_s_b64);	
+
+	/*
+	printf("Enclave B64 Public Key at Client: PublishKey:\n");
+	for(int t = 0; t <max_buff_size; t++)
+		printf("%02x",bin_x_b64[t]);
+	printf("\n");
+
+	for(int t = 0; t <max_buff_size; t++)
+		printf("%02x",bin_y_b64[t]);
+	printf("\n");	
+	*/
+
+	EVP_DecodeBlock(bin_x, bin_x_b64, max_buff_size-1);
+	EVP_DecodeBlock(bin_y, bin_y_b64, max_buff_size-1);
+	EVP_DecodeBlock(signature_r, signature_r_b64, max_buff_size-1);
+	EVP_DecodeBlock(signature_s, signature_s_b64, max_buff_size-1);	
+
+	/*
+	printf("Enclave Public Key at Client : GetEnclavePublishedKey:\n");
+	for(int t = 0; t <32; t++)
+		printf("%02x",bin_x[t]);
+	printf("\n");
+
+	for(int t = 0; t <32; t++)
+		printf("%02x",bin_y[t]);
+	printf("\n");
+	*/
+
+	EC_GROUP *curve;
+	EC_KEY *enclave_verification_key = NULL;
+	ECDSA_SIG *sig_enclave = ECDSA_SIG_new();	
+	BIGNUM *x, *y, *xh, *yh, *sig_r, *sig_s;
+	BN_CTX *bn_ctx = BN_CTX_new();
+	int ret;
+
+	if(NULL == (curve = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)))
+		printf("Setting EC_GROUP failed \n");
+
+	EC_POINT *pub_point = EC_POINT_new(curve);
+	//Verify the Enclave Public Key
+	enclave_verification_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+	xh = BN_bin2bn(hardcoded_verification_key_x, PRIME256V1_KEY_SIZE, NULL);
+	yh = BN_bin2bn(hardcoded_verification_key_y, PRIME256V1_KEY_SIZE, NULL);
+	EC_KEY_set_public_key_affine_coordinates(enclave_verification_key, xh, yh);
+	unsigned char *serialized_public_key = (unsigned char*) malloc (PRIME256V1_KEY_SIZE*2);
+	memcpy(serialized_public_key, bin_x, PRIME256V1_KEY_SIZE);
+	memcpy(serialized_public_key + PRIME256V1_KEY_SIZE, bin_y, PRIME256V1_KEY_SIZE);
+		
+	sig_enclave->r = BN_bin2bn(signature_r, PRIME256V1_KEY_SIZE, NULL);
+	sig_enclave->s = BN_bin2bn(signature_s, PRIME256V1_KEY_SIZE, NULL);	
+	
+	ret = ECDSA_do_verify((const unsigned char*) serialized_public_key, PRIME256V1_KEY_SIZE*2, sig_enclave, enclave_verification_key);
+	if(ret==1){
+		printf("GetEnclavePublishedKey : Verification Successful! \n");
+	}
+	else{
+		printf("GetEnclavePublishedKey : Verification FAILED! \n");
+	}
+	
+	//Load the Enclave Public Key
+	ENCLAVE_PUBLIC_KEY = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+	
+	//x = BN_new();
+	//y = BN_new();
+	x = BN_bin2bn(bin_x, PRIME256V1_KEY_SIZE, NULL);
+	y = BN_bin2bn(bin_y, PRIME256V1_KEY_SIZE, NULL);
+	if(EC_POINT_set_affine_coordinates_GFp(curve, pub_point, x, y, bn_ctx)==0)
+		printf("EC_POINT_set_affine_coordinates FAILED \n");
+
+	if(EC_KEY_set_public_key(ENCLAVE_PUBLIC_KEY, pub_point)==0)
+		printf("EC_KEY_set_public_key FAILED \n");
+
+	BN_CTX_free(bn_ctx);
+	free(serialized_public_key);
+	fclose(fp);
+}
+
 int main(int argc, char *argv[]) {
 	getParams(argc, argv);
 
 	ZT_Initialize();
+	// The signed ENCLAVE_PUBLIC_KEY file is available now
+
+	//Fetch Enclave Keys, verify the signature.
+	//This published key happens out of band with the untrusted server stack, i.e. client sees it from consensus etc.
+	//Hence we do a local File lookup instead of passing through the Untrusted server stack
+	GetEnclavePublishedKey();
+	
+	printf("Invokin ZT_New\n");
 	uint32_t zt_id = ZT_New(max_blocks, data_size, stash_size, oblivious, recursion_data_size, oram_type, Z);
+	
+	printf("After ZT_New\n");
 	//Store returned zt_id, to make use of different ORAM instances!
 	printf("Obtained zt_id = %d\n", zt_id);
 
@@ -350,6 +565,7 @@ int main(int argc, char *argv[]) {
 	tag_in = (unsigned char*) malloc (TAG_SIZE);
 	tag_out = (unsigned char*) malloc (TAG_SIZE);
 	data_in = (unsigned char*) malloc (data_size);
+	unsigned char *iv = (unsigned char*) malloc (IV_LENGTH);
 
 	start = clock();
 
@@ -358,7 +574,7 @@ int main(int argc, char *argv[]) {
 	#endif	
 
 	if(bulk_batch_size==0) {
-
+		printf(" IN bulk_batch_size!\n");
 		response_size = data_size;
 		data_out = (unsigned char*) malloc (data_size);
 
@@ -366,6 +582,7 @@ int main(int argc, char *argv[]) {
 		encrypted_request = (unsigned char *) malloc (encrypted_request_size);				
 		encrypted_response = (unsigned char *) malloc (response_size);		
 
+		printf("requestlength = %d\n", requestlength);
 		for(i=0;i<requestlength;i++) {
 			#ifdef PRINT_REQ_DETAILS		
 				printf("---------------------------------------------------\n\nRequest no : %d\n",i);
@@ -378,7 +595,7 @@ int main(int argc, char *argv[]) {
 			//Prepare Request:
 			//request = rs[i]
 			generate_request_start = clock();
-			encryptRequest(0, 'r', data_in, data_size, encrypted_request, tag_in, encrypted_request_size);
+			encryptRequest(0, 'r', data_in, data_size, encrypted_request, tag_in);
 			generate_request_stop = clock();		
 
 			//Process Request:
@@ -417,7 +634,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	else{
+	else{	
 		response_size = data_size * bulk_batch_size;
 		data_out = (unsigned char*) malloc (response_size);
 	
@@ -425,7 +642,8 @@ int main(int argc, char *argv[]) {
 		encrypted_request_size = computeBulkRequestsCiphertextSize(bulk_batch_size);
 		encrypted_request = (unsigned char *) malloc (encrypted_request_size);				
 		encrypted_response = (unsigned char *) malloc (response_size);			
-			 
+		unsigned char *serialized_client_public_key;		
+	 
 		for(i=0;i<requestlength/bulk_batch_size;i++) {
 			#ifdef PRINT_REQ_DETAILS		
 				printf("---------------------------------------------------\n\nRequest no : %d\n",i);
@@ -436,14 +654,16 @@ int main(int argc, char *argv[]) {
 			uint32_t instance_id = 0;
 							
 			generate_request_start = clock();
-			encryptBulkReadRequest(rs, req_counter, bulk_batch_size, encrypted_request, tag_in, encrypted_request_size);
+
+			encryptBulkReadRequest(rs, req_counter, bulk_batch_size, encrypted_request, tag_in, encrypted_request_size, iv, &serialized_client_public_key);
+
 			generate_request_stop = clock();		
 
 			//decryptBulkReadRequest(bulk_batch_size, encrypted_request, tag_in, encrypted_request_size);
 
 			//Process Request:
 			process_request_start = clock();		
-			ZT_Bulk_Read(instance_id, oram_type, bulk_batch_size, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE);
+			ZT_Bulk_Read(instance_id, oram_type, bulk_batch_size, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE, serialized_client_public_key, PRIME256V1_KEY_SIZE * 2);
 			process_request_stop = clock();				
 
 			//Extract Response:
@@ -476,7 +696,12 @@ int main(int argc, char *argv[]) {
 				#endif
 			#endif
 			req_counter+=bulk_batch_size;
+	
+			#ifdef HYBRID_ENCRYPTION
+				free(serialized_client_public_key);
+			#endif
 		}
+
 	}
 	//strcpy((char *)data_in, "Hello World");
 	printf("Requests Fin\n");	
@@ -495,7 +720,11 @@ int main(int argc, char *argv[]) {
 	else
 		printf("Per query time = %f ms\n",(1000 * ( (double)tclock/ ( (double)requestlength) ) / (double) CLOCKS_PER_SEC));
 	//printf("%ld\n",CLOCKS_PER_SEC);
-	
+	if(bulk_batch_size==0)
+		printf("request_size:%d:response_size:%d\n",ID_SIZE_IN_BYTES+TAG_SIZE, response_size+TAG_SIZE);	
+	else	
+		printf("request_size:%d:response_size:%d\n",encrypted_request_size+TAG_SIZE, response_size+TAG_SIZE);	
+
 	free(encrypted_request);
 	free(encrypted_response);
 	free(tag_in);
