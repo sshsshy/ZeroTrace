@@ -25,7 +25,7 @@ void oarray_search2(uint32_t *array, uint32_t loc, uint32_t *leaf, uint32_t newL
     return;
 }
 
-void CircuitORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, int8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
+void CircuitORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
   #ifdef BUILDTREE_DEBUG
     printf("In CircuitORAM::Initialize, Started Initialize\n");
   #endif
@@ -801,7 +801,7 @@ void CircuitORAM::Access(){
 }
 */
 
-void CircuitORAM::Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, int8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
+void CircuitORAM::Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
   Initialize(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels, onchip_posmap_mem_limit);
 }
 

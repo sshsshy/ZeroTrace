@@ -460,13 +460,14 @@ void ORAMTree::BuildTreeRecursive(uint8_t level, uint32_t *prev_pmap){
 
 
 void ORAMTree::Initialize() {
+  printf("RECURSION_LEVELS = %d\n", recursion_levels);
   N_level = (uint64_t*) malloc ((recursion_levels) * sizeof(uint64_t));
   D_level = (uint32_t*) malloc ((recursion_levels) * sizeof(uint64_t));
   recursive_stash = (Stash *) malloc((recursion_levels) * sizeof(Stash));    
 
   //Fix stash_size for each level
   // 2.19498 log2(N) + 1.56669 * lambda - 10.98615
-  //printf("RECURSION_LEVELS = %d\n", recursion_levels);
+  /*
   for(uint32_t i=0; i<recursion_levels; i++){
     //printf("recursion_level i=%d, gN = %d\n",i, gN);
     
@@ -483,13 +484,14 @@ void ORAMTree::Initialize() {
         recursive_stash[i].setup_nonoblivious(data_size, gN);
     }        
   }
-  
-  //printf("In ORAMTree::Initialize(), Before BuildTreeRecursive\n"); 
+  */
+
+  printf("In ORAMTree::Initialize(), Before BuildTreeRecursive\n"); 
   BuildTreeRecursive(recursion_levels-1, NULL);
-  //printf("In ORAMTree::Initialize(), After BuildTreeRecursive\n");			
+  printf("In ORAMTree::Initialize(), After BuildTreeRecursive\n");			
 
   uint32_t d_largest;
-  if(recursion_levels==-1)
+  if(recursion_levels==0)
     d_largest = D_level[0];
   else
     d_largest = D_level[recursion_levels-1];
@@ -947,6 +949,7 @@ return nextLeaf;
 }
 */
 void ORAMTree::SetParams(uint8_t pZ, uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash_size, uint32_t oblivious, uint32_t s_recursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
+  printf("IN ORAMTree::SetParams!!\n");
   data_size = s_data_size;
   stash_size = s_stash_size;
   oblivious_flag = (oblivious==1);

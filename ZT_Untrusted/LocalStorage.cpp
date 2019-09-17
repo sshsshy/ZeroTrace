@@ -30,7 +30,7 @@ LocalStorage.cpp
 
 #define HASH_LENGTH 32
 #define FILESTREAM_MODE 1
-//#define DEBUG_LS 1
+#define DEBUG_LS 1
 //#define DEBUG_INTEGRITY 1
 // Utilization Parameter is the number of blocks of a bucket that is filled at start state. ( 4 = MAX_OCCUPANCY )
 #define UTILIZATION_PARAMETER 4
@@ -534,9 +534,6 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
 	  blocks_in_level[level-1] = ceil((double)blocks_in_level[level]/(double)x);
 	  level--;
 	} 
-	#ifdef DEBUG_LS
-	  printf("LS:Level : %d, Blocks : %ld\n", 0, blocks_in_level[0]);	
-	#endif
 	   
 	inmem_tree_l = (unsigned char**) malloc ((recursion_levels)*sizeof(unsigned char*));
 	inmem_hash_l = (unsigned char**) malloc ((recursion_levels)*sizeof(unsigned char*));
@@ -560,13 +557,18 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
 	  //Setup Memory locations for hashtree and recursion block	
 	  inmem_tree_l[i] = (unsigned char*) malloc(level_size);
 	  inmem_hash_l[i] = (unsigned char*) malloc(hashtree_size_this);
+
+
+	  #ifdef DEBUG_LS
+	    printf("LS:Level : %d, Blocks : %ld\n", i, blocks_in_level[i]);	
+	  #endif
 	}
       #endif			
     }
   
   }
-  directoryFP_i.append(temp + "_i/");
-  directoryFP.append(temp+"/");
+  //directoryFP_i.append(temp + "_i/");
+  //directoryFP.append(temp+"/");
 }
 
 LocalStorage::LocalStorage(LocalStorage&ls)

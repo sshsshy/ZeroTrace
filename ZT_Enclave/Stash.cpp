@@ -243,6 +243,7 @@ void Stash::setup(uint32_t pstash_size, uint32_t pdata_size, uint32_t pgN)
 	gN = pgN;
 	STASH_SIZE = pstash_size;
 	stash_data_size = pdata_size;
+        current_size=0;
 	for(uint32_t i = 0; i<STASH_SIZE; i++){
 		insert_new_block();
 	}

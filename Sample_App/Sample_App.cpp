@@ -496,10 +496,12 @@ int main(int argc, char *argv[]) {
   getParams(argc, argv);
 
   initializeZeroTrace();
-  
+ 
+  printf("Before ZT_New call\n"); 
   uint32_t zt_id = ZT_New(max_blocks, data_size, stash_size, oblivious, recursion_data_size, oram_type, Z);
+
   //Store returned zt_id, to make use of different ORAM instances!
-  //printf("Obtained zt_id = %d\n", zt_id);    
+  printf("Obtained zt_id = %d\n", zt_id);    
 
   //Variable declarations
   RandomRequestSource reqsource;

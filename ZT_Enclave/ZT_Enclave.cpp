@@ -111,11 +111,10 @@ bool extractSealedKeys(){
 
 int8_t InitializeKeys(unsigned char *bin_x,  unsigned char* bin_y, 
        unsigned char* bin_r, unsigned char* bin_s, uint32_t size_bin){
+
   if(!PK_in_memory){
     //Attempt to extract a previously sealed key-pair
     if(!extractSealedKeys()){
-      //TODO: Stripped sizes here, since we'd generate these values inside the gen function
-      // and will know sizes inside. Ensure this holds, take off this TD if so.
       generateAndSealKeys(bin_x, bin_y, bin_r, bin_s);
     }
   }	
@@ -124,6 +123,7 @@ int8_t InitializeKeys(unsigned char *bin_x,  unsigned char* bin_y,
 
 
 uint32_t createNewORAMInstance(uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ){
+
 
   if(oram_type==0){
     PathORAM *new_poram_instance = new PathORAM();
@@ -192,6 +192,7 @@ void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *enc
   PathORAM *poram_current_instance;
   CircuitORAM *coram_current_instance;
 
+  printf("In Enclave accessInterface call\n");
   unsigned char *data_in, *data_out, *request, *request_ptr;
   uint32_t id, opType;
   request = (unsigned char *) malloc (encrypted_request_size);

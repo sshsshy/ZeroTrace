@@ -259,6 +259,11 @@ typedef struct ms_getOutsidePtr_OCALL_t {
 	unsigned char* ms_retval;
 } ms_getOutsidePtr_OCALL_t;
 
+typedef struct ms_myprintf_t {
+	char* ms_buffer;
+	uint32_t ms_buffer_size;
+} ms_myprintf_t;
+
 typedef struct ms_createLSORAM_OCALL_t {
 	void* ms_retval;
 	uint32_t ms_id;
@@ -389,6 +394,14 @@ static sgx_status_t SGX_CDECL Enclave_getOutsidePtr_OCALL(void* pms)
 {
 	ms_getOutsidePtr_OCALL_t* ms = SGX_CAST(ms_getOutsidePtr_OCALL_t*, pms);
 	ms->ms_retval = getOutsidePtr_OCALL();
+
+	return SGX_SUCCESS;
+}
+
+static sgx_status_t SGX_CDECL Enclave_myprintf(void* pms)
+{
+	ms_myprintf_t* ms = SGX_CAST(ms_myprintf_t*, pms);
+	myprintf(ms->ms_buffer, ms->ms_buffer_size);
 
 	return SGX_SUCCESS;
 }
@@ -538,12 +551,13 @@ static sgx_status_t SGX_CDECL Enclave_sgx_thread_set_multiple_untrusted_events_o
 
 static const struct {
 	size_t nr_ocall;
-	void * table[20];
+	void * table[21];
 } ocall_table_Enclave = {
-	20,
+	21,
 	{
 		(void*)Enclave_ocall_print_string,
 		(void*)Enclave_getOutsidePtr_OCALL,
+		(void*)Enclave_myprintf,
 		(void*)Enclave_createLSORAM_OCALL,
 		(void*)Enclave_build_fetchChildHash,
 		(void*)Enclave_uploadBucket_OCALL,

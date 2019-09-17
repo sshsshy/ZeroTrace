@@ -37,13 +37,12 @@ LinearScan_ORAM::LinearScan_ORAM(uint32_t instance_id, uint32_t key_size_p,
                uint8_t oblv_mode, uint8_t dummy_populate=true) {
 
   sgx_status_t ret = SGX_SUCCESS;
-  // TODO: For convenience round up key_size and value_size to next int div by 8
+  // For convenience round up key_size and value_size to next int div by 8
   // (For assembly functions to not cause any irregularities)
   key_size = ceil(float(key_size_p)/8) * 8;
   value_size = ceil(float(value_size_p)/8) * 8;
   num_blocks = num_blocks_p;
 
-  //Define Enumerates for these 2
   mem_mode = mode_p;
   oblivious_mode = oblv_mode;
 
@@ -55,7 +54,7 @@ LinearScan_ORAM::LinearScan_ORAM(uint32_t instance_id, uint32_t key_size_p,
         // populateDummyElements();
       } 
       
-      // Do nothing is ACCESS_OBLV 
+      // Do nothing if ACCESS_OBLV 
 
       break;
     }
@@ -101,7 +100,7 @@ int8_t LinearScan_ORAM::insert(unsigned char* key, uint32_t key_size_p, unsigned
   unsigned char *key_l = key, *value_l = value;
 
   if(key_size_p>key_size||value_size_p>value_size){
-    printf("Key or value size > declared size of LSORAM\n");
+    printf("Key or value size > declared size of LSORAM (%d, %d)\n", key_size_p, value_size_p);
     return -1;
   } else if(key_size_p < key_size) {
     // reintance new buffer for key with key_size, 
@@ -150,7 +149,7 @@ int8_t LinearScan_ORAM::fetch(unsigned char* key, uint32_t key_size_p, unsigned 
 
   unsigned char *key_l;
   if(key_size_p>key_size||value_size_p>value_size){
-    printf("Key or value size > declared size of LSORAM\n");
+    printf("Key or value size > declared size of LSORAM (%d, %d)\n", key_size_p, value_size_p);
     return -1;
   } else if(key_size_p < key_size) {
     // reintance new buffer for key with key_size, 

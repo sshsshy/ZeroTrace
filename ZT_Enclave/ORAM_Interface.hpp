@@ -23,7 +23,7 @@
 	{
 	    public:
 		//virtual void Create()=0;
-	    	virtual void Create(uint8_t pZ, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit) = 0;
+	    	virtual void Create(uint8_t pZ, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint8_t recursion_levels, uint64_t onchip_posmap_mem_limit) = 0;
 	    	virtual void Access(uint32_t id, char opType, unsigned char* data_in, unsigned char* data_out) = 0;
 		//virtual ~ORAM_Interface() {}
 	};

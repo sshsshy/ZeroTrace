@@ -28,18 +28,6 @@
 #include <string>
 #include "utils.hpp"
 
-//#define HSORAM_MODE 1
-#define MAX_BLOCKS 1000
-#define OBLIVIOUS_TYPE_ORAM 1
-#define RECURSION_DATA_SIZE 64
-
-// PathORAM = 0, Stash size = 100
-// CircuitORAM = 1, Stash size = 10
-#define ORAM_TYPE 0
-#define STASH_SIZE 100
-#define Z 4
-
-#define INDEX_SIZE 4
 
 uint32_t oram_index =0;
 
@@ -96,7 +84,6 @@ int initializeZeroTrace() {
   uint32_t max_buff_size = PRIME256V1_KEY_SIZE;
   unsigned char bin_x[PRIME256V1_KEY_SIZE], bin_y[PRIME256V1_KEY_SIZE], signature_r[PRIME256V1_KEY_SIZE], signature_s[PRIME256V1_KEY_SIZE];
   
-
   int8_t ret;
   ret = ZT_Initialize(bin_x, bin_y, signature_r, signature_s, max_buff_size);
   
@@ -123,13 +110,16 @@ int initializeZeroTrace() {
   sig_enclave->s = BN_bin2bn(signature_s, PRIME256V1_KEY_SIZE, NULL);
  
   ret = ECDSA_do_verify((const unsigned char*) serialized_public_key, PRIME256V1_KEY_SIZE*2, sig_enclave, enclave_verification_key);
-  if(ret==1){
-	  printf("GetEnclavePublishedKey : Verification Successful! \n");
-  }
-  else{
-	  printf("GetEnclavePublishedKey : Verification FAILED! \n");
-  }
-  
+
+  #ifdef VERBOSE
+    if(ret==1){
+	    printf("GetEnclavePublishedKey : Verification Successful! \n");
+    }
+    else{
+	    printf("GetEnclavePublishedKey : Verification FAILED! \n");
+    }
+  #endif  
+
   //Load the Enclave Public Key
   ENCLAVE_PUBLIC_KEY = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
   
@@ -158,6 +148,15 @@ int generateKeyValuePair(unsigned char *key, unsigned char *value, uint32_t key_
     perror("reading random string");
     exit(1);
   }
+
+  for(uint32_t i =0; i<key_size; i++){
+      key[i] = 'A' + (key[i]%26);
+  }
+
+  for(uint32_t i =0; i<value_size; i++){
+      value[i] = 'A' + (value[i] % 26);
+  }
+  
   close(rfd); 
   return 1;
 }
@@ -165,13 +164,13 @@ int generateKeyValuePair(unsigned char *key, unsigned char *value, uint32_t key_
 void displayKeyValuePair(unsigned char *key, unsigned char *value, uint32_t key_size, uint32_t value_size){
   printf("<");
   for(int t=0; t<key_size; t++) {
-    char pc = 'A' + (key[t] % 26);
-    printf("%c", pc); 
+    //char pc = 'A' + (key[t] % 26);
+    printf("%c", key[t]); 
   }
   printf(", ");  
    for(int t=0; t<value_size; t++) {
-    char pc = 'A' + (value[t] % 26);
-    printf("%c", pc); 
+    //char pc = 'A' + (value[t] % 26);
+    printf("%c", value[t]); 
   }
   printf(">\n");
 }
@@ -179,8 +178,8 @@ void displayKeyValuePair(unsigned char *key, unsigned char *value, uint32_t key_
 void displayKey(unsigned char *key, uint32_t key_size){
   printf("<");
   for(int t=0; t<key_size; t++) {
-    char pc = 'A' + (key[t] % 26);
-    printf("%c", pc); 
+    //char pc = 'A' + (key[t] % 26);
+    printf("%c", key[t]); 
   }
   printf(">\n");
 }
@@ -209,7 +208,7 @@ int client_LSORAM_Insert(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *
   */
 
   #ifdef HSORAM_MODE
-    ZT_HSORAM_insert(lsoram_iid, oram_iid, ORAM_TYPE, oram_index++, encrypted_request,
+    ZT_HSORAM_insert(lsoram_iid, oram_iid, HSORAM_ORAM_TYPE, oram_index++, encrypted_request,
        request_size, tag_in, TAG_SIZE, client_pubkey, pubkey_size_x, pubkey_size_y);
   #else
     ZT_LSORAM_insert(lsoram_iid, encrypted_request, request_size,
@@ -221,7 +220,7 @@ int client_LSORAM_Insert(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *
 }
 
 //TODO: Finish and Test client_LSORAM_Fetch
-int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* encrypted_value, uint32_t value_size){
+int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *key, uint32_t key_size, unsigned char* value, uint32_t value_size, uint32_t req_ctr, double *gentime, double *processtime, double *extracttime){
   //value needs to be populated by ZT_LSORAM_fetch
   unsigned char *serialized_request, *encrypted_request, *tag_in;
   unsigned char *client_pubkey, *ecdh_aes_key, *iv, *response;
@@ -240,7 +239,8 @@ int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *k
   
   generate_request_stop = clock();
   generate_request_time = generate_request_stop - generate_request_start;
-  printf("Request Generate time = %f ms\n",double(generate_request_time)/double(CLOCKS_PER_MS));
+  //printf("Request Generate time = %f ms\n",double(generate_request_time)/double(CLOCKS_PER_MS));
+  gentime[req_ctr] = double(generate_request_time)/double(CLOCKS_PER_MS);
 
   /* 
   printf("Clientpubkey going into ZT_LSORAM_fetch:\n");
@@ -254,17 +254,16 @@ int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *k
   printf("\n");
   */
 
-  // TODO: Perform ZT_LSORAM_fetch
   
   process_request_start = clock();
 
   #ifdef HSORAM_MODE
-    ZT_HSORAM_fetch(lsoram_iid, oram_iid, ORAM_TYPE, encrypted_request, key_size,
-       encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
+    ZT_HSORAM_fetch(lsoram_iid, oram_iid, HSORAM_ORAM_TYPE, encrypted_request, key_size,
+       value, value_size, tag_in, tag_out, TAG_SIZE,
        client_pubkey, pubkey_size_x, pubkey_size_y);  
   #else
     ZT_LSORAM_fetch(lsoram_iid, encrypted_request, key_size,
-                  encrypted_value, value_size, tag_in, tag_out, TAG_SIZE,
+                  value, value_size, tag_in, tag_out, TAG_SIZE,
                   client_pubkey, pubkey_size_x, pubkey_size_y);
   #endif
 
@@ -272,22 +271,27 @@ int client_LSORAM_Fetch(uint32_t lsoram_iid, uint32_t oram_iid, unsigned char *k
 
   process_request_stop = clock();
   process_request_time = process_request_stop - process_request_start;
-  printf("Process Request Time = %f ms\n",double(process_request_time)/double(CLOCKS_PER_MS));
-
-  //TODO: Decrypt Response
+  //printf("Process Request Time = %f ms\n", double(process_request_time)/double(CLOCKS_PER_MS));
+  processtime[req_ctr] = double(process_request_time)/double(CLOCKS_PER_MS);
+  
 
   extract_response_start = clock();
 
-  decryptLSORAMResponse(encrypted_value, value_size, tag_out, ecdh_aes_key,
+  decryptLSORAMResponse(value, value_size, tag_out, ecdh_aes_key,
                         iv, &response);
 
   extract_response_stop = clock(); 
-  printf("Extract Response Time = %f ms\n\n",double(extract_response_time)/double(CLOCKS_PER_MS));
+  extract_response_time = extract_response_stop - extract_response_start; 
+  //printf("Extract Response Time = %f ms\n\n",double(extract_response_time)/double(CLOCKS_PER_MS));
+  extracttime[req_ctr] = double(extract_response_time)/double(CLOCKS_PER_MS);
  
   #ifdef DEBUG_LSORAM
     printf("Obtained Key Value Pair:\n");
     displayKeyValuePair(key, response, key_size, value_size);
   #endif
+  
+  memcpy(value, response, value_size);
+  free(response);
 }
 
 int main(int argc, char *argv[]) {
@@ -296,17 +300,20 @@ int main(int argc, char *argv[]) {
   initializeZeroTrace();
 
   double ftime[requestlength];
+  double processtime[requestlength];
+  double gentime[requestlength];
+  double extracttime[requestlength];
 
   uint32_t zt_lsoram_id;
   uint32_t zt_oram_id = 0; 
 
   #ifdef HSORAM_MODE
-    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, INDEX_SIZE, store_mode, oblivious_mode, 1);
-    zt_oram_id = ZT_New(MAX_BLOCKS, value_size, STASH_SIZE, OBLIVIOUS_TYPE_ORAM, RECURSION_DATA_SIZE, ORAM_TYPE, Z);
+    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, HSORAM_INDEX_SIZE, store_mode, oblivious_mode, 1);
+    zt_oram_id = ZT_New(HSORAM_MAX_BLOCKS, value_size, HSORAM_STASH_SIZE, HSORAM_OBLIVIOUS_TYPE_ORAM, HSORAM_RECURSION_DATA_SIZE, HSORAM_ORAM_TYPE, HSORAM_Z);
   #else
     zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, value_size, store_mode, oblivious_mode, 1);
   #endif
-  printf("Obtained zt_lsoram_id = %d\n", zt_lsoram_id); 
+  //printf("Obtained zt_lsoram_id = %d\n", zt_lsoram_id); 
  
   std::map<std::string, std::string> kv_table;
   
@@ -331,6 +338,7 @@ int main(int argc, char *argv[]) {
       //client_LSORAM_Insert(zt_lsoram_id, zt_oram_id, key, key_size, value, value_size);
     }
     inserts_stop = clock();
+    
     std::string key_str, value_str;
     key_str.assign((const char*) key, key_size);
     value_str.assign((const char*) value, value_size);
@@ -338,17 +346,13 @@ int main(int argc, char *argv[]) {
     inserts_time = inserts_stop - inserts_start;
   }  
   
-  printf("Table size = %ld\n", kv_table.size());
- 
-  
-  // TODO: Send requests for inserted keys, check that value returned matches the one in map
   std::map<std::string, std::string>::iterator it = kv_table.begin();
+  std::map<std::string, std::string>::iterator lookup;
   unsigned char *encrypted_value_returned = (unsigned char *) malloc(value_size);
   
   fetches_time = 0;
 
   for (int i = 0; i <requestlength; i++) { 
-    //TODO: Iterate over keys
     unsigned char *key = (unsigned char*) it->first.c_str();
 
     #ifdef DEBUG_LSORAM
@@ -357,14 +361,26 @@ int main(int argc, char *argv[]) {
     #endif
 
     fetches_start = clock(); 
-    client_LSORAM_Fetch(zt_lsoram_id, zt_oram_id, key, key_size, encrypted_value_returned, value_size);
+    client_LSORAM_Fetch(zt_lsoram_id, zt_oram_id, key, key_size, encrypted_value_returned, value_size, i, gentime, processtime, extracttime);
     fetches_stop = clock();
     ftime[i]=double(fetches_stop-fetches_start)/double(CLOCKS_PER_MS);
+
+    //If in Correctness Test Mode, check that the returned value is correct.
+    #ifdef TEST_CORRECTNESS
+      std::string val_returned;
+      val_returned.assign((const char*) encrypted_value_returned, (size_t) value_size);
+      int32_t cmp_val = val_returned.compare(it->second);     
+ 
+      if(cmp_val==0)
+        printf("Req No %d: Lookup Correctness Test PASS.\n", i+1);
+      else 
+        printf("Req No %d: Lookup Correctness Test FAIL.\n", i+1);
+    #endif
 
     it++;
     if(it==kv_table.end())
       it=kv_table.begin(); 
-    
+   
     fetches_time+=(fetches_stop-fetches_start);
   } 
  
@@ -372,15 +388,33 @@ int main(int argc, char *argv[]) {
   double fetch_time=(double(fetches_time)/double(CLOCKS_PER_MS))/double(requestlength);
   double insert_time=(double(inserts_time)/double(CLOCKS_PER_MS))/double(num_blocks);
 
-  printf("Total insert time = %f\n", double(inserts_time)/double(CLOCKS_PER_MS)); 
-  printf("Per Record insert time = %f\n",insert_time); 
-  printf("Total fetch time = %f\n", double(fetches_time)/double(CLOCKS_PER_MS)); 
-  printf("Per Record fetch time = %f\n",fetch_time); 
-  
-  FILE *fptr = fopen(logfile.c_str(), "a");
-  double stddev=compute_stddev((double*) ftime, requestlength);
+  #ifdef SHOW_TIMING_RESULTS
+    printf("Total insert time = %f\n", double(inserts_time)/double(CLOCKS_PER_MS)); 
+    printf("Per Record insert time = %f\n",insert_time); 
+    printf("Total fetch time = %f\n", double(fetches_time)/double(CLOCKS_PER_MS)); 
+    printf("Per Record fetch time = %f\n",fetch_time); 
+  #endif
 
-  fprintf(fptr, "%d,%f,%f\n", num_blocks, fetch_time, stddev);
+  FILE *fptr = fopen(logfile.c_str(), "a");
+  double gentime_avg, processtime_avg, extracttime_avg;
+  double gentime_std, processtime_std, extracttime_std;
+
+  gentime_avg = compute_avg((double *) gentime, requestlength);
+  processtime_avg = compute_avg((double *) processtime, requestlength);
+  extracttime_avg = compute_avg((double *) extracttime, requestlength);
+  
+  gentime_std = compute_stddev((double *) gentime, requestlength);
+  processtime_std = compute_stddev((double *) processtime, requestlength);
+  extracttime_std = compute_stddev((double *) extracttime, requestlength);
+
+  double stddev=compute_stddev((double*) ftime, requestlength);
+  
+
+  uint64_t request_size = key_size + TAG_SIZE;
+  uint64_t response_size = value_size + TAG_SIZE;
+  //fprintf(fptr, "%d,%f,%f\n", num_blocks, fetch_time, stddev);
+  fprintf(fptr, "%d, %f, %f, %f, %f, %f, %f, %ld, %ld\n", num_blocks, gentime_avg, gentime_std, processtime_avg,
+         processtime_std, extracttime_avg, extracttime_std, request_size, response_size);
   fclose(fptr);
 
   return 0;

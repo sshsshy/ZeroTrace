@@ -491,6 +491,13 @@ void* createLSORAM_OCALL(uint32_t id, uint32_t key_size, uint32_t value_size, ui
 void* insertLSORAM_OCALL() {
 }
 
+
+void myprintf(char *buffer, uint32_t buffer_size){
+  char buff_temp[buffer_size];
+  sprintf(buff_temp, buffer, buffer_size);
+  printf("%s", buff_temp);
+}
+
 uint8_t uploadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32_t leaf_label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level) {
   clock_t s,e;
   s = clock();
@@ -602,7 +609,6 @@ int8_t ZT_Initialize(unsigned char *bin_x, unsigned char* bin_y,
   ecall_thread_functions();
 
   // Extract Public Key and send it over 
-
   InitializeKeys(global_eid, &ret, bin_x, bin_y, bin_r, bin_s, buff_size);
   return ret;
 }
@@ -618,21 +624,21 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
   uint32_t instance_id;
   int8_t recursion_levels;
     
-
   // RecursionLevels is really number of levels of ORAM
   // So if no recursion, recursion_levels = 1 
   recursion_levels = computeRecursionLevels(max_blocks, recursion_data_size, MEM_POSMAP_LIMIT);
-  //printf("APP.cpp : ComputedRecursionLevels = %d", recursion_levels);
+  printf("APP.cpp : ComputedRecursionLevels = %d", recursion_levels);
     
-  uint32_t D = (uint32_t) ceil(log((double)max_blocks/4)/log((double)2));
-  //printf("App.cpp: Parmas for LS : \n \(%d, %d, %d, %d, %d, %d, %d, %d)\n",
-  //       max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
+  uint32_t D = (uint32_t) ceil(log((double)max_blocks/pZ)/log((double)2));
+  printf("App.cpp: Parmas for LS : \n \(%d, %d, %d, %d, %d, %d, %d, %d)\n",
+         max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
   
   // LocalStorage Module, just works with recursion_levels 0 to recursion_levels 
   // And functions without treating recursive and non-recursive backends differently
   // Hence recursion_levels passed = recursion_levels,
 
   ls.setParams(max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
+  printf("Done with ls.setParams call\n");
     
   #ifdef EXITLESS_MODE
     int rc;
@@ -658,15 +664,13 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
         std::cout << "Error:unable to create thread," << rc << std::endl;
         exit(-1);
     }
-    sgx_return = initialize_oram(global_eid, &urt, max_blocks, data_size,&req_struct, &resp_struct);		
   #else
-    //Pass the On-chip Posmap Memory size limit as a parameter.    
+
+    //Pass the On-chip Posmap Memory size limit as a parameter.
     sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type, pZ);
     //sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type);
-    //printf("INSTANCE_ID returned = %d\n", instance_id);
-  
-    //(uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type)
-    //sgx_return = createNewORAMInstance(global_eid, &urt, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type);
+    printf("INSTANCE_ID returned = %d\n", instance_id);  
+
   #endif
 
     #ifdef DEBUG_PRINT

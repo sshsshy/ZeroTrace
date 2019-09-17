@@ -38,7 +38,7 @@
 
     CircuitORAM(){};
 
-    void Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, int8_t precursion_levels, uint64_t onchip_posmap_mem_limit);
+    void Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit);
 
 
     uint32_t CircuitORAM_Access(char opType, uint32_t id, uint32_t position_in_id, uint32_t leaf, uint32_t newleaf, uint32_t newleaf_nextlevel, unsigned char* decrypted_path, 
@@ -61,7 +61,7 @@
     void EvictOnceFast(uint32_t *deepest, uint32_t *target, int32_t* deepest_position, int32_t* target_position , unsigned char * serialized_path, unsigned char* path_hash, uint32_t level, unsigned char *new_path_hash, uint32_t leaf);
    
     //Virtual functions, inherited from ORAMTree class 
-    void Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, int8_t precursion_levels, uint64_t onchip_posmap_mem_limit) override;	
+    void Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit) override;	
     void Access(uint32_t id, char opType, unsigned char* data_in, unsigned char* data_out) override;
 
   

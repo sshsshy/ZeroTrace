@@ -32,6 +32,16 @@ double compute_stddev(double *elements, uint32_t num_elements){
   return stddev;
 }
 
+double compute_avg(double *elements, uint32_t num_elements){
+  double mean = 0, var = 0, stddev;
+  for(uint32_t i=0; i<num_elements; i++){
+    mean+=elements[i];   
+  }
+  mean=(mean/num_elements);
+  return mean;
+}
+
+
 double time_taken(timespec *start, timespec *end){
   long seconds, nseconds;
   seconds = end->tv_sec - start->tv_sec;

@@ -78,4 +78,5 @@
     unsigned char *tag, unsigned char *aes_key, unsigned char *iv, unsigned char **response);
 
   //Timing and other functions
+  double compute_avg(double *elements, uint32_t num_elements);
   double compute_stddev(double *elements, uint32_t num_elements);

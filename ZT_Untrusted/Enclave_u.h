@@ -35,6 +35,7 @@ typedef union union_foo_t {
 
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_string, (const char* str));
 unsigned char* SGX_UBRIDGE(SGX_NOCONVENTION, getOutsidePtr_OCALL, ());
+void SGX_UBRIDGE(SGX_NOCONVENTION, myprintf, (char* buffer, uint32_t buffer_size));
 void* SGX_UBRIDGE(SGX_NOCONVENTION, createLSORAM_OCALL, (uint32_t id, uint32_t key_size, uint32_t value_size, uint32_t num_blocks_p, uint8_t oblv_mode));
 void SGX_UBRIDGE(SGX_NOCONVENTION, build_fetchChildHash, (uint32_t left, uint32_t right, unsigned char* lchild, unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level));
 uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadBucket_OCALL, (unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t recursion_level));
