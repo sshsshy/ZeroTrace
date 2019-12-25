@@ -467,7 +467,7 @@ void ORAMTree::Initialize() {
 
   //Fix stash_size for each level
   // 2.19498 log2(N) + 1.56669 * lambda - 10.98615
-  /*
+  
   for(uint32_t i=0; i<recursion_levels; i++){
     //printf("recursion_level i=%d, gN = %d\n",i, gN);
     
@@ -484,7 +484,6 @@ void ORAMTree::Initialize() {
         recursive_stash[i].setup_nonoblivious(data_size, gN);
     }        
   }
-  */
 
   printf("In ORAMTree::Initialize(), Before BuildTreeRecursive\n"); 
   BuildTreeRecursive(recursion_levels-1, NULL);
@@ -673,8 +672,8 @@ void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, ui
   for(i=0;i< (Z*(d)); i++) {
     bool dummy_flag = getId(decrypted_path_ptr)==gN;
     if(oblivious_flag) {
-      recursive_stash[level].pass_insert(decrypted_path_ptr,isBlockDummy(decrypted_path_ptr, gN));
-      setId(decrypted_path_ptr,gN);
+      recursive_stash[level].pass_insert(decrypted_path_ptr, isBlockDummy(decrypted_path_ptr, gN));
+      setId(decrypted_path_ptr, gN);
     }
     else {
       if(!(isBlockDummy(decrypted_path_ptr,gN))) {
@@ -698,6 +697,12 @@ void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, ui
     }
     decrypted_path_ptr+=block_size;
   }	
+
+  #ifdef ACCESS_DEBUG
+    printf("End of PushBlocksFromPathIntoStash, Path : \n");
+    showPath_reverse(decrypted_path, Z*(d), data_size);
+  #endif
+
 }
 
 //Scan over the stash and fix recustion leaf label

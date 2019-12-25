@@ -195,7 +195,6 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
   PushBlocksFromPathIntoStash(decrypted_path_ptr, level, tdata_size, tblock_size, id, position_in_id, &nextLeaf, newleaf, sampledLeaf, newleaf_nextlevel);          
 
   if(oblivious_flag) {                
-    //TODO Scan Stash and Return Block here !
     if(level == recursion_levels-1){
       recursive_stash[level].PerformAccessOperation(opType, id, newleaf, data_in, data_out);
       //Optional TODO : Add layer of encryption to result, such that only real client (outside server stack) can decrypt.                

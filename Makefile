@@ -92,7 +92,7 @@ endif
 
 ZT_LIBRARY_PATH := ./Sample_App/
 App_Cpp_Files := ZT_Untrusted/App.cpp ZT_Untrusted/LocalStorage.cpp ZT_Untrusted/RandomRequestSource.cpp $(wildcard ZT_Untrusted/Edger8rSyntax/*.cpp) $(wildcard ZT_Untrusted/TrustedLibrary/*.cpp)
-Enclave_Asm_Files := ZT_Enclave/oblock.asm ZT_Enclave/pmap.asm ZT_Enclave/rebuild.asm
+Enclave_Asm_Files := ZT_Enclave/oblivious_functions.asm
 Enclave_Asm_Objects := $(Enclave_Asm_Files:.asm=.o)
 App_Include_Paths := -IInclude -I$(UNTRUSTED_DIR) -IApp -I$(SGX_SDK)/include
 
@@ -280,13 +280,7 @@ ZT_Enclave/Enclave_t.o: ZT_Enclave/Enclave_t.c
 	@$(CC) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 	
-ZT_Enclave/rebuild.o: ZT_Enclave/rebuild.asm
-	@$(NASM) $(NASM_Flags) $< -o $@  
-
-ZT_Enclave/pmap.o: ZT_Enclave/pmap.asm
-	@$(NASM) $(NASM_Flags) $< -o $@  
-
-ZT_Enclave/oblock.o: ZT_Enclave/oblock.asm
+ZT_Enclave/oblivious_functions.o: ZT_Enclave/oblivious_functions.asm
 	@$(NASM) $(NASM_Flags) $< -o $@  
 
 ZT_Enclave/%.o: ZT_Enclave/%.cpp $(Enclave_Asm_Objects)

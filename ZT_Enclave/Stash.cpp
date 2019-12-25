@@ -296,7 +296,7 @@ void Stash::remove(nodev2 *ptr, nodev2 *prev_ptr)
 void Stash::pass_insert(unsigned char *serialized_block, bool is_dummy)
 {
     struct nodev2 *iter = start;
-    bool block_written = 0;
+    bool block_written = false;
     uint8_t cntr = 1;
     #ifdef PATHORAM_STASH_OVERFLOW_DEBUG
         bool inserted = false;
