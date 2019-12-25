@@ -17,8 +17,6 @@
 
 #include "Stash.hpp"
 
-//TODO: Include the list of 'extern' assembly functions to use for stash oblivious operations ! 
-
 //Oblivious Functions needed : 
 /*
 1) omove_buffer()

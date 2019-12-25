@@ -17,8 +17,8 @@
 
 
 #ifndef __ZT_STASH___
-	#define __ZT_STASH___
-	#include "Globals_Enclave.hpp"
+  #define __ZT_STASH___
+  #include "Globals_Enclave.hpp"
 	#include "oasm_lib.h"
 
 	class Stash{

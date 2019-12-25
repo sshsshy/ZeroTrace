@@ -21,22 +21,17 @@ section .text
 	;global_start
 	global pt_settarget
 	global pd_setdeepest
-	global oblockcompare
 	global oassign_newlabel
 	global ofix_recursion
-	global ostore_deepest
-	global ostore_deepest_round
 	global oset_goal_source
-	global omove_block
 	global omove_serialized_block
-    	global omove_buffer
+  global omove_buffer
 	global oset_hold_dest
 	global oset_block_as_dummy
 	global pt_set_target_position
 	global pt_set_src_dest
-	global oset_return_value
 	global oset_value
-        global ocomp_set_flag
+  global ocomp_set_flag
 	global stash_serialized_insert
 	global oincrement_value
 
@@ -129,24 +124,6 @@ oincrement_value:
 	mov [rdi], r10d
 
 	ret
-
-
-oset_return_value:
-		; oset_return_value(&return_value, result_block.data[k], flag_ore, &(result_block.data[pos_in_id]), newleaf_nextlevel)
-		; Linux : rdi,rsi,rdx,rcx,r8,r9
-
-		mov r10d, [rdi]
-		mov r11d, [rcx]
-		
-		cmp edx, 1
-		
-		cmovz r10d, esi
-		cmovz r11d, r8d		
-
-		mov [rdi], r10d
-		mov [rcx], r11d
-
-		ret
 
 oset_block_as_dummy:
 		; oset_block_as_dummy(&block.id, gN, block.id==id)
@@ -431,57 +408,6 @@ ofix_recursion:
 
 	mov dword[rcx], r9d
 	mov dword[rdi], eax		
-
-	ret
-
-ostore_deepest:
-	; Take inputs,  1 block->treelabel, 2 leaf, 3 ptr to deepest, 4 D , isDummy() flag		
-	; Linux : rdi,rsi,rdx,rcx,r8,r9
-	; Callee-saved : RBP, RBX, and R12–R15
-	
-	mov r9d, dword [rdx]
-
-	loop_deep:
-		mov r10d, dword [rdx]
-		
-		;Compare labels
-		cmp edi, esi
-		
-		;Move to r8 point where labels are same
-		cmovz r10d, edi
-		
-		;Check if r10 > rdx
-		cmp r10d, dword [rdx] 
-		cmova r9d, r10d
-
-		SHR edi,1
-		SHR esi,1
-		
-		mov dword [rdx], r9d
-		loop loop_deep
-
-	ret
-
-
-ostore_deepest_round:
-	; Take inputs,  1 label, 2 flag, 3 ptr to deepest, 	
-	; Linux : rdi,rsi,rdx,rcx,r8,r9
-	; Callee-saved : RBP, RBX, and R12–R15
-	
-	mov r9d, dword [rdx]
-	mov r10d, dword [rdx]
-	
-	;Check flag
-	cmp esi,1
-	
-	;Move to r8 point where labels are same
-	cmovz r10d, edi
-	
-	;Check if r10 > rdx
-	cmp r10d, dword [rdx] 
-	cmova r9d, r10d
-	
-	mov dword [rdx], r9d
 
 	ret
 
