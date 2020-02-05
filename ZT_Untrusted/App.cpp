@@ -636,7 +636,6 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
   // Hence recursion_levels passed = recursion_levels,
 
   ls.setParams(max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
-  printf("Done with ls.setParams call\n");
     
   #ifdef EXITLESS_MODE
     int rc;

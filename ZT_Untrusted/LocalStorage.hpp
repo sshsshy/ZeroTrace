@@ -37,6 +37,7 @@ public:
   unsigned char** inmem_hash_l;
 
   uint64_t* blocks_in_level;
+  uint64_t* buckets_in_level;
   uint64_t* real_max_blocks_level;
   uint32_t* D_level;
 

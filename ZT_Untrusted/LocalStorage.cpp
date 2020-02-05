@@ -508,6 +508,7 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
       inmem_tree_l[0] = (unsigned char *) malloc(datatree_size);
       inmem_hash_l[0] = (unsigned char *) malloc(hashtree_size);
       blocks_in_level = (uint64_t*) malloc((recursion_levels) * sizeof(uint64_t*));
+      buckets_in_level = (uint64_t*) malloc((recursion_levels) * sizeof(uint64_t*));
       blocks_in_level[0] = max_blocks;
     }	
     else {	
@@ -580,31 +581,31 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
         inmem_tree_l = (unsigned char**) malloc ((recursion_levels)*sizeof(unsigned char*));
         inmem_hash_l = (unsigned char**) malloc ((recursion_levels)*sizeof(unsigned char*));
         for(uint32_t i = 0; i<recursion_levels; i++) {
-          uint64_t level_size;
-          
+          uint64_t level_size;     
           // leaf_nodes in level = ceil(log_2(ceil(blocks_in_level[level] / util_divisor)) 
           // where util_divisor = Z
           // Total nodes in Tree = 2 *leaf_nodes -1
           uint32_t pD_temp = ceil((double)blocks_in_level[i]/(double)Z);
           uint32_t pD = (uint32_t) ceil(log((double)pD_temp)/log((double)2));
-          uint32_t pN = (int) pow((double)2, (double) pD);
-          uint32_t tree_size = 2*pN-1;
-        
+          uint64_t pN = (int) pow((double)2, (double) pD);
+          uint64_t tree_size = 2*pN-1;
+          buckets_in_level[i]=tree_size;        
+
+
           if(i==recursion_levels-1)	
             level_size = (uint64_t)(ceil(tree_size))*((uint64_t)(Z*(data_size_p+ADDITIONAL_METADATA_SIZE))); 
           else
             level_size = (uint64_t)(ceil(tree_size))*((uint64_t)(Z*(recursion_block_size+ADDITIONAL_METADATA_SIZE))); 
 
-          //TODO: Check if there should be a /2 here?
-          uint64_t hashtree_size_this = (uint64_t)(ceil(blocks_in_level[i]/2)) * (uint64_t)(HASH_LENGTH);				
-          
+          uint64_t hashtree_size_this = (uint64_t)(tree_size * (uint64_t)(HASH_LENGTH));
+
           //Setup Memory locations for hashtree and recursion block	
           inmem_tree_l[i] = (unsigned char*) malloc(level_size);
           inmem_hash_l[i] = (unsigned char*) malloc(hashtree_size_this);
 
 
           #ifdef DEBUG_LS
-            printf("LS:Level : %d, Blocks : %ld\n", i, blocks_in_level[i]);	
+            printf("LS:Level : %d, Blocks : %ld, TreeSize = %ld, hashtree_size= %ld\n", i, blocks_in_level[i], tree_size, hashtree_size_this);	
           #endif
         }
       #endif			
@@ -654,7 +655,8 @@ void LocalStorage::fetchHash(uint32_t bucket_id, unsigned char* hash, uint32_t h
 
 uint8_t LocalStorage::uploadBucket(uint32_t bucket_id, unsigned char *bucket, uint32_t bucket_size, unsigned char* hash, uint32_t hash_size, uint8_t recursion_level)
 {
-  printf("LS:uploadBucket : bucket_id = %d\n", bucket_id);
+  printf("LS:uploadBucket : level = %d, bucket_id = %d of buckets_in_level[%d] = %ld\n", recursion_level, bucket_id, recursion_level, buckets_in_level[recursion_level]);
+  
   uint64_t pos;
   std::string file_name_this, file_name_this_i;
   if(!inmem) {
