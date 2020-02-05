@@ -30,7 +30,7 @@
       ~Bucket();		
 
       void initialize(uint32_t data_size, uint32_t gN);
-      void reset_values(uint32_t gN);
+      void reset_blocks(uint32_t data_size, uint32_t gN);
       void sampleRandomness();
       void aes_encryptBlocks(uint32_t data_size, unsigned char *aes_key);
       void aes_decryptBlocks(uint32_t data_size, unsigned char *aes_key);

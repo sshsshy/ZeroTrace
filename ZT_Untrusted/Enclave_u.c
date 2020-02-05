@@ -9,7 +9,6 @@ typedef struct ms_createNewORAMInstance_t {
 	uint32_t ms_oblivious_flag;
 	uint32_t ms_recursion_data_size;
 	int8_t ms_recursion_levels;
-	uint64_t ms_onchip_posmap_mem_limit;
 	uint32_t ms_oram_type;
 	uint8_t ms_pZ;
 } ms_createNewORAMInstance_t;
@@ -578,7 +577,7 @@ static const struct {
 		(void*)Enclave_sgx_thread_set_multiple_untrusted_events_ocall,
 	}
 };
-sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ)
+sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint32_t oram_type, uint8_t pZ)
 {
 	sgx_status_t status;
 	ms_createNewORAMInstance_t ms;
@@ -588,7 +587,6 @@ sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint3
 	ms.ms_oblivious_flag = oblivious_flag;
 	ms.ms_recursion_data_size = recursion_data_size;
 	ms.ms_recursion_levels = recursion_levels;
-	ms.ms_onchip_posmap_mem_limit = onchip_posmap_mem_limit;
 	ms.ms_oram_type = oram_type;
 	ms.ms_pZ = pZ;
 	status = sgx_ecall(eid, 0, &ocall_table_Enclave, &ms);

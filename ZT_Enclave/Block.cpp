@@ -104,7 +104,22 @@ void Block::generate_data(uint32_t fdata_size)
 		for(uint32_t i=0; i<fdata_size; i++) {
 			data[i] = (i % 26) + 65; // ASCII 'A'
 		}
+    data[fdata_size-1]='\0';
 	#endif	
+}
+
+void Block::reset(uint32_t data_size, uint32_t gN)
+{
+  id = gN;
+  treeLabel = 0;
+
+  if(data==NULL)
+    data=(uint8_t*) malloc(data_size);
+  
+		for(uint32_t i=0; i<data_size; i++) {
+			data[i] = (i % 26) + 65; // ASCII 'A'
+		}
+    data[data_size-1]='\0';
 }
 
 void Block::generate_r()
@@ -194,7 +209,7 @@ void Block::displayBlock(){
 		printf("r = NULL\n");
 	}
 
-	if(data){	
+	if(data){
 		printf("Data = %s\n", data);
 	}
 	else{
@@ -259,4 +274,6 @@ void Block::aes_dec(uint32_t data_size, unsigned char *aes_key){
 	free(ctr);
 }
 
-
+unsigned char* Block::getDataPtr(){
+  return data;
+}

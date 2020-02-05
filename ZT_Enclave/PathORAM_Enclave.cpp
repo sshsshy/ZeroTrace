@@ -29,15 +29,14 @@ PathORAM::PathORAM(uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash
 };
 */
 
-void PathORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
-  ORAMTree::SetParams(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels, onchip_posmap_mem_limit);
+void PathORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels){
+  ORAMTree::SetParams(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels);
   ORAMTree::Initialize();
 }
 
 
-void PathORAM::Create(uint8_t Z, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint8_t recursion_levels, uint64_t onchip_posmap_mem_limit){
-  //BuildTreeRecursive((recursion_levels==-1)?0:recursion_levels, NULL);
-  Initialize(Z, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, onchip_posmap_mem_limit);
+void PathORAM::Create(uint8_t Z, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint8_t recursion_levels){
+  Initialize(Z, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels);
 }
 
 
@@ -178,7 +177,6 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
     tdata_size = recursion_data_size;			
   }
     
-  uint32_t leaf_temp_prev = (leaf+n)<<1;
   uint32_t path_size = Z*tblock_size*(d);
   uint32_t new_path_hash_size = ((d+1)*HASH_LENGTH);
 
@@ -203,7 +201,9 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
       OAssignNewLabelToBlock(id, position_in_id, level, newleaf, newleaf_nextlevel, &nextLeaf);
     }
   }
-    
+
+  recursive_stash[level].displayStashContents(n, level!=(recursion_levels-1));  
+  
   #ifdef SHOW_STASH_COUNT_DEBUG
     uint32_t stash_oc;
     stash_oc = recursive_stash[level].stashOccupancy();
@@ -218,12 +218,13 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
     time_report(2);
     //time_report(4);
     //Reset decrypted_path_ptr for Rebuild
+
   decrypted_path_ptr = decrypted_path;
   PathORAM_RebuildPath(decrypted_path_ptr, tdata_size, tblock_size, leaf, level);
   
   #ifdef ACCESS_DEBUG
     printf("Final Path after PathORAM_RebuildPath: \n");
-    showPath_reverse(decrypted_path, Z*d, tdata_size);
+    showPath_reverse(decrypted_path, Z, d, tdata_size);
   #endif
 
   #ifdef SHOW_STASH_COUNT_DEBUG
@@ -250,31 +251,24 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
       new_path_hash_trail = new_path_hash;
       old_path_hash_iter = path_hash;		
       unsigned char *new_path_hash_ptr = new_path_hash;
-      leaf_temp_prev = (leaf+n)<<1;
       #ifdef ENCRYPTION_ON
-	path_ptr = encrypted_path;
+	      path_ptr = encrypted_path;
       #else
-	path_ptr = decrypted_path;
+	      path_ptr = decrypted_path;
       #endif
       
       uint32_t leaf_adj = leaf + n;
 
       createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, data_size+ADDITIONAL_METADATA_SIZE, level);           	      
-      /*
-      for(i=0;i < ( Z * (D_level+1) ); i++) {
-	if(i%Z==0) {
-	  uint32_t p = i/Z;
-	  addToNewPathHash(path_ptr, old_path_hash_iter, new_path_hash_trail, new_path_hash_iter,(D_level+1)-p, leaf_temp_prev, block_size, D_level, level);
-	  leaf_temp_prev>>1;
-	  path_ptr+=(Z*block_size);
-	}
-      
-      }
-     */
-      
     #endif
 
-    uploadPath(leaf+n, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
+    printf("path_size = %d\n", path_size);
+    #ifdef ENCRYPTION_ON
+      uploadPath(leaf_adj, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
+    #else
+      uploadPath(leaf_adj, decrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
+    #endif
+
   #endif
 
   //printf("nextLeaf = %d",nextLeaf);

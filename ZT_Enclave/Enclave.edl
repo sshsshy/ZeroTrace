@@ -49,7 +49,7 @@ enclave {
     from "TrustedLibrary/Thread.edl" import *;
 
   trusted {
-    public uint32_t createNewORAMInstance(uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint64_t onchip_posmap_mem_limit, uint32_t oram_type, uint8_t pZ);
+    public uint32_t createNewORAMInstance(uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint32_t oram_type, uint8_t pZ);
     public uint32_t createNewLSORAMInstance(uint32_t key_size, uint32_t value_size, uint32_t num_blocks, uint8_t mem_mode, uint8_t oblivious_type, uint8_t dummy_populate);
  
     public void accessInterface(uint32_t instance_id, uint8_t oram_type, [in, size = request_size] unsigned char* encrypted_request, [out, size = response_size] unsigned char *encrypted_response, [in, size = tag_size] unsigned char *tag_in, [out, size = tag_size] unsigned char *tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);

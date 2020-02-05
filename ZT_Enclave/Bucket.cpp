@@ -23,10 +23,10 @@ Bucket::Bucket(unsigned char* serialized_bucket, uint32_t data_size, uint8_t par
   blocks = (Block*) malloc(Z*sizeof(Block*));
   Z = param_Z;	
 
-  unsigned char *ptr = serialized_bucket;
+  unsigned char *ptr = serialized_bucket+24;
   for(uint8_t i=0;i<Z;i++){
     blocks[i].fill(ptr,data_size);
-    ptr+=(data_size+NONCE_LENGTH+8);
+    ptr+=(data_size+24);
   }
 }
 
@@ -46,10 +46,9 @@ void Bucket::initialize(uint32_t data_size, uint32_t gN){
   }
 }
 
-void Bucket::reset_values(uint32_t gN){
+void Bucket::reset_blocks(uint32_t data_size, uint32_t gN){
   for(uint8_t p=0;p<Z;p++){
-    blocks[p].treeLabel = 0;
-    blocks[p].id = gN;
+    blocks[p].reset(data_size, gN);
   } 		
 }
 

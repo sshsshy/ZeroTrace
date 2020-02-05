@@ -48,7 +48,7 @@
 			void remove(nodev2 *ptr, nodev2 *prev_ptr);
 			void pass_insert(unsigned char *serialized_block, bool is_dummy);
 			void insert(unsigned char *serialized_block);
-			uint32_t displayStashContents(uint32_t nlevel);
-	};
+      uint32_t displayStashContents(uint64_t nlevel, bool recursive_block);
+ 	};
 
 #endif

@@ -298,7 +298,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
   uint32_t label = 0;
   for(uint32_t i = pN; i <= ptreeSize; i++) {
     
-    temp.reset_values(gN);
+    temp.reset_blocks(tdata_size, gN);
 
     uint32_t blocks_in_this_bucket = blocks_per_bucket_in_ll;
     if(cnt < c) {
@@ -315,25 +315,30 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
       temp.blocks[q].treeLabel = i - pN;
 
       if(level<recursion_levels-1 && level>0) { 	
-        #ifdef BUILDTREE_DEBUG										
-          printf("Block %d: ",temp.blocks[q].id);
-          for(uint8_t p=0;p<x;p++) {
-            printf("%d,",(prev_pmap[(label*x)+p]));
-          }
-          printf("\n");
-        #endif
         temp.blocks[q].fill_recursion_data(&(prev_pmap[(label)*x]), recursion_data_size);
-      }
-      else{
-        #ifdef BUILDTREE_DEBUG
-          printf("(%d,%d)",temp.blocks[q].id, temp.blocks[q].treeLabel);
-        #endif
       }
       posmap_l[temp.blocks[q].id] = temp.blocks[q].treeLabel;
       label++;	
     }
-    
+
     #ifdef BUILDTREE_DEBUG
+      for(uint8_t q=0; q<Z; q++){
+        if(level<recursion_levels-1 && level>0) { 	
+            printf("(%d, %d): ",temp.blocks[q].id, temp.blocks[q].treeLabel);
+            for(uint8_t p=0;p<x;p++) {
+              printf("%d,",(prev_pmap[(label*x)+p]));
+            }
+            printf("\n");
+        }
+        else{
+            printf("(%d, %d): ",temp.blocks[q].id, temp.blocks[q].treeLabel);
+            unsigned char *ptr = temp.blocks[q].getDataPtr();
+             for(uint64_t p=0; p<data_size; p++) {
+              printf("%c", ptr[p]);
+            }
+            printf("\n");
+        }
+      }
       printf("\n");
     #endif
      
@@ -358,12 +363,34 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
     printf("\n");
     #endif
 
+    temp.aes_decryptBlocks(tdata_size, aes_key);
     free(serialized_bucket);
   }
 
   //Build Upper Levels of Tree
   for(uint32_t i = pN - 1; i>=1; i--){
-    temp.reset_values(gN);		
+    temp.reset_blocks(tdata_size, gN);
+
+    #ifdef BUILDTREE_DEBUG
+      for(uint8_t q=0; q<Z; q++){
+        if(level<recursion_levels-1 && level>0) { 	
+            printf("(%d, %d): ",temp.blocks[q].id, temp.blocks[q].treeLabel);
+            for(uint8_t p=0;p<x;p++) {
+              printf("%d,",(prev_pmap[(label*x)+p]));
+            }
+            printf("\n");
+        }
+        else{
+            printf("(%d, %d): ",temp.blocks[q].id, temp.blocks[q].treeLabel);
+            unsigned char *ptr = temp.blocks[q].getDataPtr();
+             for(uint64_t p=0; p<data_size; p++) {
+              printf("%c", ptr[p]);
+            }
+            printf("\n");
+        }
+      }
+    #endif
+
     #ifdef ENCRYPTION_ON
       temp.aes_encryptBlocks(tdata_size, aes_key);
     #endif
@@ -393,6 +420,40 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
 
     free(serialized_bucket);	
   }
+
+  //TEST MODULE: Retrieve buckets and check if they were stored correctly:
+  printf("\n\nTEST MODULE (BuildTreeLevel) \n\n");
+  uint8_t ret;
+  unsigned char *serialized_bucket = (unsigned char*) malloc(Z*block_size);
+  unsigned char *temp_hash = (unsigned char*) malloc(HASH_LENGTH);
+  printf("tdata_size = %d, block_size = %d\n", tdata_size, block_size);
+
+  for(uint32_t i=1; i<ptreeSize; i++){
+    downloadBucket_OCALL(&ret, serialized_bucket, Z*block_size, i, temp_hash, HASH_LENGTH, block_size, level); 
+    unsigned char *bucket_iter = serialized_bucket;
+    printf("Bucket %d\n", i);
+    for(uint8_t j=0; j<Z; j++){
+      unsigned char *data_ptr = bucket_iter+ADDITIONAL_METADATA_SIZE;
+      uint32_t* data_iter = (uint32_t*) (bucket_iter + ADDITIONAL_METADATA_SIZE);  
+      uint32_t no = (tdata_size)/sizeof(uint32_t);
+     
+     
+      printf("(%d,%d) :", getId(bucket_iter), getTreeLabel(bucket_iter));
+      if(getId(bucket_iter)==gN||level==recursion_levels-1){
+        for(uint8_t q =0; q<tdata_size; q++)
+          printf("%c", data_ptr[q]);
+      }
+      else{
+        for(uint8_t q = 0;q<no;q++)
+          printf("%d,",data_iter[q]);
+      }
+      bucket_iter+=block_size;
+      printf("\n");
+    } 
+    printf("\n"); 
+  }
+  free(serialized_bucket);
+  free(temp_hash);
 
   free(hash_lchild);
   free(hash_rchild);
@@ -556,7 +617,12 @@ void ORAMTree::uploadPath(uint32_t leaf, unsigned char *path, uint64_t path_size
   uint32_t d = D_level[level];
   uint8_t ret;
 
-  uploadPath_OCALL(&ret, encrypted_path, path_size, leaf, path_hash, path_hash_size, level, d);
+  #ifdef ENCRYPTION_ON
+    uploadPath_OCALL(&ret, encrypted_path, path_size, leaf, path_hash, path_hash_size, level, d);
+  #else
+    uploadPath_OCALL(&ret, decrypted_path, path_size, leaf, path_hash, path_hash_size, level, d);
+  #endif
+  
 }
 
 //For non-recursive level = 0
@@ -664,8 +730,9 @@ void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, ui
   uint32_t d = D_level[level];
   uint32_t i;
   #ifdef ACCESS_DEBUG
-    printf("Fetched Path in PushBlocksFromPathIntoStash : \n");
-    showPath_reverse(decrypted_path, Z*(d), data_size);
+    printf("Fetched Path in PushBlocksFromPathIntoStash, data_size = %d : \n", data_size);
+    showPath(decrypted_path, Z, d, data_size);
+    showPath_reverse(decrypted_path, Z, d, data_size);
   #endif
 
   // FetchBlock Module :
@@ -700,7 +767,7 @@ void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, ui
 
   #ifdef ACCESS_DEBUG
     printf("End of PushBlocksFromPathIntoStash, Path : \n");
-    showPath_reverse(decrypted_path, Z*(d), data_size);
+    showPath_reverse(decrypted_path, Z, d, data_size);
   #endif
 
 }
@@ -785,29 +852,46 @@ void ORAMTree::print_stash_count(uint32_t level, uint32_t nlevel){
   if(recursion_levels>0){
     stash_oc = recursive_stash[level].stashOccupancy();
     printf("Level : %d, stash_occupancy :%d\n",level,stash_oc);
-    recursive_stash[level].displayStashContents(nlevel);
+    recursive_stash[level].displayStashContents(nlevel, level!=(recursion_levels-1));
   }			
 }
 
-void ORAMTree::showPath(unsigned char *decrypted_path, uint32_t num_of_blocks_on_path, uint32_t data_size) {	
+void ORAMTree::showPath(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size) {	
   unsigned char *decrypted_path_iter = decrypted_path;
   uint32_t block_size = data_size + ADDITIONAL_METADATA_SIZE;
+  uint32_t num_of_blocks_on_path = Z*d;
+  printf("\n\nshowPath() (From leaf to root) (Z=%d):  \n", Z);
 
   if(data_size == recursion_data_size) {
-    for(uint32_t i = 0;i<num_of_blocks_on_path;i++) {
+    for(uint32_t i = 0; i<num_of_blocks_on_path; i++) {
+      if(i%Z==0){
+        printf("\n");
+      }
       printf("(%d,%d) :", getId(decrypted_path_iter), getTreeLabel(decrypted_path_iter));
       uint32_t no = (data_size)/sizeof(uint32_t);
       uint32_t* data_iter = (uint32_t*) (decrypted_path_iter + ADDITIONAL_METADATA_SIZE);
-          
-      for(uint8_t q = 0;q<no;q++)
-        printf("%d,",data_iter[q]);	
-    
+      unsigned char *data_ptr = (unsigned char*) (decrypted_path_iter + ADDITIONAL_METADATA_SIZE);
+
+      if(getId(decrypted_path_iter)==gN){
+          for(uint8_t q =0; q<data_size; q++)
+            printf("%c", data_ptr[q]);
+        }
+        else{
+          for(uint8_t q = 0;q<no;q++)
+            printf("%d,",data_iter[q]);
+        }
       printf("\n");
       decrypted_path_iter+=block_size;
     }
   } else {
     for(uint32_t i = 0;i<num_of_blocks_on_path;i++) {
+      if(i%Z==0){
+        printf("\n");
+      }
       printf("(%d,%d) :",getId(decrypted_path_iter),getTreeLabel(decrypted_path_iter));
+      unsigned char* data_ptr = decrypted_path_iter + ADDITIONAL_METADATA_SIZE;
+      for(uint8_t q =0; q<data_size; q++)
+        printf("%c", data_ptr[q]);
       printf("\n");
       decrypted_path_iter+=(block_size);
     }
@@ -815,32 +899,56 @@ void ORAMTree::showPath(unsigned char *decrypted_path, uint32_t num_of_blocks_on
 }
 
 //Debug Function to show a tree path in reverse
-void ORAMTree::showPath_reverse(unsigned char *decrypted_path, uint32_t num_of_blocks_on_path, uint32_t data_size) {	
+void ORAMTree::showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size) {
+  printf("\n\nshowPath_reverse (Root to leaf): \n");
   uint32_t block_size = data_size + ADDITIONAL_METADATA_SIZE;
-  unsigned char *decrypted_path_iter = decrypted_path + (num_of_blocks_on_path-1) * block_size;
+  unsigned char *decrypted_path_iter = decrypted_path + ((uint64_t)((Z*(d-1))) * uint64_t(block_size));
 
   if(data_size == recursion_data_size ) {
-    for(uint32_t i = 0;i<num_of_blocks_on_path;i++) {
-      printf("(%d,%d) :",getId(decrypted_path_iter),getTreeLabel(decrypted_path_iter));
-      uint32_t no = (data_size)/sizeof(uint32_t);
-      uint32_t* data_iter = (uint32_t*) (decrypted_path_iter + ADDITIONAL_METADATA_SIZE);
-          
-      for(uint8_t q = 0;q<no;q++)
-        printf("%d,",data_iter[q]);	
-    
+    for(uint32_t i = 0; i < d; i++) {
+      unsigned char *bucket_iter = decrypted_path_iter;
+
+      for(uint32_t j = 0; j < Z; j++){
+        printf("(%d,%d) :",getId(bucket_iter), getTreeLabel(bucket_iter));
+        uint32_t no = (data_size)/sizeof(uint32_t);
+        uint32_t* data_iter = (uint32_t*) (bucket_iter + ADDITIONAL_METADATA_SIZE);
+        unsigned char *data_ptr = (unsigned char*) (bucket_iter + ADDITIONAL_METADATA_SIZE);
+
+        if(getId(bucket_iter)==gN){
+          for(uint8_t q =0; q<data_size; q++)
+            printf("%c", data_ptr[q]);
+        }
+        else{
+          for(uint8_t q = 0;q<no;q++)
+            printf("%d,",data_iter[q]);
+        }
+
+        printf("\n");
+        bucket_iter+= block_size;
+      }
       printf("\n");
-      decrypted_path_iter-= block_size;
+      decrypted_path_iter-=(Z*block_size);
     }
-  } 
+  }
   else {
-    for(uint32_t i = 0;i<num_of_blocks_on_path;i++) {
-      printf("(%d,%d) :",getId(decrypted_path_iter),getTreeLabel(decrypted_path_iter));
+    for(uint32_t i = 0; i<d; i++) {
+      unsigned char* bucket_iter = decrypted_path_iter;
+
+      for(uint32_t j =0; j<Z; j++){
+        printf("(%d,%d) :",getId(bucket_iter),getTreeLabel(bucket_iter));
+
+        unsigned char* data_ptr = (unsigned char*) (bucket_iter + ADDITIONAL_METADATA_SIZE);
+        for(uint8_t q =0; q<data_size; q++)
+          printf("%c", data_ptr[q]);
+
+        printf("\n");
+        bucket_iter+=(block_size);
+      }
       printf("\n");
-      decrypted_path_iter-=(block_size);
+      decrypted_path_iter-=(Z*block_size);
     }
   }
 }
-
 
 /*
 uint32_t ORAMTree::access(uint32_t id, uint32_t position_in_id, char opType, uint32_t level, unsigned char *data_in, unsigned char *data_out){ 
@@ -953,20 +1061,19 @@ uint32_t ORAMTree::access(uint32_t id, uint32_t position_in_id, char opType, uin
 return nextLeaf;
 }
 */
-void ORAMTree::SetParams(uint8_t pZ, uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash_size, uint32_t oblivious, uint32_t s_recursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
+void ORAMTree::SetParams(uint8_t pZ, uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash_size, uint32_t oblivious, uint32_t s_recursion_data_size, uint8_t precursion_levels){
   printf("IN ORAMTree::SetParams!!\n");
   data_size = s_data_size;
   stash_size = s_stash_size;
   oblivious_flag = (oblivious==1);
-  recursion_data_size = s_recursion_data_size;
-  mem_posmap_limit = onchip_posmap_mem_limit;
+  recursion_data_size = s_recursion_data_size; 
   recursion_levels = precursion_levels;
   x = recursion_data_size/sizeof(uint32_t);
   Z = pZ;
        
   uint64_t size_pmap0 = s_max_blocks * sizeof(uint32_t);
   uint64_t cur_pmap0_blocks = s_max_blocks;
-  while(size_pmap0 > mem_posmap_limit) {
+  while(size_pmap0 > MEM_POSMAP_LIMIT) {
     cur_pmap0_blocks = (uint64_t) ceil((double)cur_pmap0_blocks/(double)x);
     size_pmap0 = cur_pmap0_blocks * sizeof(uint32_t);
   }

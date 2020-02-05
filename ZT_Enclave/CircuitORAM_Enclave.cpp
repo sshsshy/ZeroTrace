@@ -25,12 +25,12 @@ void oarray_search2(uint32_t *array, uint32_t loc, uint32_t *leaf, uint32_t newL
     return;
 }
 
-void CircuitORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
+void CircuitORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels){
   #ifdef BUILDTREE_DEBUG
     printf("In CircuitORAM::Initialize, Started Initialize\n");
   #endif
 
-  ORAMTree::SetParams(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels, onchip_posmap_mem_limit);
+  ORAMTree::SetParams(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels);
   ORAMTree::Initialize();
 
   uint32_t d_largest;
@@ -335,7 +335,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
 
   #ifdef ACCESS_DEBUG
     printf("Fetched Path : \n");
-    showPath_reverse(decrypted_path, Z*(dlevel), data_size);
+    showPath_reverse(decrypted_path, Z, dlevel, data_size);
   #endif
 
   for(i=0;i < ( Z * (dlevel) ); i++) {
@@ -397,7 +397,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
 
   #ifdef ACCESS_DEBUG
     printf("Path before encrypt and upload: \n");
-    showPath_reverse(decrypted_path, Z*(dlevel), data_size);
+    showPath_reverse(decrypted_path, Z, dlevel, data_size);
   #endif
 
   //Encrypt Path Module
@@ -520,7 +520,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
 
   #ifdef ACCESS_DEBUG			
     printf("Level = %d, leaf_left = %d, with + nlevel = %d, Eviction_path_left:\n",level, leaf_left, leaf_left + nlevel);
-    showPath_reverse(eviction_path_left, Z*(dlevel), data_size);
+    showPath_reverse(eviction_path_left, Z, dlevel, data_size);
     print_stash_count(level,nlevel);
   #endif
 
@@ -550,7 +550,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     printf("\nLevel = %d, Eviction_path_left after Eviction:\n",level);
     if(level == recursion_levels)
       printf("Blocksize = %d\n", tblock_size);
-    showPath_reverse(eviction_path_left, Z*(dlevel), tdata_size);
+    showPath_reverse(eviction_path_left, Z, dlevel, tdata_size);
     print_stash_count(level,nlevel);
   #endif	
 
@@ -593,7 +593,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
 
   #ifdef ACCESS_DEBUG			
     printf("\nLevel = %d, leaf_right = %d, with + nlevel = %d, Eviction_path_right:\n", level, leaf_right, leaf_right + nlevel);
-    showPath_reverse(eviction_path_right, Z*dlevel, data_size);
+    showPath_reverse(eviction_path_right, Z, dlevel, data_size);
     print_stash_count(level,nlevel);
   #endif
       
@@ -623,7 +623,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   EvictOnceFast(deepest, target, deepest_position, target_position , eviction_path_right, path_hash, level, new_path_hash, leaf_right);
   #ifdef ACCESS_DEBUG			
     printf("\nLevel = %d, Eviction_path_right after Eviction:\n", level);
-    showPath_reverse(eviction_path_right, Z*dlevel, tdata_size);
+    showPath_reverse(eviction_path_right, Z, dlevel, tdata_size);
     print_stash_count(level,nlevel);
   #endif	
 
@@ -801,8 +801,8 @@ void CircuitORAM::Access(){
 }
 */
 
-void CircuitORAM::Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit){
-  Initialize(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels, onchip_posmap_mem_limit);
+void CircuitORAM::Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels){
+  Initialize(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels);
 }
 
 

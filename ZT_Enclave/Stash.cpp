@@ -90,7 +90,6 @@ void Stash::PerformAccessOperation(char opType, uint32_t id, uint32_t newleaf, u
 		flag_r = (flag_id && opType == 'r');
 		#ifdef PAO_DEBUG
 			if(flag_found){
-				flag_found = false;
 				printf("flag_id = %d, optype=%c, flag_r = %d\n", flag_id, opType, flag_r);
 			}
 		#endif
@@ -126,30 +125,47 @@ void Stash::ObliviousFillResultData(uint32_t id, unsigned char *result_data) {
         cntr++;
     }
 }
-    
-uint32_t Stash::displayStashContents(uint32_t nlevel) {
-    uint32_t count = 0,cntr=1;
-    nodev2 *iter = getStart();
-    printf("Stash Contents : \n");
-    while(iter&&cntr<=STASH_SIZE)	{
-        if( (!isBlockDummy(iter->serialized_block, gN)) ) {
-            printf("loc = %d, (%d,%d) : ",cntr, getId(iter->serialized_block),getTreeLabel(iter->serialized_block));
-            uint32_t *tmp = (uint32_t*) iter->serialized_block+24;
-            uint32_t pbuckets = getTreeLabel(iter->serialized_block) + nlevel;
-            count++;
-            while(pbuckets>=1) {
-                printf("%d, ", pbuckets);
-                pbuckets = pbuckets>>1;
-            }
-            printf("\n");			
+   	
+uint32_t Stash::displayStashContents(uint64_t nlevel, bool recursive_block) {
+  uint32_t count = 0,cntr=1;
+  nodev2 *iter = getStart();
+  printf("Stash Contents : \n");
+  while(iter&&cntr<=STASH_SIZE) {
+    unsigned char *tmp;
+    if( (!isBlockDummy(iter->serialized_block, gN)) ) {
+      printf("loc = %d, (%d,%d) : ",cntr, getId(iter->serialized_block),getTreeLabel(iter->serialized_block));         
+      tmp = iter->serialized_block + 24;
+      uint32_t pbuckets = getTreeLabel(iter->serialized_block) + nlevel;
+      count++;
+      while(pbuckets>=1) {
+          printf("%d, ", pbuckets);
+          pbuckets = pbuckets>>1;
+      }
+      printf("\n");
+      printf("Data: ");
+      if(recursive_block){
+        uint32_t *data_ptr = (uint32_t *) tmp;
+        for(uint32_t j = 0; j<stash_data_size/(sizeof(uint32_t)); j++){
+          printf("%d,", *data_ptr);
+          data_ptr++; 
+       }
+     } 
+      else{
+        unsigned char *data_ptr = tmp;
+        for(uint32_t j=0; j<stash_data_size; j++){
+          printf("%c", data_ptr[j]);
         }
-        iter = iter->next;
-        cntr++;
+      }
+      printf("\n");       
     }
-    printf("\n");
-    return count;
+    iter = iter->next;
+    cntr++;
+  }
+  printf("\n");
+  return count;
 }
-		
+
+	
 uint32_t Stash::stashOccupancy() {
     uint32_t count = 0,cntr=1;
     nodev2 *iter = getStart();

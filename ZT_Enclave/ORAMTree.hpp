@@ -66,14 +66,11 @@
     //Key components		
     unsigned char *aes_key;
 
-    //Might not need these variables:
-    uint64_t mem_posmap_limit; //1KB onboard posmap received from App.cpp
-
     //Debug Functions
     void print_stash_count(uint32_t level, uint32_t nlevel);
     void print_pmap0();
-    void showPath(unsigned char *decrypted_path, uint32_t num_of_blocks_on_path, uint32_t data_size);
-    void showPath_reverse(unsigned char *decrypted_path, uint32_t num_of_blocks_on_path, uint32_t data_size);
+    void showPath(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size);
+    void showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size);
 
     //Initialize/Build Functions
     //Helper function for BuildTree Recursive
@@ -81,7 +78,7 @@
     // For non-recursive, simply invoke BuildTreeRecursive(0,NULL)
     void BuildTreeRecursive(uint8_t level, uint32_t *prev_pmap);
     void Initialize();
-    void SetParams(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels, uint64_t onchip_posmap_mem_limit);
+    void SetParams(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels);
     void SampleKey();
 
     //Constructor & Destructor

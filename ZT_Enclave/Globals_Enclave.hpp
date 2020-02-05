@@ -84,62 +84,6 @@
 
   void displaySerializedBlock( unsigned char *serialized_result_block, uint32_t level, uint32_t recursion_levels, uint32_t x);
 
-  //Inline Functions
-  inline uint32_t iBitsPrefix(uint32_t n, uint32_t w, uint32_t i){
-    return (~((1<<(w-i)) - 1)) & n;
-  }
-
-  inline uint32_t ShiftBy(uint32_t n, uint32_t w) {
-    return(n>>w);
-  }
-
-  inline uint32_t noOfBitsIn(uint32_t local_deepest){
-    uint32_t count = 0;
-    while(local_deepest!=0){
-      local_deepest = local_deepest >>1;
-      count++;
-    }	
-    return count;
-  }
-
-  inline bool isBlockDummy(unsigned char *serialized_block, uint64_t gN){
-    bool dummy_flag = *((uint32_t*)(serialized_block+16))==gN;
-    return dummy_flag; 
-  }
-
-  inline uint32_t getId(unsigned char *serialized_block){
-    uint32_t id = *((uint32_t*)(serialized_block+16));
-    return id;
-  }
-
-  inline uint32_t* getIdPtr(unsigned char *serialized_block){
-    uint32_t *id = ((uint32_t*)(serialized_block+16));
-    return id;
-  }
-
-  inline void setId(unsigned char *serialized_block, uint32_t new_id){
-    *((uint32_t*)(serialized_block+16)) = new_id;
-  }
-
-  inline uint32_t getTreeLabel(unsigned char *serialized_block){
-    uint32_t treeLabel = *((uint32_t*)(serialized_block+20));
-    return treeLabel;
-  }
-
-  inline uint32_t* getTreeLabelPtr(unsigned char *serialized_block){
-    uint32_t *labelptr = ((uint32_t*)(serialized_block+20));
-    return labelptr;
-  }
-
-  inline void setTreeLabel(unsigned char *serialized_block, uint32_t new_treelabel){
-    *((uint32_t*)(serialized_block+20)) = new_treelabel;
-  }
-
-  inline unsigned char* getDataPtr(unsigned char* decrypted_path_ptr){
-    return (unsigned char*) (decrypted_path_ptr+24);
-  }
-
-
   void aes_dec_serialized(unsigned char* encrypted_block, uint32_t data_size, unsigned char *decrypted_block, unsigned char* aes_key);
   void aes_enc_serialized(unsigned char* decrypted_block, uint32_t data_size, unsigned char *encrypted_block, unsigned char* aes_key);
 #endif

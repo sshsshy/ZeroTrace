@@ -16,8 +16,13 @@
 */
 
 #ifndef __GLOBALS__
+  
+  #include<stdint.h>
+
   //Global Flags
-  #define ENCRYPTION_ON 1
+
+  #define MEM_POSMAP_LIMIT 1024
+  //#define ENCRYPTION_ON 1
   #define SHOW_TIMING_RESULTS 1
   // VERBOSE Adds additional information of intermediate steps status
   //#define VERBOSE 1
@@ -51,7 +56,7 @@
   //#define SHOW_STASH_CONTENTS 1
   //#define DEBUG_EFO 1
   //#define RESULTS_DEBUG 1
-  #define PAO_DEBUG 1
+  //#define PAO_DEBUG 1
 
   //#define PATHORAM_ACCESS_REBUILD_DEBUG 1
   //#define PATHORAM_STASH_OVERFLOW_DEBUG 1 
@@ -62,7 +67,7 @@
   //#define ACCESS_DEBUG_REBUILD 1 
 
   //#define DEBUG_PRINT 1
-  //#define PRINT_REQ_DETAILS 1
+  #define PRINT_REQ_DETAILS 1
   //#define RECURSION_LEVELS_DEBUG 1
 
     // Linear Scan ORAM
@@ -138,6 +143,62 @@
     unsigned char *key;
     unsigned char *value;
   }tuple;
+
+  //Inline Functions
+  inline uint32_t iBitsPrefix(uint32_t n, uint32_t w, uint32_t i){
+    return (~((1<<(w-i)) - 1)) & n;
+  }
+
+  inline uint32_t ShiftBy(uint32_t n, uint32_t w) {
+    return(n>>w);
+  }
+
+  inline uint32_t noOfBitsIn(uint32_t local_deepest){
+    uint32_t count = 0;
+    while(local_deepest!=0){
+      local_deepest = local_deepest >>1;
+      count++;
+    }
+    return count;
+  }
+
+  inline bool isBlockDummy(unsigned char *serialized_block, uint64_t gN){
+    bool dummy_flag = *((uint32_t*)(serialized_block+16))==gN;
+    return dummy_flag;
+  }
+
+  inline uint32_t getId(unsigned char *serialized_block){
+    uint32_t id = *((uint32_t*)(serialized_block+16));
+    return id;
+  }
+
+  inline uint32_t* getIdPtr(unsigned char *serialized_block){
+    uint32_t *id = ((uint32_t*)(serialized_block+16));
+    return id;
+  }
+
+  inline void setId(unsigned char *serialized_block, uint32_t new_id){
+    *((uint32_t*)(serialized_block+16)) = new_id;
+  }
+
+  inline uint32_t getTreeLabel(unsigned char *serialized_block){
+    uint32_t treeLabel = *((uint32_t*)(serialized_block+20));
+    return treeLabel;
+  }
+
+  inline uint32_t* getTreeLabelPtr(unsigned char *serialized_block){
+    uint32_t *labelptr = ((uint32_t*)(serialized_block+20));
+    return labelptr;
+  }
+
+  inline void setTreeLabel(unsigned char *serialized_block, uint32_t new_treelabel){
+    *((uint32_t*)(serialized_block+20)) = new_treelabel;
+  }
+
+  inline unsigned char* getDataPtr(unsigned char* decrypted_path_ptr){
+    return (unsigned char*) (decrypted_path_ptr+24);
+  }
+
 
   #define __GLOBALS__
 #endif

@@ -54,8 +54,6 @@ Note : parameters surrounded by quotes should entered in as is without the quote
 //#define POSMAP_EXPERIMENT 1
 
 // Global Variables Declarations
-uint64_t ORAM_INSTANCE_MEM_POSMAP_LIMIT = 1024;
-uint32_t MEM_POSMAP_LIMIT = 100 * 1024;
 uint64_t PATH_SIZE_LIMIT = 1 * 1024 * 1024;
 uint32_t aes_key_size = 16;
 uint32_t hash_size = 32;	
@@ -549,7 +547,7 @@ uint8_t downloadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32
 
 uint8_t downloadBucket_OCALL(unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
   clock_gettime(CLOCK_MONOTONIC, &download_start_time);
-  serialized_bucket = ls.downloadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
+  uint8_t ret = ls.downloadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
   clock_gettime(CLOCK_MONOTONIC, &download_end_time);
   double mtime = timetaken(&download_start_time, &download_end_time);
   download_time = mtime;
@@ -667,8 +665,7 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
   #else
 
     //Pass the On-chip Posmap Memory size limit as a parameter.
-    sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type, pZ);
-    //sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, MEM_POSMAP_LIMIT, oram_type);
+    sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, oram_type, pZ);
     printf("INSTANCE_ID returned = %d\n", instance_id);  
 
   #endif
