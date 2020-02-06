@@ -15,34 +15,15 @@
 *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
-#include <vector>
-#include "../Globals.hpp"
-#include "../CONFIG.h"
-#include "../CONFIG_FLAGS.h"
-#include "Globals_Enclave.hpp"
-#include "Enclave_utils.hpp"
-#include "ORAMTree.hpp"
-#include "PathORAM_Enclave.hpp"
-#include "CircuitORAM_Enclave.hpp"
-#include "LinearScan_ORAM.hpp"
+#ifndef __ZT_CONFIG__ 
+ 
+  //BACKEND choices 0 = Memory, 1 = HDD
+  #define BACKEND 0
+
+  // The PRM memory limit for Position Map of a ZeroTrace ORAM Instance in bytes.
+  // (The recursion levels of the ORAM is paramterized by this value)
+  #define MEM_POSMAP_LIMIT 1024 * 1024
 
 
-#include "tsgxsslio.h"
-#include <openssl/ec.h>
-#include <openssl/bn.h>
-#include <openssl/rsa.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-
-
-std::vector<PathORAM *> poram_instances;
-std::vector<CircuitORAM *> coram_instances;
-std::vector<LinearScan_ORAM *> lsoram_instances;
-
-uint32_t poram_instance_id=0;
-uint32_t coram_instance_id=0;
-uint32_t lsoram_instance_id = 0;
-
-
+  #define __ZT_CONFIG__ 
+#endif 

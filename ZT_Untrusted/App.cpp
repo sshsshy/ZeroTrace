@@ -26,21 +26,7 @@ Note : parameters surrounded by quotes should entered in as is without the quote
 //_p trailed variables are obtained from commandline parameters
 */
 
-#include "../Globals.hpp"
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <pwd.h>
-#include <time.h> 
-#include <vector>
-#include <map>
-#include "sgx_urts.h"
 #include "App.h"
-#include "Enclave_u.h"
-#include "LocalStorage.hpp"
-#include "RandomRequestSource.hpp"
 
 #define MAX_PATH FILENAME_MAX
 #define CIRCUIT_ORAM

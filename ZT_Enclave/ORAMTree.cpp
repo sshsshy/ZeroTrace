@@ -362,8 +362,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
       printf("%c",(current_bucket_hash[l]%26)+'A');
     printf("\n");
     #endif
-
-    temp.aes_decryptBlocks(tdata_size, aes_key);
+     
     free(serialized_bucket);
   }
 
@@ -420,40 +419,42 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
 
     free(serialized_bucket);	
   }
+  
+  #ifdef BUILDTREE_DEBUG
+    //TEST MODULE: Retrieve buckets and check if they were stored correctly:
+    printf("\n\nTEST MODULE (BuildTreeLevel) \n\n");
+    uint8_t ret;
+    unsigned char *serialized_bucket = (unsigned char*) malloc(Z*block_size);
+    unsigned char *temp_hash = (unsigned char*) malloc(HASH_LENGTH);
+    printf("tdata_size = %d, block_size = %d\n", tdata_size, block_size);
 
-  //TEST MODULE: Retrieve buckets and check if they were stored correctly:
-  printf("\n\nTEST MODULE (BuildTreeLevel) \n\n");
-  uint8_t ret;
-  unsigned char *serialized_bucket = (unsigned char*) malloc(Z*block_size);
-  unsigned char *temp_hash = (unsigned char*) malloc(HASH_LENGTH);
-  printf("tdata_size = %d, block_size = %d\n", tdata_size, block_size);
-
-  for(uint32_t i=1; i<ptreeSize; i++){
-    downloadBucket_OCALL(&ret, serialized_bucket, Z*block_size, i, temp_hash, HASH_LENGTH, block_size, level); 
-    unsigned char *bucket_iter = serialized_bucket;
-    printf("Bucket %d\n", i);
-    for(uint8_t j=0; j<Z; j++){
-      unsigned char *data_ptr = bucket_iter+ADDITIONAL_METADATA_SIZE;
-      uint32_t* data_iter = (uint32_t*) (bucket_iter + ADDITIONAL_METADATA_SIZE);  
-      uint32_t no = (tdata_size)/sizeof(uint32_t);
-     
-     
-      printf("(%d,%d) :", getId(bucket_iter), getTreeLabel(bucket_iter));
-      if(getId(bucket_iter)==gN||level==recursion_levels-1){
-        for(uint8_t q =0; q<tdata_size; q++)
-          printf("%c", data_ptr[q]);
-      }
-      else{
-        for(uint8_t q = 0;q<no;q++)
-          printf("%d,",data_iter[q]);
-      }
-      bucket_iter+=block_size;
-      printf("\n");
-    } 
-    printf("\n"); 
-  }
-  free(serialized_bucket);
-  free(temp_hash);
+    for(uint32_t i=1; i<ptreeSize; i++){
+      downloadBucket_OCALL(&ret, serialized_bucket, Z*block_size, i, temp_hash, HASH_LENGTH, block_size, level); 
+      unsigned char *bucket_iter = serialized_bucket;
+      printf("Bucket %d\n", i);
+      for(uint8_t j=0; j<Z; j++){
+        unsigned char *data_ptr = bucket_iter+ADDITIONAL_METADATA_SIZE;
+        uint32_t* data_iter = (uint32_t*) (bucket_iter + ADDITIONAL_METADATA_SIZE);  
+        uint32_t no = (tdata_size)/sizeof(uint32_t);
+       
+       
+        printf("(%d,%d) :", getId(bucket_iter), getTreeLabel(bucket_iter));
+        if(getId(bucket_iter)==gN||level==recursion_levels-1){
+          for(uint8_t q =0; q<tdata_size; q++)
+            printf("%c", data_ptr[q]);
+        }
+        else{
+          for(uint8_t q = 0;q<no;q++)
+            printf("%d,",data_iter[q]);
+        }
+        bucket_iter+=block_size;
+        printf("\n");
+      } 
+      printf("\n"); 
+    }
+    free(serialized_bucket);
+    free(temp_hash);
+  #endif
 
   free(hash_lchild);
   free(hash_rchild);

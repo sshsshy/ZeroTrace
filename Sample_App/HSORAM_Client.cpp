@@ -15,7 +15,7 @@
 *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "Sample_App.hpp"
+#include "HSORAM_Client.hpp"
 #include <iostream>
 #include <map>
 

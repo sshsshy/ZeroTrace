@@ -19,8 +19,18 @@
 LocalStorage.hpp
 */
 
-#pragma once
+#include "../Globals.hpp"
+#include "../CONFIG.h"
+#include "../CONFIG_FLAGS.h"
+#include "Enclave_u.h"
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <math.h>
+#include <unistd.h>
+#include <fcntl.h>
 
+#pragma once
 
 class LocalStorage
 {

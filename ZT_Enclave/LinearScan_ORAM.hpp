@@ -21,6 +21,8 @@
 
   #include "../Globals.hpp"
   #include "Globals_Enclave.hpp"
+  #include "../CONFIG.h"
+  #include "../CONFIG_FLAGS.h"
   #include "oasm_lib.h"
   #include <stdlib.h>
   #include <vector> 
@@ -77,5 +79,5 @@
       int8_t evict(unsigned char* key, uint32_t key_size);
 
   };
- #define __ZT_PATHORAM__
+ #define __ZT_LINEARSCAN_ORAM__
 #endif

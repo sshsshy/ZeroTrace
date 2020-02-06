@@ -15,7 +15,7 @@
 *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "Sample_App.hpp"
+#include "LS_Client.hpp"
 #include <iostream>
 #include <map>
 
@@ -29,26 +29,6 @@
 #include "utils.hpp"
 
 
-uint32_t oram_index =0;
-
-int32_t min_expected_no_of_parameters = 8;
-uint32_t num_blocks;
-int requestlength;
-uint32_t data_size;
-uint32_t key_size;
-uint32_t value_size;
-uint8_t store_mode;
-uint8_t oblivious_mode;
-std::string logfile;
-
-
-clock_t generate_request_start, generate_request_stop, extract_response_start,
-        extract_response_stop, process_request_start, process_request_stop, 
-        generate_request_time, extract_response_time, process_request_time;
-
-clock_t inserts_start, inserts_stop, inserts_time, insert_time;
-clock_t fetches_start, fetches_stop, fetches_time, fetch_time;
-
 void getParams(int argc, char* argv[])
 {
   if(argc<min_expected_no_of_parameters) {
@@ -57,7 +37,7 @@ void getParams(int argc, char* argv[])
   }
 
   std::string str = argv[1];
-  num_blocks = std::stoi(str);
+  NUM_BLOCKS = std::stoi(str);
   str = argv[2];
   requestlength = std::stoi(str);
   str = argv[3];
@@ -308,17 +288,17 @@ int main(int argc, char *argv[]) {
   uint32_t zt_oram_id = 0; 
 
   #ifdef HSORAM_MODE
-    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, HSORAM_INDEX_SIZE, store_mode, oblivious_mode, 1);
+    zt_lsoram_id = ZT_New_LSORAM(NUM_BLOCKS, key_size, HSORAM_INDEX_SIZE, store_mode, oblivious_mode, 1);
     zt_oram_id = ZT_New(HSORAM_MAX_BLOCKS, value_size, HSORAM_STASH_SIZE, HSORAM_OBLIVIOUS_TYPE_ORAM, HSORAM_RECURSION_DATA_SIZE, HSORAM_ORAM_TYPE, HSORAM_Z);
   #else
-    zt_lsoram_id = ZT_New_LSORAM(num_blocks, key_size, value_size, store_mode, oblivious_mode, 1);
+    zt_lsoram_id = ZT_New_LSORAM(NUM_BLOCKS, key_size, value_size, store_mode, oblivious_mode, 1);
   #endif
   //printf("Obtained zt_lsoram_id = %d\n", zt_lsoram_id); 
  
   std::map<std::string, std::string> kv_table;
   
   inserts_time = 0; 
-  for (int i = 0; i <num_blocks; i++) { 
+  for (int i = 0; i <NUM_BLOCKS; i++) { 
     unsigned char *key = (unsigned char *) malloc(key_size);
     unsigned char *value = (unsigned char *) malloc(value_size);
 
@@ -386,7 +366,7 @@ int main(int argc, char *argv[]) {
  
 
   double fetch_time=(double(fetches_time)/double(CLOCKS_PER_MS))/double(requestlength);
-  double insert_time=(double(inserts_time)/double(CLOCKS_PER_MS))/double(num_blocks);
+  double insert_time=(double(inserts_time)/double(CLOCKS_PER_MS))/double(NUM_BLOCKS);
 
   #ifdef SHOW_TIMING_RESULTS
     printf("Total insert time = %f\n", double(inserts_time)/double(CLOCKS_PER_MS)); 
@@ -413,7 +393,7 @@ int main(int argc, char *argv[]) {
   uint64_t request_size = key_size + TAG_SIZE;
   uint64_t response_size = value_size + TAG_SIZE;
   //fprintf(fptr, "%d,%f,%f\n", num_blocks, fetch_time, stddev);
-  fprintf(fptr, "%d, %f, %f, %f, %f, %f, %f, %ld, %ld\n", num_blocks, gentime_avg, gentime_std, processtime_avg,
+  fprintf(fptr, "%d, %f, %f, %f, %f, %f, %f, %ld, %ld\n", NUM_BLOCKS, gentime_avg, gentime_std, processtime_avg,
          processtime_std, extracttime_avg, extracttime_std, request_size, response_size);
   fclose(fptr);
 

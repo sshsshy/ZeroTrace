@@ -192,7 +192,6 @@ void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *enc
   PathORAM *poram_current_instance;
   CircuitORAM *coram_current_instance;
 
-  printf("In Enclave accessInterface call\n");
   unsigned char *data_in, *data_out, *request, *request_ptr;
   uint32_t id, opType;
   request = (unsigned char *) malloc (encrypted_request_size);
@@ -220,19 +219,15 @@ void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *enc
   //printf("Request Type = %c, Request_id = %d", opType, id);
   data_in = request_ptr+ID_SIZE_IN_BYTES;
 
-  //TODO: Fix Instances issue.
-  //current_instance_2->Access();
-  //current_instance_2->Access(id, opType, data_in, data_out);
   if(oram_type==0){
     poram_current_instance = poram_instances[instance_id];
-    //poram_current_instance->Access_temp(id, opType, data_in, data_out);
     poram_current_instance->Access(id, opType, data_in, data_out);
   }
   else {
     coram_current_instance = coram_instances[instance_id];
-    //coram_current_instance->Access_temp(id, opType, data_in, data_out);
     coram_current_instance->Access(id, opType, data_in, data_out);
   }
+
   //Encrypt Response
   status = sgx_rijndael128GCM_encrypt((const sgx_aes_gcm_128bit_key_t *) SHARED_AES_KEY, data_out, response_size,
 				  (uint8_t *) encrypted_response, (const uint8_t *) HARDCODED_IV, IV_LENGTH, NULL, 0,

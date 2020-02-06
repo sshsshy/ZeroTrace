@@ -18,6 +18,8 @@
 #ifndef __ZT_GLOBALS_ENCLAVE__
   #define __ZT_GLOBALS_ENCLAVE__
   #include "../Globals.hpp"
+  #include "../CONFIG.h"
+  #include "../CONFIG_FLAGS.h"
   #include <string.h>
   #include "ORAM_Interface.hpp"
   #include <stdarg.h>

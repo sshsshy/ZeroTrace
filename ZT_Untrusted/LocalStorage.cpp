@@ -19,23 +19,11 @@
 LocalStorage.cpp
 */
 
-#include "../Globals.hpp"
-#include "Enclave_u.h"
 #include "LocalStorage.hpp"
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <unistd.h>
-#include <fcntl.h>
 
-#define HASH_LENGTH 32
 #define FILESTREAM_MODE 1
-#define DEBUG_LS 1
-//#define DEBUG_INTEGRITY 1
 // Utilization Parameter is the number of blocks of a bucket that is filled at start state. ( 4 = MAX_OCCUPANCY )
 #define UTILIZATION_PARAMETER 4
-#define ADDITIONAL_METADATA_SIZE 24
 //#define NO_CACHING 1
 //#define CACHE_UPPER 1
 //#define PASSIVE_ADVERSARY 1
@@ -655,8 +643,10 @@ void LocalStorage::fetchHash(uint32_t bucket_id, unsigned char* hash, uint32_t h
 
 uint8_t LocalStorage::uploadBucket(uint32_t bucket_id, unsigned char *bucket, uint32_t bucket_size, unsigned char* hash, uint32_t hash_size, uint8_t recursion_level)
 {
+  #ifdef DEBUG_LS
   printf("LS:uploadBucket : level = %d, bucket_id = %d of buckets_in_level[%d] = %ld\n", recursion_level, bucket_id, recursion_level, buckets_in_level[recursion_level]);
-  
+  #endif  
+
   uint64_t pos;
   std::string file_name_this, file_name_this_i;
   if(!inmem) {
@@ -853,7 +843,9 @@ uint8_t LocalStorage::uploadPath(uint32_t leaf_label, unsigned char *path, unsig
   unsigned char* path_iter = path;
   unsigned char* path_hash_iter = path_hash;
 
-  showPath_reverse(path, Z, D_level, size_for_level-24);
+  #ifdef DEBUG_LS
+    showPath_reverse(path, Z, D_level, size_for_level-24);
+  #endif
 
   if(inmem == false) {
     #ifdef FILESTREAM_MODE
@@ -993,19 +985,18 @@ uint8_t LocalStorage::uploadPath(uint32_t leaf_label, unsigned char *path, unsig
 
   }
   else {
-    printf("size_for_level = %d\n",size_for_level);	
     for(uint8_t i = 0;i<D_level;i++) {
       memcpy(inmem_tree_l[level]+((Z*size_for_level)*(temp-1)),path_iter,(Z*size_for_level));
-      printf("In LS Upload, Bucket uploaded = %d\n", temp);
-      
-      //TEST MODULE:
-      printf("Blocks in bucket:\n");
-      for(uint8_t q =0; q<Z; q++){
-        printf("(%d,%d),", *((uint32_t*) (inmem_tree_l[level]+((Z*size_for_level)*(temp-1) + q*size_for_level + 16))), 
-         *((uint32_t*) (inmem_tree_l[level]+((Z*size_for_level)*(temp-1) + q*size_for_level + 20))));
- 
-      }
-      printf("\n");
+      #ifdef DEBUG_LS
+        printf("In LS Upload, Bucket uploaded = %d\n", temp); 
+        printf("Blocks in bucket:\n");
+        for(uint8_t q =0; q<Z; q++){
+          printf("(%d,%d),", *((uint32_t*) (inmem_tree_l[level]+((Z*size_for_level)*(temp-1) + q*size_for_level + 16))), 
+           *((uint32_t*) (inmem_tree_l[level]+((Z*size_for_level)*(temp-1) + q*size_for_level + 20))));
+   
+        }
+        printf("\n");
+      #endif
 
       #ifndef PASSIVE_ADVERSARY				
         memcpy(inmem_hash_l[level]+(HASH_LENGTH*(temp-1)),path_hash_iter,HASH_LENGTH);
@@ -1360,7 +1351,7 @@ unsigned char* LocalStorage::downloadPath(uint32_t leaf_label, unsigned char *pa
             memcpy(path_hash_iter, inmem_hash_l[level]+(HASH_LENGTH*(temp)),HASH_LENGTH);
             path_hash_iter+=HASH_LENGTH;
       
-            #ifdef DEBUG_INTEGRITY
+            #ifdef LS_DEBUG_INTEGRITY
               printf("LS : Level = %d, Bucket no = %d, Hash = ",level, temp);
               for(uint8_t l = 0;l<HASH_LENGTH;l++)
                 printf("%c",(*(inmem_hash_l[level]+(HASH_LENGTH*(temp-1)) + l) %26)+'A');
@@ -1376,7 +1367,7 @@ unsigned char* LocalStorage::downloadPath(uint32_t leaf_label, unsigned char *pa
           memcpy(path_hash_iter, inmem_hash_l[level]+(HASH_LENGTH*(temp-1)),HASH_LENGTH);
           path_hash_iter+=HASH_LENGTH;
         
-          #ifdef DEBUG_INTEGRITY
+          #ifdef LS_DEBUG_INTEGRITY
             printf("LS : Level = %d, Bucket no = %d, Hash = ",level, temp-1);
             for(uint8_t l = 0;l<HASH_LENGTH;l++)
               printf("%c",(*(inmem_hash_l[level]+(HASH_LENGTH*(temp-2)) + l) %26)+'A');
@@ -1390,7 +1381,7 @@ unsigned char* LocalStorage::downloadPath(uint32_t leaf_label, unsigned char *pa
       else{
         memcpy(path_hash_iter, inmem_hash_l[level]+(HASH_LENGTH*(temp-1)),HASH_LENGTH);
         path_hash_iter+=(HASH_LENGTH);
-        #ifdef DEBUG_INTEGRITY
+        #ifdef LS_DEBUG_INTEGRITY
                 printf("LS : Level = %d, Bucket no = %d, Hash = ",level, temp);
                 for(uint8_t l = 0;l<HASH_LENGTH;l++)
                   printf("%c",(*(inmem_hash_l[level]+(HASH_LENGTH*(temp-1)) + l) %26)+'A');

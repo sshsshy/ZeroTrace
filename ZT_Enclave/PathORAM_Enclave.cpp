@@ -202,8 +202,10 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
     }
   }
 
-  recursive_stash[level].displayStashContents(n, level!=(recursion_levels-1));  
-  
+  #ifdef SHOW_STASH_CONTENTS
+    recursive_stash[level].displayStashContents(n, level!=(recursion_levels-1));  
+  #endif
+
   #ifdef SHOW_STASH_COUNT_DEBUG
     uint32_t stash_oc;
     stash_oc = recursive_stash[level].stashOccupancy();
@@ -262,7 +264,6 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
       createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, data_size+ADDITIONAL_METADATA_SIZE, level);           	      
     #endif
 
-    printf("path_size = %d\n", path_size);
     #ifdef ENCRYPTION_ON
       uploadPath(leaf_adj, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
     #else

@@ -16,6 +16,8 @@
 */
 
 #include "../Globals.hpp"
+#include "../CONFIG.h"
+#include "../CONFIG_FLAGS.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

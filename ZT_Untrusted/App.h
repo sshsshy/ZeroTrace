@@ -33,29 +33,33 @@
 #ifndef _APP_H_
 #define _APP_H_
 
-#include <assert.h>
+#include "../CONFIG.h"
+#include "../CONFIG_FLAGS.h"
+
+#include "../Globals.hpp"
 #include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <time.h> 
+#include <vector>
+#include <map>
 #include <stdlib.h>
 #include <stdarg.h>
-
-#include "sgx_error.h"       /* sgx_status_t */
-#include "sgx_eid.h"     /* sgx_enclave_id_t */
-
-#include <stdio.h>
+#include "sgx_urts.h"
+#include "App.h"
+#include "Enclave_u.h"
+#include "LocalStorage.hpp"
+#include "RandomRequestSource.hpp"
 #include <iostream>
-#include <string>
 #include <fstream>
 #include <random>
 #include <cstdint>
-#include <time.h>
 
-#ifndef TRUE
-# define TRUE 1
-#endif
-
-#ifndef FALSE
-# define FALSE 0
-#endif
+#include "sgx_error.h"       /* sgx_status_t */
+#include "sgx_eid.h"     /* sgx_enclave_id_t */
 
 # define TOKEN_FILENAME   "enclave.token"
 # define ENCLAVE_FILENAME "enclave.signed.so"

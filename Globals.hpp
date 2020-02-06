@@ -21,82 +21,6 @@
 
   //Global Flags
 
-  #define MEM_POSMAP_LIMIT 1024
-  //#define ENCRYPTION_ON 1
-  #define SHOW_TIMING_RESULTS 1
-  // VERBOSE Adds additional information of intermediate steps status
-  //#define VERBOSE 1
-  //#define EXITLESS_MODE 1 
-  //#define PASSIVE_ADVERSARY 1
-    
-
-  //Client-specific Flags
-  #define ANALYSIS 1
-
-
-  // Untrusted-(Shim-)layer specifc Flags
-
-
-
-  //Enclave-specific Flags
-
-
-  //DEBUG Flags:
-    // Client/Sample: 
-   
-    // Enclave
-	#define DEBUG_ZT_ENCLAVE 1
-	#define SET_PARAMETERS_DEBUG 1
-	#define BUILDTREE_DEBUG 1
-	#define ACCESS_DEBUG 1
-  #define DEBUG_INTEGRITY 1 
- 
-  //#define BUILDTREE_VERIFICATION_DEBUG 1
-  #define SHOW_STASH_COUNT_DEBUG 1 
-  //#define SHOW_STASH_CONTENTS 1
-  //#define DEBUG_EFO 1
-  //#define RESULTS_DEBUG 1
-  //#define PAO_DEBUG 1
-
-  //#define PATHORAM_ACCESS_REBUILD_DEBUG 1
-  //#define PATHORAM_STASH_OVERFLOW_DEBUG 1 
-  //#define ACCESS_CORAM_DEBUG 1
-  //#define ACCESS_CORAM_META_DEBUG 1
-  //#define ACCESS_CORAM_DEBUG3 1
-  //#define ACCCES_DEBUG_EXITLESS 1
-  //#define ACCESS_DEBUG_REBUILD 1 
-
-  //#define DEBUG_PRINT 1
-  #define PRINT_REQ_DETAILS 1
-  //#define RECURSION_LEVELS_DEBUG 1
-
-    // Linear Scan ORAM
-      //#define DEBUG_LSORAM 1
-      //#define TEST_CORRECTNESS 1
-
-    // If you want to use a hybrid of Linear Scan and Path/Circuit ORAM
-    // Set HSORAM_MODE to 1 and fill out corresponding ORAM parameters in the
-    // HSORAM flags below it
-      //#define HSORAM_MODE 1
-
-	//HSORAM_FLAGS:
-	  #define HSORAM_MAX_BLOCKS 1000
-	  #define HSORAM_OBLIVIOUS_TYPE_ORAM 1
-	  #define HSORAM_RECURSION_DATA_SIZE 64
-	  // PathORAM = 0, Stash size = 100
-	  // CircuitORAM = 1, Stash size = 10
-	  #define HSORAM_ORAM_TYPE 0
-	  #define HSORAM_STASH_SIZE 100
-	  #define HSORAM_Z 4
-	  #define HSORAM_INDEX_SIZE 4
-
-
-  //Variable #defines
-  //define FLAGS :
-   #define TIME_PERFORMANCE 1
-  //#define AES_NI 1
-  //#define RAND_DATA 1
-
   // Global Declarations
 
   #define ADDITIONAL_METADATA_SIZE 24
@@ -138,6 +62,14 @@
   enum LSORAM_STORAGE_MODES{ INSIDE_PRM, OUTSIDE_PRM};
   enum LSORAM_OBLV_MODES{ACCESS_OBLV, FULL_OBLV};
   enum LSORAM_ERRORCODES{KEY_SIZE_OUT_OF_BOUND, VALUE_SIZE_OUT_OF_BOUND};
+
+  #ifndef TRUE
+  # define TRUE 1
+  #endif
+
+  #ifndef FALSE
+  # define FALSE 0
+  #endif
 
   typedef struct{
     unsigned char *key;
