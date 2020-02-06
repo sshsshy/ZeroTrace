@@ -15,20 +15,35 @@
 *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "../Globals.hpp"
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <string.h>
+#include <cstdint>
 #include <random>
+#include "ZT.hpp"
 #include "RandomRequestSource.hpp"
+#include "utils.hpp"
+#include <openssl/ec.h>
+#include <openssl/ecdh.h>
+#include <openssl/ecdsa.h>
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/obj_mac.h>
 
-int* RandomRequestSource::GenerateRandomSequence(int length, int max_capacity) {
-	int* requestsource = (int *) malloc( length * sizeof(int) );
-	std::default_random_engine generator;
-	std::uniform_int_distribution<int> distribution(0,max_capacity-1);
-	int i,val;
+EC_KEY *ENCLAVE_PUBLIC_KEY = NULL;
+unsigned char *enclave_public_key;
 
-	for(i=0;i<length;i++)
-	{
-		val = distribution(generator);
-		requestsource[i] = val;
-	}
+#define NUM_TESTS_PER_ORAM_TYPE 3
 
-	return requestsource;
-}
+//Parameters to fix for each Experiment in Test module
+uint32_t DATA_SIZE;
+uint32_t MAX_BLOCKS;
+int REQUEST_LENGTH;
+uint32_t STASH_SIZE;
+uint32_t OBLIVIOUS_FLAG = 0;
+uint32_t RECURSION_DATA_SIZE = 0;
+uint32_t ORAM_TYPE = 0;
+uint8_t Z;

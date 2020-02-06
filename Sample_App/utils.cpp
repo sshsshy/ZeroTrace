@@ -174,6 +174,37 @@ int AES_GCM_128_decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned 
   }
 }
 
+// prepareDataBlock is meant to prepare Test Data blocks
+// TestDataBlocks are of the format <Index><Padding with 0 upto data_size>
+
+void prepareDataBlock(unsigned char *datablock, uint32_t index, uint32_t data_size){
+  unsigned char *data_ptr = datablock;
+  memcpy(data_ptr, (unsigned char*) &index, sizeof(uint32_t));
+  for(uint32_t j = sizeof(uint32_t); j<data_size; j++){
+    data_ptr[j]='0';
+  }
+  uint32_t index_stored;
+  memcpy((unsigned char*) &index_stored, data_ptr, sizeof(uint32_t));
+  printf("PDB : Original index = %d, index_stored = %d\n", index, index_stored);
+}
+
+int checkFetchedDataBlock(unsigned char *datablock, uint32_t index, uint32_t data_size){
+  unsigned char *data_ptr = datablock;
+  uint32_t retrieved_index;
+  memcpy((unsigned char*) &retrieved_index, data_ptr, sizeof(uint32_t));
+  if(retrieved_index != index){
+    printf("In CFDB: retrieved_index(%d) != index(%d)\n", retrieved_index, index);
+    return 1;
+  }
+  for(uint32_t j=sizeof(uint32_t); j<data_size; j++){
+    if(data_ptr[j]!='0'){
+      printf("In CFDB: j=%d, data[j]!='0'\n",j);
+      return 1;
+    }
+  }
+  return 0;
+}
+
 void serializeRequest(uint32_t request_id, char op_type, unsigned char *data, uint32_t data_size, unsigned char* serialized_request){
   unsigned char *request_ptr = serialized_request;
   *request_ptr=op_type;

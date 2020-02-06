@@ -43,9 +43,10 @@
 //Buffer-handling/Serialize Functions
   void serializeRequest(uint32_t request_id, char op_type, unsigned char *data,
        uint32_t data_size, unsigned char* serialized_request);
-
   int32_t serializeLSORAMRequest(unsigned char *key, uint32_t key_size, 
            unsigned char *value, uint32_t value_size, unsigned char **serialized_request);
+  void prepareDataBlock(unsigned char *datablock, uint32_t index, uint32_t data_size);
+  int checkFetchedDataBlock(unsigned char *datablock, uint32_t index, uint32_t data_size);
 
 //Crypto Functions
   int AES_GCM_128_encrypt (unsigned char *plaintext, int plaintext_len, unsigned char *aad,

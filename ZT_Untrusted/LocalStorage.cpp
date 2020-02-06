@@ -545,6 +545,7 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
         }
 
         blocks_in_level = (uint64_t*) malloc((recursion_levels) * sizeof(uint64_t*));
+        buckets_in_level = (uint64_t*) malloc((recursion_levels) * sizeof(uint64_t*));
         real_max_blocks_level = (uint64_t*) malloc((recursion_levels) * sizeof(uint64_t));
 
         uint8_t max_recursion_level_index = recursion_levels-1;
@@ -580,6 +581,7 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
            
         inmem_tree_l = (unsigned char**) malloc ((recursion_levels)*sizeof(unsigned char*));
         inmem_hash_l = (unsigned char**) malloc ((recursion_levels)*sizeof(unsigned char*));
+
         for(uint32_t i = 0; i<recursion_levels; i++) {
           uint64_t level_size;     
           // leaf_nodes in level = ceil(log_2(ceil(blocks_in_level[level] / util_divisor)) 
@@ -591,21 +593,19 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
           uint64_t tree_size = 2*pN-1;
           buckets_in_level[i]=tree_size;        
 
-
           if(i==recursion_levels-1)	
-            level_size = (uint64_t)(ceil(tree_size))*((uint64_t)(Z*(data_size_p+ADDITIONAL_METADATA_SIZE))); 
+            level_size = tree_size*((uint64_t)(Z*(data_size_p+ADDITIONAL_METADATA_SIZE))); 
           else
-            level_size = (uint64_t)(ceil(tree_size))*((uint64_t)(Z*(recursion_block_size+ADDITIONAL_METADATA_SIZE))); 
+            level_size = tree_size*((uint64_t)(Z*(recursion_block_size+ADDITIONAL_METADATA_SIZE))); 
 
-          uint64_t hashtree_size_this = (uint64_t)(tree_size * (uint64_t)(HASH_LENGTH));
+          uint64_t hashtree_size = (uint64_t)(tree_size * (uint64_t)(HASH_LENGTH));
 
           //Setup Memory locations for hashtree and recursion block	
           inmem_tree_l[i] = (unsigned char*) malloc(level_size);
-          inmem_hash_l[i] = (unsigned char*) malloc(hashtree_size_this);
+          inmem_hash_l[i] = (unsigned char*) malloc(hashtree_size);
 
-
-          #ifdef DEBUG_LS
-            printf("LS:Level : %d, Blocks : %ld, TreeSize = %ld, hashtree_size= %ld\n", i, blocks_in_level[i], tree_size, hashtree_size_this);	
+          #ifdef SET_PARAMETERS_DEBUG
+            printf("LS:Level : %d, Blocks : %ld, TreeSize = %ld, hashtree_size= %ld\n", i, blocks_in_level[i], tree_size, hashtree_size);	
           #endif
         }
       #endif			
