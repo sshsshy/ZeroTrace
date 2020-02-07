@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
   //Variable declarations
   RandomRequestSource reqsource;
   clock_t start,end,tclock;  
-  int *rs = reqsource.GenerateRandomSequence(REQUEST_LENGTH,MAX_BLOCKS-1);
+  uint32_t *rs = reqsource.GenerateRandomSequence(REQUEST_LENGTH,MAX_BLOCKS-1);
   uint32_t i = 0;
 
   uint32_t encrypted_request_size;

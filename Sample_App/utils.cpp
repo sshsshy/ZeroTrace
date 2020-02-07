@@ -17,6 +17,21 @@
 
 #include "utils.hpp"
 
+uint32_t* RandomRequestSource::GenerateRandomSequence(uint32_t length, uint32_t max_capacity) {
+	uint32_t* requestsource = (uint32_t *) malloc( length * sizeof(uint32_t) );
+	std::default_random_engine generator;
+	std::uniform_int_distribution<uint32_t> distribution(0,max_capacity-1);
+	uint32_t i,val;
+
+	for(i=0;i<length;i++)
+	{
+		val = distribution(generator);
+		requestsource[i] = val;
+	}
+
+	return requestsource;
+}
+
 double compute_stddev(double *elements, uint32_t num_elements){
   double mean = 0, var = 0, stddev;
   for(uint32_t i=0; i<num_elements; i++){
@@ -402,7 +417,7 @@ int decryptLSORAMResponse(unsigned char *encrypted_response, uint32_t response_s
   return response_size;
 }
 
-int encryptBulkReadRequest(int *rs, uint32_t req_counter, uint32_t bulk_batch_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size, unsigned char *iv, unsigned char** serialized_client_public_key ){
+int encryptBulkReadRequest(uint32_t *rs, uint32_t req_counter, uint32_t bulk_batch_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size, unsigned char *iv, unsigned char** serialized_client_public_key ){
   int ret;
   #ifdef HYBRID_ENCRYPTION
     EC_KEY *ephemeral_key = NULL;
@@ -508,7 +523,7 @@ int encryptBulkReadRequest(int *rs, uint32_t req_counter, uint32_t bulk_batch_si
   return encrypted_request_size;
 }
 
-int encryptBulkReadRequest(int *rs, uint32_t req_counter, uint32_t bulk_batch_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size ){
+int encryptBulkReadRequest(uint32_t *rs, uint32_t req_counter, uint32_t bulk_batch_size, unsigned char *encrypted_request, unsigned char *tag, uint32_t request_size ){
   int encrypted_request_size;	
   //Sample IV;
   unsigned char *iv = (unsigned char *) malloc (IV_LENGTH);

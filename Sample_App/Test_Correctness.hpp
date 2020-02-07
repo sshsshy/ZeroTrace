@@ -49,3 +49,8 @@ uint32_t OBLIVIOUS_FLAG = 0;
 uint32_t RECURSION_DATA_SIZE = 0;
 uint32_t ORAM_TYPE = 0;
 uint8_t Z;
+
+typedef struct experiment_parameters{
+
+
+}exp_params;

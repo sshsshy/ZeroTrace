@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
   //Variable declarations
   RandomRequestSource reqsource;
   clock_t start,end,tclock;  
-  int *rs = reqsource.GenerateRandomSequence(REQUEST_LENGTH, MAX_BLOCKS-1);
+  uint32_t *rs = reqsource.GenerateRandomSequence(REQUEST_LENGTH, MAX_BLOCKS-1);
   uint32_t i = 0;
 
   request_size = ID_SIZE_IN_BYTES + DATA_SIZE;
