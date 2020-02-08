@@ -25,7 +25,6 @@
 #include <cstdint>
 #include <random>
 #include "ZT.hpp"
-#include "RandomRequestSource.hpp"
 #include "utils.hpp"
 #include <openssl/ec.h>
 #include <openssl/ecdh.h>
@@ -51,6 +50,12 @@ uint32_t ORAM_TYPE = 0;
 uint8_t Z;
 
 typedef struct experiment_parameters{
-
-
+  uint32_t data_size;
+  uint32_t max_blocks;
+  uint32_t request_length;
+  uint32_t stash_size;
+  uint32_t oblivious_flag;
+  uint32_t recursion_data_size;
+  uint32_t oram_type;
+  uint8_t Z;
 }exp_params;

@@ -88,41 +88,40 @@ int initializeZeroTrace() {
 
 }
 
-int main(int argc, char *argv[]) {
+int run_experiment(exp_params params){
+  uint32_t max_blocks = params.max_blocks;
+  uint32_t data_size = params.data_size;
+  uint32_t request_length = params.request_length; 
+  uint32_t stash_size = params.stash_size;
+  uint32_t oblivious_flag = params.oblivious_flag;
+  uint32_t recursion_data_size = params.recursion_data_size;
+  uint32_t oram_type = params.oram_type;
+  uint8_t Z = params.Z;
 
-  initializeZeroTrace();
-
-  //TODO: Loop over different Test Params
-  MAX_BLOCKS = 100;
-  DATA_SIZE = 128;
-  STASH_SIZE = 150;
-  OBLIVIOUS_FLAG = 1;
-  RECURSION_DATA_SIZE = 64;
-  ORAM_TYPE = 0;
-  Z = 4;
-  REQUEST_LENGTH = 100;  
+  printf("PARAMS in run_experiment: max_blocks =%d, data_size =%d\n", max_blocks, data_size);
 
   printf("Before ZT_New call\n"); 
-  uint32_t zt_id = ZT_New(MAX_BLOCKS, DATA_SIZE, STASH_SIZE, OBLIVIOUS_FLAG, RECURSION_DATA_SIZE, ORAM_TYPE, Z);
+  uint32_t zt_id = ZT_New(max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, oram_type, Z);
   printf("Done with ZT_New call, zt_id = %d\n", zt_id);
+
 
   //Variable declarations
   RandomRequestSource reqsource;
   clock_t start,end,tclock;  
-  uint32_t *rs = reqsource.GenerateRandomSequence(REQUEST_LENGTH, MAX_BLOCKS-1);
+  uint32_t *rs = reqsource.GenerateRandomSequence(request_length, max_blocks-1);
   uint32_t i = 0;
 
-  request_size = ID_SIZE_IN_BYTES + DATA_SIZE;
+  request_size = ID_SIZE_IN_BYTES + data_size;
   tag_in = (unsigned char*) malloc (TAG_SIZE);
   tag_out = (unsigned char*) malloc (TAG_SIZE);
-  data_in = (unsigned char*) malloc (DATA_SIZE);
+  data_in = (unsigned char*) malloc (data_size);
  
 
-  response_size = DATA_SIZE;
+  response_size = data_size;
   //+1 for simplicity printing a null-terminated string
-  data_out = (unsigned char*) malloc (DATA_SIZE + 1);
+  data_out = (unsigned char*) malloc (data_size + 1);
 
-  encrypted_request_size = computeCiphertextSize(DATA_SIZE);
+  encrypted_request_size = computeCiphertextSize(data_size);
   encrypted_request = (unsigned char *) malloc (encrypted_request_size);				
   encrypted_response = (unsigned char *) malloc (response_size);		
 
@@ -131,16 +130,18 @@ int main(int argc, char *argv[]) {
   #endif
 
   // Write data blocks for indices i: 0 to MAX_BLOCKS-1, as encryption of index padded with 0s to fill DATA_SIZE
-  for(i=0;i<MAX_BLOCKS;i++) { 
+  for(i=0;i<max_blocks;i++) { 
     //Prepare Datablock for index i:
       //Encrypt i, pad with 0s to fill DATA_SIZE
-    prepareDataBlock(data_in, i, DATA_SIZE);
+    prepareDataBlock(data_in, i, data_size);
       
     //Populate data_in with prepared datablock ^
-    encryptRequest(i, 'w', data_in, DATA_SIZE, encrypted_request, tag_in, encrypted_request_size);
+    encryptRequest(i, 'w', data_in, data_size, encrypted_request, tag_in, encrypted_request_size);
 
     //Perform the ORAM write
-    ZT_Access(zt_id, ORAM_TYPE, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE);
+    printf("Before ZT_Access call\n");
+    ZT_Access(zt_id, oram_type, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE);
+    printf("After ZT_Access call\n");
   }
 
 
@@ -150,7 +151,7 @@ int main(int argc, char *argv[]) {
 
 
   start = clock();
-  for(i=0;i<REQUEST_LENGTH;i++) {
+  for(i=0;i<request_length;i++) {
     #ifdef PRINT_REQ_DETAILS		
       printf("---------------------------------------------------\n\nRequest no : %d\n",i);
       printf("Access ID: %d\n",rs[i]);
@@ -159,30 +160,30 @@ int main(int argc, char *argv[]) {
     //Prepare Request:
     //request = rs[i]
     generate_request_start = clock();
-    encryptRequest(rs[i], 'r', data_in, DATA_SIZE, encrypted_request, tag_in, encrypted_request_size);
+    encryptRequest(rs[i], 'r', data_in, data_size, encrypted_request, tag_in, encrypted_request_size);
     generate_request_stop = clock();		
 
     //Process Request:
     process_request_start = clock();		
-    ZT_Access(zt_id, ORAM_TYPE, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE);
+    ZT_Access(zt_id, oram_type, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE);
     process_request_stop = clock();				
 
     //Extract Response:
     extract_response_start = clock();
     extractResponse(encrypted_response, tag_out, response_size, data_out);
     extract_response_stop = clock();
-
-    data_out[DATA_SIZE]='\0';
-    
-    if(checkFetchedDataBlock(data_out, rs[i], DATA_SIZE))
+ 
+    if(checkFetchedDataBlock(data_out, rs[i], data_size)){
       printf("checkFetchedDataBlock - FAIL\n");
+      return 1;
+    }  
     else
       printf("checkFetchedDataBlock - SUCCESS\n");
     
 
     #ifdef RESULTS_DEBUG
-        printf("datasize = %d, Fetched Data :", DATA_SIZE);
-        for(uint32_t j=0; j < DATA_SIZE;j++){
+        printf("datasize = %d, Fetched Data :", data_size);
+        for(uint32_t j=0; j < data_size;j++){
       printf("%c", data_out[j]);
         }
         printf("\n");
@@ -210,7 +211,7 @@ int main(int argc, char *argv[]) {
 
   //Time in CLOCKS :
   printf("%ld\n",tclock);
-  printf("Per query time = %f ms\n",(1000 * ( (double)tclock/ ( (double)REQUEST_LENGTH) ) / (double) CLOCKS_PER_SEC));	
+  printf("Per query time = %f ms\n",(1000 * ( (double)tclock/ ( (double)request_length) ) / (double) CLOCKS_PER_SEC));	
   //printf("%ld\n",CLOCKS_PER_SEC);
   
   free(encrypted_request);
@@ -219,10 +220,59 @@ int main(int argc, char *argv[]) {
   free(tag_out);
   free(data_in);
   free(data_out);
-
-  //printf("Enter a character before exit ...\n");
-  //getchar();
   return 0;
 }
+
+
+int main(int argc, char *argv[]) {
+
+  initializeZeroTrace();
+
+  // DATA_SIZE, MAX_BLOCKS, REQ_LENGTH, STASH_SIZE, OBLIVIOUS_FLAG, RECURSION_DATA_SIZE, ORAM_TYPE, Z
+  exp_params EXP1 = {32, 1000, 100, 500, 1, 64, 0, 4};
+  exp_params EXP2 = {256, 10000, 100, 150, 1, 64, 0, 4};
+  exp_params EXP3 = {1024,100000, 100, 150, 1, 64, 0, 4}; 
+
+  exp_params EXP4 = {32, 1000, 100, 50, 1, 64, 1, 4};
+  exp_params EXP5 = {256, 10000, 100, 10, 1, 64, 1, 4};
+  exp_params EXP6 = {1024,100000, 100, 10, 1, 64, 1, 4}; 
+
+  /*
+  if(run_experiment(EXP1))
+    printf("EXP1: Failed! \n");
+  else
+    printf("EXP1: SUCCESS! \n");
+
+  if(run_experiment(EXP2))
+    printf("EXP2: Failed! \n");
+  else
+    printf("EXP2: SUCCESS! \n");
+
+  if(run_experiment(EXP3))
+    printf("EXP3: Failed! \n");
+  else
+    printf("EXP3: SUCCESS! \n");
+  */
+
+  if(run_experiment(EXP4))
+    printf("EXP4: Failed! \n");
+  else
+    printf("EXP4: SUCCESS! \n");
+
+  /*
+  if(run_experiment(EXP5))
+    printf("EXP5: Failed! \n");
+  else
+    printf("EXP5: SUCCESS! \n");
+
+  if(run_experiment(EXP3))
+    printf("EXP6: Failed! \n");
+  else
+    printf("EXP6: SUCCESS! \n");
+  */
+
+  return 0;
+}
+
 
 

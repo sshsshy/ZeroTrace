@@ -38,12 +38,12 @@
     //#define DEBUG_ZT_ENCLAVE 1
     //#define SET_PARAMETERS_DEBUG 1
     //#define BUILDTREE_DEBUG 1
-    //#define ACCESS_DEBUG 1
+    #define ACCESS_DEBUG 1
     //#define DEBUG_INTEGRITY 1 
  
     //#define BUILDTREE_VERIFICATION_DEBUG 1
     //#define SHOW_STASH_COUNT_DEBUG 1 
-    //#define SHOW_STASH_CONTENTS 1
+    #define SHOW_STASH_CONTENTS 1
     //#define DEBUG_EFO 1
     //#define RESULTS_DEBUG 1
     //#define PAO_DEBUG 1

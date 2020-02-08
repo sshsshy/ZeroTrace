@@ -324,6 +324,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
   uint32_t i,k; 
   uint8_t rt;
   uint32_t tblock_size, tdata_size;
+  uint32_t bucket_id_of_leaf = leaf + nlevel;
   if(recursion_levels==1||level==recursion_levels-1) {
     tblock_size = data_size + ADDITIONAL_METADATA_SIZE;
     tdata_size = data_size;	
@@ -335,7 +336,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
 
   #ifdef ACCESS_DEBUG
     printf("Fetched Path : \n");
-    showPath_reverse(decrypted_path, Z, dlevel, data_size);
+    showPath_reverse(decrypted_path, Z, dlevel, data_size, bucket_id_of_leaf);
   #endif
 
   for(i=0;i < ( Z * (dlevel) ); i++) {
@@ -397,7 +398,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
 
   #ifdef ACCESS_DEBUG
     printf("Path before encrypt and upload: \n");
-    showPath_reverse(decrypted_path, Z, dlevel, data_size);
+    showPath_reverse(decrypted_path, Z, dlevel, data_size, bucket_id_of_leaf);
   #endif
 
   //Encrypt Path Module
@@ -489,6 +490,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   unsigned char *path_ptr;
   uint32_t leaf_adj;
   uint32_t tblock_size, tdata_size;
+  uint32_t bucket_id_of_leaf = leaf + nlevel;
   if(recursion_levels==1||level==recursion_levels-1) {
     tblock_size = data_size + ADDITIONAL_METADATA_SIZE;
     tdata_size = data_size;	
@@ -514,13 +516,13 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   }
             
   #ifdef SHOW_STASH_CONTENTS
-    if(level==recursion_levels)
-      recursive_stash[level].displayStashContents(nlevel);
+    if(level==recursion_levels-1)
+      recursive_stash[level].displayStashContents(nlevel, false);
   #endif
 
   #ifdef ACCESS_DEBUG			
     printf("Level = %d, leaf_left = %d, with + nlevel = %d, Eviction_path_left:\n",level, leaf_left, leaf_left + nlevel);
-    showPath_reverse(eviction_path_left, Z, dlevel, data_size);
+    showPath_reverse(eviction_path_left, Z, dlevel, data_size, leaf_left + nlevel);
     print_stash_count(level,nlevel);
   #endif
 
@@ -550,7 +552,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     printf("\nLevel = %d, Eviction_path_left after Eviction:\n",level);
     if(level == recursion_levels)
       printf("Blocksize = %d\n", tblock_size);
-    showPath_reverse(eviction_path_left, Z, dlevel, tdata_size);
+    showPath_reverse(eviction_path_left, Z, dlevel, tdata_size, leaf_left + nlevel);
     print_stash_count(level,nlevel);
   #endif	
 
@@ -593,7 +595,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
 
   #ifdef ACCESS_DEBUG			
     printf("\nLevel = %d, leaf_right = %d, with + nlevel = %d, Eviction_path_right:\n", level, leaf_right, leaf_right + nlevel);
-    showPath_reverse(eviction_path_right, Z, dlevel, data_size);
+    showPath_reverse(eviction_path_right, Z, dlevel, data_size, leaf_right + nlevel);
     print_stash_count(level,nlevel);
   #endif
       
@@ -623,7 +625,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   EvictOnceFast(deepest, target, deepest_position, target_position , eviction_path_right, path_hash, level, new_path_hash, leaf_right);
   #ifdef ACCESS_DEBUG			
     printf("\nLevel = %d, Eviction_path_right after Eviction:\n", level);
-    showPath_reverse(eviction_path_right, Z, dlevel, tdata_size);
+    showPath_reverse(eviction_path_right, Z, dlevel, tdata_size, leaf_right + nlevel);
     print_stash_count(level,nlevel);
   #endif	
 
@@ -666,7 +668,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     print_stash_count(level, nlevel);
   #endif
 
-  time_report(4);
+  //time_report(4);
   
 }
 
@@ -808,6 +810,7 @@ void CircuitORAM::Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, 
 
 void CircuitORAM::Access(uint32_t id, char opType, unsigned char* data_in, unsigned char* data_out){
   uint32_t prev_sampled_leaf=-1;
+  printf("In CircuitORAM::Access call\n");
   access(id, -1, opType, recursion_levels-1, data_in, data_out, &prev_sampled_leaf);
 }
 

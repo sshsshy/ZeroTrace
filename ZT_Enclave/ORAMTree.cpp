@@ -727,13 +727,14 @@ void ORAMTree::createNewPathHash(unsigned char *path_ptr, unsigned char *old_pat
   }
 }
 
-void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, uint8_t level, uint32_t data_size, uint32_t block_size, uint32_t id, uint32_t position_in_id, uint32_t *nextLeaf, uint32_t newleaf, uint32_t sampledLeaf, int32_t newleaf_nextlevel) {
+void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, uint8_t level, uint32_t data_size, uint32_t block_size, uint32_t id, uint32_t position_in_id, uint32_t leaf, uint32_t *nextLeaf, uint32_t newleaf, uint32_t sampledLeaf, int32_t newleaf_nextlevel) {
   uint32_t d = D_level[level];
   uint32_t i;
+  uint32_t bucket_id_of_leaf = leaf + N_level[level];
   #ifdef ACCESS_DEBUG
     printf("Fetched Path in PushBlocksFromPathIntoStash, data_size = %d : \n", data_size);
-    showPath(decrypted_path, Z, d, data_size);
-    showPath_reverse(decrypted_path, Z, d, data_size);
+    //showPath(decrypted_path, Z, d, data_size);
+    showPath_reverse(decrypted_path, Z, d, data_size, bucket_id_of_leaf);
   #endif
 
   // FetchBlock Module :
@@ -767,8 +768,8 @@ void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, ui
   }	
 
   #ifdef ACCESS_DEBUG
-    printf("End of PushBlocksFromPathIntoStash, Path : \n");
-    showPath_reverse(decrypted_path, Z, d, data_size);
+    //printf("End of PushBlocksFromPathIntoStash, Path : \n");
+    //showPath_reverse(decrypted_path, Z, d, data_size);
   #endif
 
 }
@@ -900,15 +901,21 @@ void ORAMTree::showPath(unsigned char *decrypted_path, uint8_t Z, uint32_t d, ui
 }
 
 //Debug Function to show a tree path in reverse
-void ORAMTree::showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size) {
+void ORAMTree::showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size, uint32_t bucket_id_of_leaf) {
   printf("\n\nshowPath_reverse (Root to leaf): \n");
   uint32_t block_size = data_size + ADDITIONAL_METADATA_SIZE;
   unsigned char *decrypted_path_iter = decrypted_path + ((uint64_t)((Z*(d-1))) * uint64_t(block_size));
+  uint32_t temp = bucket_id_of_leaf;
+  uint32_t bucket_ids[d];
+  for(uint32_t i=0; i<d; i++){
+    bucket_ids[i]=(temp>>(d-i-1));
+  }
 
   if(data_size == recursion_data_size ) {
     for(uint32_t i = 0; i < d; i++) {
       unsigned char *bucket_iter = decrypted_path_iter;
-
+ 
+      printf("Bucket id %d:\n", bucket_ids[i]);
       for(uint32_t j = 0; j < Z; j++){
         printf("(%d,%d) :",getId(bucket_iter), getTreeLabel(bucket_iter));
         uint32_t no = (data_size)/sizeof(uint32_t);
@@ -935,6 +942,8 @@ void ORAMTree::showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32
     for(uint32_t i = 0; i<d; i++) {
       unsigned char* bucket_iter = decrypted_path_iter;
 
+      printf("Bucket id %d:\n", bucket_ids[i]);
+      temp=temp>>1;
       for(uint32_t j =0; j<Z; j++){
         printf("(%d,%d) :",getId(bucket_iter),getTreeLabel(bucket_iter));
 

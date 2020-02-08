@@ -70,7 +70,7 @@
     void print_stash_count(uint32_t level, uint32_t nlevel);
     void print_pmap0();
     void showPath(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size);
-    void showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size);
+    void showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32_t d, uint32_t data_size, uint32_t leaf_bucket_id);
 
     //Initialize/Build Functions
     //Helper function for BuildTree Recursive
@@ -98,7 +98,7 @@
     //Access Functions
     void createNewPathHash(unsigned char *path_ptr, unsigned char *old_path_hash, unsigned char *new_path_hash, uint32_t leaf, uint32_t block_size, uint8_t level);  
     void addToNewPathHash(unsigned char *path_iter, unsigned char* old_path_hash, unsigned char* new_path_hash_trail, unsigned char* new_path_hash, uint32_t level_in_path, uint32_t 							leaf_temp_prev, uint32_t block_size ,uint8_t level);
-    void PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, uint8_t level, uint32_t data_size, uint32_t block_size, uint32_t id, uint32_t position_in_id, uint32_t *nextLeaf, uint32_t newleaf, uint32_t sampledLeaf, int32_t newleaf_nextlevel);
+    void PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, uint8_t level, uint32_t data_size, uint32_t block_size, uint32_t id, uint32_t position_in_id, uint32_t leaf, uint32_t *nextLeaf, uint32_t newleaf, uint32_t sampledLeaf, int32_t newleaf_nextlevel);
     uint32_t access_oram_level(char opType, uint32_t leaf, uint32_t id, uint32_t position_in_id, uint8_t level, uint32_t newleaf,uint32_t newleaf_nextleaf, unsigned char *data_in,  								unsigned char *data_out);		
 
     //uint32_t access(uint32_t id, uint32_t position_in_id, char opType, uint32_t level, unsigned char *data_in, unsigned char *data_out);

@@ -49,7 +49,7 @@ uint32_t PathORAM::access_oram_level(char opType, uint32_t leaf, uint32_t id, ui
 
   decrypted_path = downloadPath(leaf + N_level[level], path_hash, level);
 
-  return_value = PathORAM_Access(opType, id, position_in_id,leaf, newleaf, newleaf_nextleaf,decrypted_path, 
+  return_value = PathORAM_Access(opType, id, position_in_id, leaf, newleaf, newleaf_nextleaf,decrypted_path, 
                                  path_hash,level, data_in, data_out); 
   return return_value;		
 }
@@ -190,7 +190,7 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
 
   //All real blocks from Path get inserted into stash
   //The real blocks also get their ids replaced with dummy identifier.
-  PushBlocksFromPathIntoStash(decrypted_path_ptr, level, tdata_size, tblock_size, id, position_in_id, &nextLeaf, newleaf, sampledLeaf, newleaf_nextlevel);          
+  PushBlocksFromPathIntoStash(decrypted_path_ptr, level, tdata_size, tblock_size, id, position_in_id, leaf, &nextLeaf, newleaf, sampledLeaf, newleaf_nextlevel);          
 
   if(oblivious_flag) {                
     if(level == recursion_levels-1){
@@ -225,8 +225,9 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
   PathORAM_RebuildPath(decrypted_path_ptr, tdata_size, tblock_size, leaf, level);
   
   #ifdef ACCESS_DEBUG
+    uint32_t bucket_id_of_leaf = leaf + N_level[level];
     printf("Final Path after PathORAM_RebuildPath: \n");
-    showPath_reverse(decrypted_path, Z, d, tdata_size);
+    showPath_reverse(decrypted_path, Z, d, tdata_size, bucket_id_of_leaf);
   #endif
 
   #ifdef SHOW_STASH_COUNT_DEBUG
@@ -236,7 +237,7 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
 
   #ifdef SHOW_STASH_CONTENTS
     if(level==recursion_levels-1)
-      recursive_stash[level].displayStashContents(n);
+      recursive_stash[level].displayStashContents(n, false);
   #endif
 
   //Encrypt and Upload Path :

@@ -9,7 +9,6 @@
 #include <random>
 #include "utils.hpp"
 #include "ZT.hpp"
-#include "RandomRequestSource.hpp"
 #include <openssl/ec.h>
 #include <openssl/ecdh.h>
 #include <openssl/ecdsa.h>
