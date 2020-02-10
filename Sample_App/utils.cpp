@@ -32,6 +32,29 @@ uint32_t* RandomRequestSource::GenerateRandomSequence(uint32_t length, uint32_t 
 	return requestsource;
 }
 
+
+uint32_t* RandomRequestSource::GenerateRandomPermutation(uint32_t length) {
+	uint32_t* permutation = (uint32_t *) malloc( length * sizeof(uint32_t) );
+	std::default_random_engine generator;
+	std::uniform_int_distribution<uint32_t> distribution(0,length-1);
+	uint32_t i,val;
+  uint32_t temp;
+
+  for(i=0; i<length; i++)
+    permutation[i]=i;
+
+	for(i=0;i<length;i++)
+	{
+		val = distribution(generator);
+    temp = permutation[i];
+    permutation[i]=permutation[val];
+		permutation[val] = temp; 
+	}
+  printf("\n\n");
+
+	return permutation;
+}
+
 double compute_stddev(double *elements, uint32_t num_elements){
   double mean = 0, var = 0, stddev;
   for(uint32_t i=0; i<num_elements; i++){

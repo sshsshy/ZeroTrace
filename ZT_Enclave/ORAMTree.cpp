@@ -255,6 +255,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
   //+1 to depth pD, since ptreeSize = 2 *pN	
   D_level[level] = pD+1;
   N_level[level] = pN;
+  printf("In ORAMTree:BuildTreeLevel N_level[%d]=%d\n",level, N_level[level]);
 
   #ifdef BUILDTREE_DEBUG				
     printf("\n\nBuildTreeLevel,\nLevel : %d, Params - D = %d, N = %d, treeSize = %d, x = %d\n",level,pD,pN,ptreeSize,x);
@@ -540,14 +541,16 @@ void ORAMTree::Initialize() {
         recursive_stash[i].setup_nonoblivious(recursion_data_size, gN);
     }
     else{
-      if(oblivious_flag)
+      if(oblivious_flag){
+        printf("Correct recursive stash setup call was invoked, gn = %d \n, gn");
         recursive_stash[i].setup(stash_size, data_size, gN);
+        }
       else
         recursive_stash[i].setup_nonoblivious(data_size, gN);
     }        
   }
 
-  printf("In ORAMTree::Initialize(), Before BuildTreeRecursive\n"); 
+  printf("In ORAMTree::Initialize(), Before BuildTreeRecursive, gN = %d\n", gN); 
   BuildTreeRecursive(recursion_levels-1, NULL);
   printf("In ORAMTree::Initialize(), After BuildTreeRecursive\n");			
 

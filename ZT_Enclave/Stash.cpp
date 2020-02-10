@@ -46,7 +46,7 @@ void Stash::setParams(uint32_t param_stash_data_size, uint32_t param_STASH_SIZE,
 	gN = param_gN;
 }
     
-void Stash::PerformAccessOperation(char opType, uint32_t id, uint32_t newleaf, unsigned char *data_in, unsigned char *data_out){
+void Stash::PerformAccessOperation(char opType, uint32_t id, uint32_t newleaf, unsigned char *data_in, unsigned char *data_out) {
 	struct nodev2 *iter = getStart();
 	uint8_t cntr = 1;
 	uint32_t flag_id = 0, flag_w = 0, flag_r = 0;
@@ -272,7 +272,7 @@ void Stash::setup_nonoblivious(uint32_t pdata_size, uint32_t pgN)
 
 void Stash::insert_new_block()
 {
-    	Block block(stash_data_size, gN);
+  Block block(stash_data_size, gN);
 	struct nodev2 *new_node = (struct nodev2*) malloc(sizeof(struct nodev2));			
 
 	if(current_size == STASH_SIZE){
@@ -283,6 +283,7 @@ void Stash::insert_new_block()
 		new_node->serialized_block = serialized_block;
 		new_node->next = getStart();
 		setStart(new_node);	
+    printf("Inserted block (%d, %d) into stash\n", getId(serialized_block), getTreeLabel(serialized_block));
 		current_size+=1;
 	}
 }

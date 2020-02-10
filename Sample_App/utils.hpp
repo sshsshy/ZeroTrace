@@ -40,7 +40,13 @@
   {
   public:
     RandomRequestSource(){};
+    // Generates a random sequence of <length> elements, where each element in 
+    // [0, <max_capacity-1>]
     uint32_t* GenerateRandomSequence(uint32_t length, uint32_t max_capacity);
+
+    // Generates RandomPermutation of length elements, such that all <length> 
+    // elements are unique and from [0, <length>-1]
+    uint32_t* GenerateRandomPermutation(uint32_t length);
   };
 
   //Time Functions

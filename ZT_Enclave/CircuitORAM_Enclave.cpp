@@ -396,6 +396,15 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
     } 
   }
 
+  // Use serialized_result_block to perform the Access operation
+  // Obliviously read to data_out or obliviously write data_in to serialized_result_block
+  // before inserting it into stash.
+  unsigned char *data_ptr = getDataPtr(serialized_result_block); 
+  bool flag_w = (opType == 'w');
+  omove_buffer((unsigned char*) data_ptr, data_in, tdata_size, flag_w);
+  bool flag_r = (opType == 'r');
+  omove_buffer(data_out, (unsigned char*) data_ptr, tdata_size, flag_r);
+
   #ifdef ACCESS_DEBUG
     printf("Path before encrypt and upload: \n");
     showPath_reverse(decrypted_path, Z, dlevel, data_size, bucket_id_of_leaf);
@@ -408,7 +417,6 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
 
   //Path Integrity Module
   #ifndef PASSIVE_ADVERSARY
-    leaf_adj = (leaf+nlevel);
 
     #ifdef ENCRYPTION_ON
       path_ptr = encrypted_path;
@@ -417,7 +425,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
     #endif
 
     //printf("CircuitORAM_Access: Before createNewPathHash\n");
-    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, tblock_size, level);           	     //printf("CircuitORAM_Access: After createNewPathHash\n");
+    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf, tblock_size, level);           	     //printf("CircuitORAM_Access: After createNewPathHash\n");
    
    /* 
    for(i=0;i < Z * dlevel; i++) {
@@ -488,7 +496,6 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   unsigned char *eviction_path_left, *eviction_path_right;
   unsigned char *decrypted_path_ptr = decrypted_path;
   unsigned char *path_ptr;
-  uint32_t leaf_adj;
   uint32_t tblock_size, tdata_size;
   uint32_t bucket_id_of_leaf = leaf + nlevel;
   if(recursion_levels==1||level==recursion_levels-1) {
@@ -506,10 +513,11 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     
   //Sample the leaves for eviction
   sgx_read_rand((unsigned char*) &temp_n, 4);
-  leaf_left = (temp_n % (nlevel/2) );
-  leaf_right = leaf_left + (nlevel/2);
+  leaf_left = nlevel + (temp_n % (nlevel/2));
+  sgx_read_rand((unsigned char*) &temp_n, 4);
+  leaf_right = nlevel + (nlevel/2) + (temp_n % (nlevel/2));
 
-  eviction_path_left = downloadPath(leaf_left + nlevel, path_hash, level);
+  eviction_path_left = downloadPath(leaf_left, path_hash, level);
   for(uint32_t e = 0; e <dlevel+1; e++){
     deepest_position[e] = -1;
     target_position[e] = -1;
@@ -521,8 +529,8 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   #endif
 
   #ifdef ACCESS_DEBUG			
-    printf("Level = %d, leaf_left = %d, with + nlevel = %d, Eviction_path_left:\n",level, leaf_left, leaf_left + nlevel);
-    showPath_reverse(eviction_path_left, Z, dlevel, data_size, leaf_left + nlevel);
+    printf("Level = %d, leaf_left = %d, Eviction_path_left:\n",level, leaf_left);
+    showPath_reverse(eviction_path_left, Z, dlevel, data_size, leaf_left);
     print_stash_count(level,nlevel);
   #endif
 
@@ -552,7 +560,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     printf("\nLevel = %d, Eviction_path_left after Eviction:\n",level);
     if(level == recursion_levels)
       printf("Blocksize = %d\n", tblock_size);
-    showPath_reverse(eviction_path_left, Z, dlevel, tdata_size, leaf_left + nlevel);
+    showPath_reverse(eviction_path_left, Z, dlevel, tdata_size, leaf_left);
     print_stash_count(level,nlevel);
   #endif	
 
@@ -564,20 +572,19 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   uint32_t path_size = tblock_size * Z * D_level[level];
   uint32_t new_path_hash_size = HASH_LENGTH*D_level[level];
   #ifdef ENCRYPTION_ON
-    uploadPath(leaf_left + nlevel, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
+    uploadPath(leaf_left, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
   #else
-    uploadPath(leaf_left + nlevel, eviction_path_left, path_size, new_path_hash, new_path_hash_size, level);			
+    uploadPath(leaf_left, eviction_path_left, path_size, new_path_hash, new_path_hash_size, level);			
   #endif		
 
   #ifndef PASSIVE_ADVERSARY
-    leaf_adj = (leaf_left+nlevel);
     #ifdef ENCRYPTION_ON
       path_ptr = encrypted_path;
     #else
       path_ptr = eviction_path_left;
     #endif
   
-    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, tblock_size, level);           	      
+    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_left, tblock_size, level);           	      
     /*
     for(i=0;i < ( Z * dlevel ); i++) {
       if(i%Z==0) {
@@ -591,11 +598,11 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     */
   #endif
     
-  eviction_path_right = downloadPath(leaf_right + nlevel, path_hash, level);
+  eviction_path_right = downloadPath(leaf_right, path_hash, level);
 
   #ifdef ACCESS_DEBUG			
-    printf("\nLevel = %d, leaf_right = %d, with + nlevel = %d, Eviction_path_right:\n", level, leaf_right, leaf_right + nlevel);
-    showPath_reverse(eviction_path_right, Z, dlevel, data_size, leaf_right + nlevel);
+    printf("\nLevel = %d, leaf_right = %d, Eviction_path_right:\n", level, leaf_right);
+    showPath_reverse(eviction_path_right, Z, dlevel, data_size, leaf_right);
     print_stash_count(level,nlevel);
   #endif
       
@@ -625,7 +632,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   EvictOnceFast(deepest, target, deepest_position, target_position , eviction_path_right, path_hash, level, new_path_hash, leaf_right);
   #ifdef ACCESS_DEBUG			
     printf("\nLevel = %d, Eviction_path_right after Eviction:\n", level);
-    showPath_reverse(eviction_path_right, Z, dlevel, tdata_size, leaf_right + nlevel);
+    showPath_reverse(eviction_path_right, Z, dlevel, tdata_size, leaf_right);
     print_stash_count(level,nlevel);
   #endif	
 
@@ -636,14 +643,13 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
 
   #ifndef PASSIVE_ADVERSARY
 
-    leaf_adj = (leaf_right+nlevel);
     #ifdef ENCRYPTION_ON
       path_ptr = encrypted_path;
     #else
       path_ptr = eviction_path_right;
     #endif
 
-    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, tblock_size, level);           	      
+    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_right, tblock_size, level);           	      
     /*
     for(i=0;i < Z*dlevel; i++) {
       if(i%Z==0) {
@@ -659,9 +665,9 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
 
 
   #ifdef ENCRYPTION_ON
-    uploadPath(leaf_right + nlevel, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
+    uploadPath(leaf_right, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
   #else
-    uploadPath(leaf_right + nlevel, eviction_path_right, path_size, new_path_hash, new_path_hash_size, level);			
+    uploadPath(leaf_right, eviction_path_right, path_size, new_path_hash, new_path_hash_size, level);			
   #endif			
   
   #ifdef SHOW_STASH_COUNT_DEBUG
@@ -810,7 +816,6 @@ void CircuitORAM::Create(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, 
 
 void CircuitORAM::Access(uint32_t id, char opType, unsigned char* data_in, unsigned char* data_out){
   uint32_t prev_sampled_leaf=-1;
-  printf("In CircuitORAM::Access call\n");
   access(id, -1, opType, recursion_levels-1, data_in, data_out, &prev_sampled_leaf);
 }
 

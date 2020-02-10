@@ -108,8 +108,16 @@ int run_experiment(exp_params params){
   //Variable declarations
   RandomRequestSource reqsource;
   clock_t start,end,tclock;  
-  uint32_t *rs = reqsource.GenerateRandomSequence(request_length, max_blocks-1);
+  uint32_t *rs = reqsource.GenerateRandomSequence(request_length, max_blocks);
+  uint32_t *insert_seq =  reqsource.GenerateRandomPermutation(max_blocks); 
+
+
   uint32_t i = 0;
+
+  printf("Generated Insertion Permutation = \n");
+  for(i = 0; i<max_blocks; i++)
+    printf("%d, ", insert_seq[i]);
+  printf("\n");
 
   request_size = ID_SIZE_IN_BYTES + data_size;
   tag_in = (unsigned char*) malloc (TAG_SIZE);
@@ -133,10 +141,10 @@ int run_experiment(exp_params params){
   for(i=0;i<max_blocks;i++) { 
     //Prepare Datablock for index i:
       //Encrypt i, pad with 0s to fill DATA_SIZE
-    prepareDataBlock(data_in, i, data_size);
+    prepareDataBlock(data_in, insert_seq[i], data_size);
       
     //Populate data_in with prepared datablock ^
-    encryptRequest(i, 'w', data_in, data_size, encrypted_request, tag_in, encrypted_request_size);
+    encryptRequest(insert_seq[i], 'w', data_in, data_size, encrypted_request, tag_in, encrypted_request_size);
 
     //Perform the ORAM write
     printf("Before ZT_Access call\n");
