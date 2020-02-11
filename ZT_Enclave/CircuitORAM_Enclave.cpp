@@ -673,7 +673,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     print_stash_count(level, nlevel);
   #endif
 
-  //time_report(4);
+  time_report(4);
   
 }
 

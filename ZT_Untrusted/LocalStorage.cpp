@@ -23,7 +23,6 @@ LocalStorage.cpp
 
 #define FILESTREAM_MODE 1
 // Utilization Parameter is the number of blocks of a bucket that is filled at start state. ( 4 = MAX_OCCUPANCY )
-#define UTILIZATION_PARAMETER 4
 //#define NO_CACHING 1
 //#define CACHE_UPPER 1
 //#define PASSIVE_ADVERSARY 1
@@ -374,10 +373,10 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
       }
       else {
         //Compute Sizes of Recursive ORAM trees
-        uint32_t x = (recursion_block_size - ADDITIONAL_METADATA_SIZE) / UTILIZATION_PARAMETER;
+        uint32_t x = (recursion_block_size - ADDITIONAL_METADATA_SIZE) / Z;
         blocks_in_level = (uint64_t*) malloc((recursion_levels +1) * sizeof(uint64_t*));
         uint32_t pmap0_blocks = max_blocks ;
-        while(pmap0_blocks > MEM_POSMAP_LIMIT/ UTILIZATION_PARAMETER){
+        while(pmap0_blocks > MEM_POSMAP_LIMIT/ Z){
           pmap0_blocks = (uint32_t) ceil((double)pmap0_blocks/(double)x);
         }
         uint32_t lev = 2;
@@ -399,7 +398,7 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
           std::string file_name_this = file_name + "p" + std::to_string(i);
           std::string file_name_this_i = file_name + "p" + std::to_string(i) + "_i";
                         
-          uint32_t pD_temp = ceil((double)blocks_in_level[i]/(double) UTILIZATION_PARAMETER);
+          uint32_t pD_temp = ceil((double)blocks_in_level[i]/(double) Z);
           uint32_t pD = (uint32_t) ceil(log((double)pD_temp)/log((double)2));
           uint32_t pN = (int) pow((double)2, (double) pD);
           uint32_t ptreeSize = 2*pN-1;	
@@ -461,7 +460,7 @@ void LocalStorage::setParams(uint32_t max_blocks,uint32_t set_D, uint32_t set_Z,
             std::string file_name_this_i = file_name + "p" + std::to_string(i) + "_i";
             std::ofstream file(file_name_this,std::ios::binary);
             std::ofstream file_i(file_name_this_i,std::ios::binary);
-            uint32_t pD_temp = ceil((double)blocks_in_level[i]/(double) UTILIZATION_PARAMETER);
+            uint32_t pD_temp = ceil((double)blocks_in_level[i]/(double) Z);
             uint32_t pD = (uint32_t) ceil(log((double)pD_temp)/log((double)2));
             uint32_t pN = (int) pow((double)2, (double) pD);
             uint32_t ptreeSize = 2*pN-1;

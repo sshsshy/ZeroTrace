@@ -315,19 +315,19 @@ void Stash::pass_insert(unsigned char *serialized_block, bool is_dummy)
     struct nodev2 *iter = start;
     bool block_written = false;
     uint8_t cntr = 1;
-    #ifdef PATHORAM_STASH_OVERFLOW_DEBUG
+    #ifdef STASH_OVERFLOW_DEBUG
         bool inserted = false;
     #endif
     while(iter&&cntr<=STASH_SIZE)	{
         bool flag = (!is_dummy && (isBlockDummy(iter->serialized_block, gN)) && !block_written);
-        #ifdef PATHORAM_STASH_OVERFLOW_DEBUG
+        #ifdef STASH_OVERFLOW_DEBUG
             inserted = inserted || flag;
         #endif
         stash_serialized_insert(iter->serialized_block, serialized_block, stash_data_size, flag, &block_written);
         iter = iter->next;
         cntr++;
     }
-    #ifdef PATHORAM_STASH_OVERFLOW_DEBUG
+    #ifdef STASH_OVERFLOW_DEBUG
         if(!is_dummy && !inserted){
             printf("STASH OVERFLOW \n");
         }

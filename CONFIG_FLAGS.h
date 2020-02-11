@@ -49,7 +49,7 @@
     //#define PAO_DEBUG 1
 
     //#define PATHORAM_ACCESS_REBUILD_DEBUG 1
-    //#define PATHORAM_STASH_OVERFLOW_DEBUG 1 
+    #define STASH_OVERFLOW_DEBUG 1 
     //#define ACCESS_CORAM_DEBUG 1
     //#define ACCESS_CORAM_META_DEBUG 1
     //#define ACCESS_CORAM_DEBUG3 1
@@ -86,6 +86,8 @@
   //#define AES_NI 1
   //#define RAND_DATA 1
 
+
+  //enum PATHORAM_TIMER{POSMAP_LOOKUP, RECURSION_};
  
   #define __ZT_CONFIG_FLAGS__ 
 #endif 
