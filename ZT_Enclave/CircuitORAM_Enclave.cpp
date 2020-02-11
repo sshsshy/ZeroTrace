@@ -114,8 +114,9 @@ uint32_t* CircuitORAM::prepare_target(uint32_t leaf, unsigned char *serialized_p
 uint32_t* CircuitORAM::prepare_deepest(uint32_t leaf, unsigned char *serialized_path, uint32_t block_size, uint32_t level, int32_t *deepest_position){
   uint32_t N = N_level[level];
   uint32_t D = D_level[level];
-  uint32_t i,k;
-  unsigned char *serialized_path_ptr = serialized_path + (Z*D)*(block_size);			
+  int32_t i;
+  uint32_t k;
+  unsigned char *serialized_path_ptr = serialized_path + (Z*D-1)*(block_size);			
   uint32_t local_deepest = 0;
   int32_t goal = -1, src = -1;
   nodev2* listptr_t;
@@ -123,82 +124,82 @@ uint32_t* CircuitORAM::prepare_deepest(uint32_t leaf, unsigned char *serialized_
   listptr_t = recursive_stash[level].getStart();		
 
   for(i = 0 ; i <= D;i++) {
-      if(i==0) {
-	//deepest[stash]
-	for(k=0;k<stash_size;k++) {
-	  uint32_t l1 = getTreeLabel(listptr_t->serialized_block) + N;
-	  uint32_t l2 = leaf + N;
+    if(i==0) {
+      //deepest[stash]
+      for(k=0;k<stash_size;k++) {
+        uint32_t l1 = getTreeLabel(listptr_t->serialized_block);
+        uint32_t l2 = leaf;
 
-	  #ifdef ACCESS_CORAM_DEBUG												
-	      printf("(%d, %d) - local_deepest = %d\n",getTreeLabel(listptr_t->serialized_block) + N, leaf + N, local_deepest);
-	  #endif
+        #ifdef ACCESS_CORAM_DEBUG												
+            printf("(%d, %d) - local_deepest = %d\n",getTreeLabel(listptr_t->serialized_block), leaf, local_deepest);
+        #endif
 
-	  //level_in_path keeps track of which level in the path will this block fit into
-          uint32_t level_in_path = D, position_in_path = 0;
-	  for(uint32_t j = 0;j < D; j++) {
-	    uint32_t flag_deepest = (l1==l2) && (!isBlockDummy(listptr_t->serialized_block, gN) && l1>local_deepest);
-	    oset_value(&local_deepest, l1, flag_deepest);
-	    oset_value((uint32_t*) &(deepest_position[i]), k, flag_deepest);		
-	    oset_value(&position_in_path, level_in_path, flag_deepest);
+        //level_in_path keeps track of which level in the path will this block fit into
+        uint32_t level_in_path = D, position_in_path = 0;
+        for(uint32_t j = 0;j < D; j++) {
+          uint32_t flag_deepest = (l1==l2) && (!isBlockDummy(listptr_t->serialized_block, gN) && l1>local_deepest);
+          oset_value(&local_deepest, l1, flag_deepest);
+          oset_value((uint32_t*) &(deepest_position[i]), k, flag_deepest);		
+          oset_value(&position_in_path, level_in_path, flag_deepest);
 
-	    #ifdef ACCESS_CORAM_DEBUG3
-		if(!isBlockDummy(listptr_t->serialized_block, gN)){
-		    printf("\t(%d, %d) - local_deepest = %d, level_in_path = %d\n",
-			l1, l2, local_deepest, level_in_path);
-		}
-	    #endif
+          #ifdef ACCESS_CORAM_DEBUG3
+            if(!isBlockDummy(listptr_t->serialized_block, gN)){
+                printf("\t(%d, %d) - local_deepest = %d, level_in_path = %d\n",
+              l1, l2, local_deepest, level_in_path);
+            }
+          #endif
 
-	    l1=l1>>1;
-	    l2=l2>>1;
-	    level_in_path-=1;
-	  }
+          l1=l1>>1;
+          l2=l2>>1;
+          level_in_path-=1;
+        }
 
-	oset_value((uint32_t*) &(deepest_position[i]), k, position_in_path > goal);
-	oset_goal_source(i, position_in_path, (int32_t) position_in_path > goal && position_in_path > i, &src, &goal);
-	listptr_t = listptr_t->next;
+        oset_value((uint32_t*) &(deepest_position[i]), k, position_in_path > goal);
+        oset_goal_source(i, position_in_path, (int32_t) position_in_path > goal && position_in_path > i, &src, &goal);
+        listptr_t = listptr_t->next;
       }
     }
     else{
       //if goal > i, deepest[i] = goal
       deepest[i] = -1;		
-      uint32_t flag_pdsd = (goal >= (int32_t) i) ;
+      uint32_t flag_pdsd = (goal >= i) ;
       pd_setdeepest(&(deepest[i]), src, flag_pdsd);
       #ifdef ACCESS_CORAM_DEBUG3
-	printf("i = %d, Goal is %d , src = %d, deepest[i] = %d\n",i,goal, src, deepest[i]);
+	      printf("i = %d, Goal is %d , src = %d, deepest[i] = %d\n",i,goal, src, deepest[i]);
       #endif
 
       oset_value((uint32_t*) &src, (uint32_t) -1, goal == i);
       oset_value((uint32_t*) &goal, (uint32_t) -1, goal == i);
 
       for(k=0;k<Z;k++) {
-	bool dummy_flag = isBlockDummy(serialized_path_ptr, gN);
-	uint32_t l1 = getTreeLabel(serialized_path_ptr) + N;
-	uint32_t l2 = leaf + N;
-	uint32_t level_in_path = D, position_in_path = 0;
+        bool dummy_flag = isBlockDummy(serialized_path_ptr, gN);
+        uint32_t l1 = getTreeLabel(serialized_path_ptr);
+        uint32_t l2 = leaf;
+        uint32_t level_in_path = D, position_in_path = 0;
 
-	#ifdef ACCESS_CORAM_DEBUG												
-	    printf("(%d, %d) - local_deepest = %d\n",getTreeLabel(serialized_path_ptr) + N, leaf + N, local_deepest);
-	#endif
+        #ifdef ACCESS_CORAM_DEBUG												
+            printf("(%d, %d) - local_deepest = %d\n",getTreeLabel(serialized_path_ptr), leaf, local_deepest);
+        #endif
 
         //TODO: Did not make any index tweaks on this for loop in new revision
         // Might need to patch this.
-	for(uint32_t j = 0;j < D  - i; j++) {
-	    uint32_t flag_deepest = (l1==l2) && !dummy_flag && l1>local_deepest ;
-	    oset_value(&local_deepest, l1, flag_deepest);
-	    oset_value((uint32_t*) &(deepest_position[i]), k, flag_deepest);
-	    oset_value(&position_in_path, level_in_path, flag_deepest);
+        for(uint32_t j = 0;j < D  - i; j++) {
+          uint32_t flag_deepest = (l1==l2) && !dummy_flag && l1>local_deepest ;
+          oset_value(&local_deepest, l1, flag_deepest);
+          oset_value((uint32_t*) &(deepest_position[i]), k, flag_deepest);
+          oset_value(&position_in_path, level_in_path, flag_deepest);
 
-	    #ifdef ACCESS_CORAM_DEBUG3
-		if(!dummy_flag)								
-		printf("\t(%d, %d) - local_deepest = %d, deepest_position[%d] = %d\n",l1, l2, local_deepest,i-1, deepest_position[i-1]);
-	    #endif
-	    l1=l1>>1;
-	    l2=l2>>1;
-	    level_in_path-=1;
-	}
-	oset_value((uint32_t*) &(deepest_position[i]), k, position_in_path > goal);
-	oset_goal_source(i, position_in_path, (int32_t) position_in_path > goal && position_in_path > i, &src, &goal);
-	serialized_path_ptr-=(block_size);
+          #ifdef ACCESS_CORAM_DEBUG3
+        if(!dummy_flag)								
+        printf("\t(%d, %d) - local_deepest = %d, deepest_position[%d] = %d\n",l1, l2, local_deepest,i-1, deepest_position[i-1]);
+          #endif
+          l1=l1>>1;
+          l2=l2>>1;
+          level_in_path-=1;
+        }
+        oset_value((uint32_t*) &(deepest_position[i]), k, position_in_path > goal);
+        oset_goal_source(i, position_in_path, (int32_t) position_in_path > goal && position_in_path > i, &src, &goal);
+        serialized_path_ptr-=(block_size);
 
       }
     }
@@ -320,11 +321,10 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
   uint32_t dlevel = D_level[level];
   unsigned char *decrypted_path_ptr = decrypted_path;
   unsigned char *path_ptr;
-  uint32_t leaf_adj;
   uint32_t i,k; 
   uint8_t rt;
   uint32_t tblock_size, tdata_size;
-  uint32_t bucket_id_of_leaf = leaf + nlevel;
+
   if(recursion_levels==1||level==recursion_levels-1) {
     tblock_size = data_size + ADDITIONAL_METADATA_SIZE;
     tdata_size = data_size;	
@@ -336,7 +336,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
 
   #ifdef ACCESS_DEBUG
     printf("Fetched Path : \n");
-    showPath_reverse(decrypted_path, Z, dlevel, data_size, bucket_id_of_leaf);
+    showPath_reverse(decrypted_path, Z, dlevel, data_size, leaf);
   #endif
 
   for(i=0;i < ( Z * (dlevel) ); i++) {
@@ -407,7 +407,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
 
   #ifdef ACCESS_DEBUG
     printf("Path before encrypt and upload: \n");
-    showPath_reverse(decrypted_path, Z, dlevel, data_size, bucket_id_of_leaf);
+    showPath_reverse(decrypted_path, Z, dlevel, data_size, leaf);
   #endif
 
   //Encrypt Path Module
@@ -450,9 +450,9 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
   uint32_t new_path_hash_size = HASH_LENGTH*D_level[level];
   // WriteBack the path, arr_blocks
   #ifdef ENCRYPTION_ON
-    uploadPath(leaf + nlevel, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
+    uploadPath(leaf, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
   #else
-    uploadPath(leaf + nlevel, decrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
+    uploadPath(leaf, decrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
   #endif	
 
   //Set newleaf for fetched_block
@@ -480,9 +480,9 @@ uint32_t CircuitORAM::access_oram_level(char opType, uint32_t leaf, uint32_t id,
     path_hash = resp_struct->path_hash;
   #endif
 
-  decrypted_path = downloadPath(leaf + N_level[level], path_hash, level);
+  decrypted_path = downloadPath(leaf, path_hash, level);
 
-  return_value = CircuitORAM_Access(opType, id, position_in_id,leaf, newleaf, newleaf_nextleaf,decrypted_path, 
+  return_value = CircuitORAM_Access(opType, id, position_in_id, leaf, newleaf, newleaf_nextleaf,decrypted_path, 
           path_hash,level, data_in, data_out); 
     return return_value;		
 }
@@ -497,7 +497,6 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   unsigned char *decrypted_path_ptr = decrypted_path;
   unsigned char *path_ptr;
   uint32_t tblock_size, tdata_size;
-  uint32_t bucket_id_of_leaf = leaf + nlevel;
   if(recursion_levels==1||level==recursion_levels-1) {
     tblock_size = data_size + ADDITIONAL_METADATA_SIZE;
     tdata_size = data_size;	
@@ -721,7 +720,7 @@ uint32_t CircuitORAM::access(uint32_t id, int32_t position_in_id, char opType, u
   if(recursion_levels ==  1) {
     sgx_status_t rt = SGX_SUCCESS;
     rt = sgx_read_rand((unsigned char*) random_value, ID_SIZE_IN_BYTES);
-    uint32_t newleaf = *((uint32_t *)random_value) % N_level[0];
+    uint32_t newleaf = (N_level[0]) + (*((uint32_t *)random_value) % N_level[0]);
 
     if(oblivious_flag) {
       //oarray_search2(posmap, id, &leaf, newleaf, max_blocks_level[0]);
@@ -734,14 +733,14 @@ uint32_t CircuitORAM::access(uint32_t id, int32_t position_in_id, char opType, u
     time_report(1);	
  
     //printf("In CircuitORAM::access: leaf = %d\n",leaf); 
-    decrypted_path = downloadPath(leaf+N_level[0], path_hash, 0);			
+    decrypted_path = downloadPath(leaf, path_hash, 0);			
     CircuitORAM_Access(opType, id, -1, leaf, newleaf, -1, decrypted_path, path_hash, level, data_in, data_out);
   }
 
   else if(level==0) {
     sgx_read_rand((unsigned char*) random_value, ID_SIZE_IN_BYTES);
     //To slot into one of the buckets of next level
-    newleaf = *((uint32_t *)random_value) % (N_level[level+1]);
+    newleaf = (N_level[level+1]-1) + (*((uint32_t *)random_value) % (N_level[level+1]));
     *prev_sampled_leaf = newleaf;
 
     if(oblivious_flag) {
@@ -777,7 +776,7 @@ uint32_t CircuitORAM::access(uint32_t id, int32_t position_in_id, char opType, u
     
     //sampling leafs for a level ahead
     sgx_read_rand((unsigned char*) random_value, ID_SIZE_IN_BYTES);
-    newleaf_nextlevel = *((uint32_t *)random_value) % N_level[level+1];
+    newleaf_nextlevel = (N_level[level+1]) + (*((uint32_t *)random_value) % N_level[level+1]);
     newleaf = *prev_sampled_leaf;					
     *prev_sampled_leaf = newleaf_nextlevel;
     #ifdef ACCESS_DEBUG

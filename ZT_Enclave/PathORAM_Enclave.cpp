@@ -47,7 +47,7 @@ uint32_t PathORAM::access_oram_level(char opType, uint32_t leaf, uint32_t id, ui
     path_hash = resp_struct->path_hash;
   #endif
 
-  decrypted_path = downloadPath(leaf + N_level[level], path_hash, level);
+  decrypted_path = downloadPath(leaf, path_hash, level);
 
   return_value = PathORAM_Access(opType, id, position_in_id, leaf, newleaf, newleaf_nextleaf,decrypted_path, 
                                  path_hash,level, data_in, data_out); 
@@ -66,7 +66,7 @@ uint32_t PathORAM::access(uint32_t id, int32_t position_in_id, char opType, uint
   if(recursion_levels ==  1) {
     sgx_status_t rt = SGX_SUCCESS;
     rt = sgx_read_rand((unsigned char*) random_value,ID_SIZE_IN_BYTES);
-    uint32_t newleaf = *((uint32_t *)random_value) % N_level[0];
+    uint32_t newleaf = (N_level[0]) + (*((uint32_t *)random_value) % N_level[0]);
 
     if(oblivious_flag) {
       oarray_search(posmap, id, &leaf, newleaf, max_blocks_level[0]);		
@@ -225,9 +225,8 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
   PathORAM_RebuildPath(decrypted_path_ptr, tdata_size, tblock_size, leaf, level);
   
   #ifdef ACCESS_DEBUG
-    uint32_t bucket_id_of_leaf = leaf + N_level[level];
     printf("Final Path after PathORAM_RebuildPath: \n");
-    showPath_reverse(decrypted_path, Z, d, tdata_size, bucket_id_of_leaf);
+    showPath_reverse(decrypted_path, Z, d, tdata_size, leaf);
   #endif
 
   #ifdef SHOW_STASH_COUNT_DEBUG

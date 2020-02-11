@@ -255,7 +255,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
   //+1 to depth pD, since ptreeSize = 2 *pN	
   D_level[level] = pD+1;
   N_level[level] = pN;
-  printf("In ORAMTree:BuildTreeLevel N_level[%d]=%d\n",level, N_level[level]);
+  printf("In ORAMTree:BuildTreeLevel N_level[%d]=%d\n", N_level[level]);
 
   #ifdef BUILDTREE_DEBUG				
     printf("\n\nBuildTreeLevel,\nLevel : %d, Params - D = %d, N = %d, treeSize = %d, x = %d\n",level,pD,pN,ptreeSize,x);
@@ -313,7 +313,8 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
 
     for(uint8_t q=0;q<blocks_in_this_bucket;q++) {	
       temp.blocks[q].id = label;
-      temp.blocks[q].treeLabel = i - pN;
+      //treeLabel will be the bucket_id of that leaf = nlevel[level] + leaf
+      temp.blocks[q].treeLabel = (pN) + (i - pN);
 
       if(level<recursion_levels-1 && level>0) { 	
         temp.blocks[q].fill_recursion_data(&(prev_pmap[(label)*x]), recursion_data_size);

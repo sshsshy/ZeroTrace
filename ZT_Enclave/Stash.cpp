@@ -135,7 +135,7 @@ uint32_t Stash::displayStashContents(uint64_t nlevel, bool recursive_block) {
     if( (!isBlockDummy(iter->serialized_block, gN)) ) {
       printf("loc = %d, (%d,%d) : ",cntr, getId(iter->serialized_block),getTreeLabel(iter->serialized_block));         
       tmp = iter->serialized_block + 24;
-      uint32_t pbuckets = getTreeLabel(iter->serialized_block) + nlevel;
+      uint32_t pbuckets = getTreeLabel(iter->serialized_block);
       count++;
       while(pbuckets>=1) {
           printf("%d, ", pbuckets);
@@ -283,7 +283,7 @@ void Stash::insert_new_block()
 		new_node->serialized_block = serialized_block;
 		new_node->next = getStart();
 		setStart(new_node);	
-    printf("Inserted block (%d, %d) into stash\n", getId(serialized_block), getTreeLabel(serialized_block));
+    //printf("Inserted block (%d, %d) into stash\n", getId(serialized_block), getTreeLabel(serialized_block));
 		current_size+=1;
 	}
 }
