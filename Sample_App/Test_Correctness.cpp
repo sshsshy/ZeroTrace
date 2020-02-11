@@ -237,20 +237,20 @@ int main(int argc, char *argv[]) {
   initializeZeroTrace();
 
   // DATA_SIZE, MAX_BLOCKS, REQ_LENGTH, STASH_SIZE, OBLIVIOUS_FLAG, RECURSION_DATA_SIZE, ORAM_TYPE, Z
-  exp_params EXP1 = {32, 100, 100, 500, 1, 64, 0, 4};
+  exp_params EXP1 = {32, 10000, 100, 200, 1, 64, 0, 4};
   exp_params EXP2 = {256, 10000, 100, 150, 1, 64, 0, 4};
   exp_params EXP3 = {1024,100000, 100, 150, 1, 64, 0, 4}; 
 
-  exp_params EXP4 = {32, 100, 100, 50, 1, 64, 1, 4};
+  exp_params EXP4 = {32, 10000, 100, 10, 1, 64, 1, 4};
   exp_params EXP5 = {256, 10000, 100, 10, 1, 64, 1, 4};
   exp_params EXP6 = {1024,100000, 100, 10, 1, 64, 1, 4}; 
 
-  /*
   if(run_experiment(EXP1))
     printf("EXP1: Failed! \n");
   else
     printf("EXP1: SUCCESS! \n");
 
+  /*
   if(run_experiment(EXP2))
     printf("EXP2: Failed! \n");
   else

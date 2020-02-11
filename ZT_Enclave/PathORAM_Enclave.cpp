@@ -78,7 +78,7 @@ uint32_t PathORAM::access(uint32_t id, int32_t position_in_id, char opType, uint
     time_report(1);
 
     //Bucket_id = N_level[level] + leaf label
-    decrypted_path = downloadPath(leaf+N_level[0], path_hash, 0);			
+    decrypted_path = downloadPath(leaf, path_hash, 0);			
  
     PathORAM_Access(opType, id, -1, leaf, newleaf, -1, decrypted_path, path_hash, level, data_in, data_out);
     return 0;
@@ -87,7 +87,7 @@ uint32_t PathORAM::access(uint32_t id, int32_t position_in_id, char opType, uint
   else if(level==0) {
     sgx_read_rand((unsigned char*) random_value, ID_SIZE_IN_BYTES); 
     //To slot into one of the buckets of next level
-    newleaf = *((uint32_t *)random_value) % (N_level[level+1]);
+    newleaf = N_level[1] + (*((uint32_t *)random_value) % (N_level[level+1]));
 
     if(oblivious_flag) {
       oarray_search(posmap, id, &leaf, newleaf, real_max_blocks_level[level]);				
@@ -124,7 +124,7 @@ uint32_t PathORAM::access(uint32_t id, int32_t position_in_id, char opType, uint
     
     //sampling leafs for a level ahead		
     sgx_read_rand((unsigned char*) random_value, ID_SIZE_IN_BYTES);
-    newleaf_nextlevel = *((uint32_t *)random_value) % N_level[level+1];					
+    newleaf_nextlevel = N_level[level+1] + (*((uint32_t *)random_value) % N_level[level+1]);					
 
     #ifdef ACCESS_DEBUG
       printf("access : Level = %d: \n leaf = %d, block_id = %d, position_in_id = %d, newleaf_nextlevel = %d\n",level,leaf,id,position_in_id,newleaf_nextlevel);
@@ -161,10 +161,10 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
   sgx_read_rand((unsigned char*) random_value, sizeof(uint32_t));
 
   if(recursion_levels!=1 && level!=recursion_levels-1){
-    sampledLeaf= *((uint32_t *)random_value) % (N_level[level+1]);
+    sampledLeaf= N_level[level+1] + (*((uint32_t *)random_value) % (N_level[level+1]));
   }			
   else{
-    sampledLeaf= *((uint32_t *)random_value) % (n);
+    sampledLeaf= n + (*((uint32_t *)random_value) % (n));
   }
 
   uint32_t tblock_size, tdata_size;
@@ -259,15 +259,13 @@ uint32_t PathORAM::PathORAM_Access(char opType, uint32_t id, uint32_t position_i
 	      path_ptr = decrypted_path;
       #endif
       
-      uint32_t leaf_adj = leaf + n;
-
-      createNewPathHash(path_ptr, path_hash, new_path_hash, leaf_adj, data_size+ADDITIONAL_METADATA_SIZE, level);           	      
+      createNewPathHash(path_ptr, path_hash, new_path_hash, leaf, data_size+ADDITIONAL_METADATA_SIZE, level);           	      
     #endif
 
     #ifdef ENCRYPTION_ON
-      uploadPath(leaf_adj, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
+      uploadPath(leaf, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
     #else
-      uploadPath(leaf_adj, decrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
+      uploadPath(leaf, decrypted_path, path_size, new_path_hash, new_path_hash_size, level);  
     #endif
 
   #endif

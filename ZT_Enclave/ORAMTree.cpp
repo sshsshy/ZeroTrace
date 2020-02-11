@@ -734,11 +734,10 @@ void ORAMTree::createNewPathHash(unsigned char *path_ptr, unsigned char *old_pat
 void ORAMTree::PushBlocksFromPathIntoStash(unsigned char* decrypted_path_ptr, uint8_t level, uint32_t data_size, uint32_t block_size, uint32_t id, uint32_t position_in_id, uint32_t leaf, uint32_t *nextLeaf, uint32_t newleaf, uint32_t sampledLeaf, int32_t newleaf_nextlevel) {
   uint32_t d = D_level[level];
   uint32_t i;
-  uint32_t bucket_id_of_leaf = leaf + N_level[level];
   #ifdef ACCESS_DEBUG
     printf("Fetched Path in PushBlocksFromPathIntoStash, data_size = %d : \n", data_size);
     //showPath(decrypted_path, Z, d, data_size);
-    showPath_reverse(decrypted_path, Z, d, data_size, bucket_id_of_leaf);
+    showPath_reverse(decrypted_path, Z, d, data_size, leaf);
   #endif
 
   // FetchBlock Module :
