@@ -25,5 +25,10 @@
   #define MEM_POSMAP_LIMIT 1024 * 1024
 
 
+  // If turned on, the client (TestCorrectness) will have a detailed microbenchmark
+  // of time taken in each of part of the ORAM Access operation  
+  #define DETAILED_MICROBENCHMARKS 1
+
+
   #define __ZT_CONFIG__ 
 #endif 

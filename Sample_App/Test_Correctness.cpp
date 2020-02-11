@@ -147,9 +147,7 @@ int run_experiment(exp_params params){
     encryptRequest(insert_seq[i], 'w', data_in, data_size, encrypted_request, tag_in, encrypted_request_size);
 
     //Perform the ORAM write
-    printf("Before ZT_Access call\n");
     ZT_Access(zt_id, oram_type, encrypted_request, encrypted_response, tag_in, tag_out, encrypted_request_size, response_size, TAG_SIZE);
-    printf("After ZT_Access call\n");
   }
 
 
@@ -181,13 +179,12 @@ int run_experiment(exp_params params){
     extractResponse(encrypted_response, tag_out, response_size, data_out);
     extract_response_stop = clock();
  
-    if(checkFetchedDataBlock(data_out, rs[i], data_size)){
-      printf("checkFetchedDataBlock - FAIL\n");
-      return 1;
-    }  
-    else
-      printf("checkFetchedDataBlock - SUCCESS\n");
-    
+    #ifdef CHECK_CORRECTNESS		
+      if(checkFetchedDataBlock(data_out, rs[i], data_size)){
+        printf("checkFetchedDataBlock - FAIL\n");
+        return 1;
+      }  
+    #endif 
 
     #ifdef RESULTS_DEBUG
         printf("datasize = %d, Fetched Data :", data_size);
@@ -212,10 +209,10 @@ int run_experiment(exp_params params){
     #endif
   }
   
-  printf("Requests Fin\n");	
-
   end = clock();
   tclock = end - start;
+
+  printf("Requests Fin\n");	
 
   //Time in CLOCKS :
   printf("%ld\n",tclock);
@@ -241,8 +238,8 @@ int main(int argc, char *argv[]) {
   exp_params EXP2 = {256, 10000, 100, 150, 1, 64, 0, 4};
   exp_params EXP3 = {1024,100000, 100, 150, 1, 64, 0, 4}; 
 
-  exp_params EXP4 = {32, 10000, 100, 10, 1, 64, 1, 2};
-  exp_params EXP5 = {256, 10000, 100, 10, 1, 64, 1, 3};
+  exp_params EXP4 = {32, 10000, 100, 20, 1, 64, 1, 3};
+  exp_params EXP5 = {256, 100000, 100, 20, 1, 64, 1, 3};
   exp_params EXP6 = {1024,100000, 100, 10, 1, 64, 1, 3}; 
 
   if(run_experiment(EXP1))
@@ -267,12 +264,12 @@ int main(int argc, char *argv[]) {
   else
     printf("EXP4: SUCCESS! \n");
 
+  /*
   if(run_experiment(EXP5))
     printf("EXP5: Failed! \n");
   else
     printf("EXP5: SUCCESS! \n");
 
- /*
   if(run_experiment(EXP3))
     printf("EXP6: Failed! \n");
   else

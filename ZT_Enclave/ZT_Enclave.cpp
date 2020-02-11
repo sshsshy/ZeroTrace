@@ -189,7 +189,6 @@ uint8_t deleteLSORAMInstance(uint32_t instance_id){
 
 void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *encrypted_request, unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* tag_out, uint32_t encrypted_request_size, uint32_t response_size, uint32_t tag_size){
   //TODO : Would be nice to remove this dynamic allocation.
-  printf("oram_type=%d\n", oram_type);
   PathORAM *poram_current_instance;
   CircuitORAM *coram_current_instance;
 
@@ -217,7 +216,6 @@ void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *enc
   opType = request[0];
   request_ptr = request+1;
   memcpy(&id, request_ptr, ID_SIZE_IN_BYTES); 
-  printf("Request Type = %c, Request_id = %d, oram_type = %d", opType, id, oram_type);
   data_in = request_ptr+ID_SIZE_IN_BYTES;
 
   if(oram_type==0){
@@ -226,7 +224,6 @@ void accessInterface(uint32_t instance_id, uint8_t oram_type, unsigned char *enc
   }
   else {
     coram_current_instance = coram_instances[instance_id];
-    printf("before coram_current_instance->Access call\n");
     coram_current_instance->Access(id, opType, data_in, data_out);
   }
 

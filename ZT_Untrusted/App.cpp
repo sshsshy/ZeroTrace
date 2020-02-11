@@ -39,6 +39,10 @@ Note : parameters surrounded by quotes should entered in as is without the quote
 //#define EXITLESS_MODE 1
 //#define POSMAP_EXPERIMENT 1
 
+#ifdef DETAILED_MICROBENCHMARKS
+  det_mb_params DET_MB_PARAMS;
+#endif
+
 // Global Variables Declarations
 uint64_t PATH_SIZE_LIMIT = 1 * 1024 * 1024;
 uint32_t aes_key_size = 16;
@@ -344,6 +348,11 @@ void time_report(uint8_t point) {
   }
 }
 
+void setDetailedMicrobenchmarkParams(uint8_t oram_type, uint32_t num_requests){
+  DET_MB_PARAMS.oram_type = oram_type;
+  DET_MB_PARAMS.num_requests = num_requests;
+}
+
 uint32_t ZT_New_LSORAM( uint32_t num_blocks, uint32_t key_size, uint32_t value_size, uint8_t mode, uint8_t oblivious_type, uint8_t populate_flag){
   sgx_status_t sgx_return;
   uint32_t instance_id;
@@ -622,7 +631,17 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
   // Hence recursion_levels passed = recursion_levels,
 
   ls.setParams(max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
-    
+
+  #ifdef DETAILED_MICROBENCHMARKS   
+   DET_MB_PARAMS.recursion_levels = recursion_levels; 
+   // Spawn required variables for microbenchmarker
+   // TODO: Differenciate between the ORAM W for initializing ORAM,
+   // and time only the actual read requests (num_requests)
+   // Client flags the DET_MB_PARAMS, by setting a bool ON to start
+   // the detailed microbenchmarking 
+   // initializeMicroBenchmarker();
+  #endif
+ 
   #ifdef EXITLESS_MODE
     int rc;
     pthread_t thread_hreq;
