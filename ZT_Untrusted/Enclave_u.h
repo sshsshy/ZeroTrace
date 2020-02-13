@@ -42,7 +42,7 @@ uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadBucket_OCALL, (unsigned char* serial
 uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, downloadBucket_OCALL, (unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t level));
 uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, downloadPath_OCALL, (unsigned char* serialized_path, uint32_t path_size, uint32_t label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_lev));
 uint8_t SGX_UBRIDGE(SGX_NOCONVENTION, uploadPath_OCALL, (unsigned char* serialized_path, uint32_t path_size, uint32_t label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level));
-void SGX_UBRIDGE(SGX_NOCONVENTION, time_report, (uint8_t point));
+void SGX_UBRIDGE(SGX_NOCONVENTION, time_report, (int report_type, uint8_t level));
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_pointer_user_check, (int* val));
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_pointer_in, (int* val));
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_pointer_out, (int* val));

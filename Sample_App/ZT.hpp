@@ -16,6 +16,12 @@
 */
 
 
+#ifdef DETAILED_MICROBENCHMARKER
+  void initiateMicrobenchmarker(det_mb ***MB);
+  uint8_t getRecursionLevels();
+  void setMicrobenchmarkerParams(uint32_t oram_type, uint32_t request_length);
+#endif
+
 int8_t ZT_Initialize(unsigned char *bin_x, unsigned char *bin_y, unsigned char *bin_r, unsigned char *bin_s, uint32_t buff_size);
 void ZT_Close();
 uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint32_t oram_type, uint8_t pZ);

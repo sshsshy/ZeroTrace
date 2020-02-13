@@ -42,7 +42,7 @@ unsigned char *enclave_public_key;
 //Parameters to fix for each Experiment in Test module
 uint32_t DATA_SIZE;
 uint32_t MAX_BLOCKS;
-int REQUEST_LENGTH;
+uint32_t REQUEST_LENGTH;
 uint32_t STASH_SIZE;
 uint32_t OBLIVIOUS_FLAG = 0;
 uint32_t RECURSION_DATA_SIZE = 0;

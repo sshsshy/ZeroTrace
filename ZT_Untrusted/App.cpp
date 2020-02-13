@@ -35,13 +35,24 @@ Note : parameters surrounded by quotes should entered in as is without the quote
 #define MILLION 1E6
 #define HASH_LENGTH 32
 
+
+#ifdef DETAILED_MICROBENCHMARKER
+  typedef struct detailed_microbenchmark_params{
+    uint8_t oram_type;  
+    uint8_t recursion_levels;
+    uint32_t num_requests;
+    bool on;
+  }det_mb_params;
+
+  det_mb_params DET_MB_PARAMS;
+  det_mb ***MB = NULL; 
+  uint32_t req_counter=0;
+#endif
+
 //#define NO_CACHING_APP 1
 //#define EXITLESS_MODE 1
 //#define POSMAP_EXPERIMENT 1
 
-#ifdef DETAILED_MICROBENCHMARKS
-  det_mb_params DET_MB_PARAMS;
-#endif
 
 // Global Variables Declarations
 uint64_t PATH_SIZE_LIMIT = 1 * 1024 * 1024;
@@ -51,13 +62,6 @@ uint32_t hash_size = 32;
 uint32_t oram_id = 0;
 
 //Timing variables
-long mtime, seconds, useconds;
-struct timespec time_rec, time_start, time_end, time_pos, time_fetch, upload_start_time , upload_end_time, download_start_time, download_end_time;
-struct timespec time3,time4,time5,time2;
-double upload_time, download_time;
-double t, t1, t2, t3, ut,dt,tf,te;
-clock_t ct, ct1, ct2, ct3, cut, cdt;
-clock_t ct_pos, ct_fetch, ct_start, ct_end;
 uint32_t recursion_levels_e = 0;
 
 /* Global EID shared by multiple threads */
@@ -69,6 +73,30 @@ bool inmem_flag = true;
 //TODO: Switch to LS for each LSORAM, Path, Circuit
 LocalStorage ls;
 std::map<uint32_t, std::vector<tuple*>*> ls_LSORAM;
+
+double compute_stddev(double *elements, uint32_t num_elements) {
+  double mean = 0, var = 0, stddev;
+  for(uint32_t i=0; i<num_elements; i++) {
+    mean+=elements[i];   
+  }
+  mean=(mean/num_elements);
+  for(uint32_t i=0; i<num_elements; i++) {
+    double diff = mean - elements[i];
+    var+=(diff*diff);
+  }
+  var=var/num_elements;
+  stddev = sqrt(var);
+  return stddev;
+}
+
+double compute_avg(double *elements, uint32_t num_elements) {
+  double mean = 0, var = 0, stddev;
+  for(uint32_t i=0; i<num_elements; i++) {
+    mean+=elements[i];   
+  }
+  mean=(mean/num_elements);
+  return mean;
+}
 
 typedef struct _sgx_errlist_t {
     sgx_status_t err;
@@ -313,13 +341,14 @@ void *HandleRequest(void *arg) {
 
 uint64_t timediff(struct timeval *start, struct timeval *end) {
   long seconds,useconds;
+  uint64_t mtime;
   seconds  = end->tv_sec  - start->tv_sec;
   useconds = end->tv_usec - start->tv_usec;
   mtime = ((seconds) * 1000 + useconds/1000.0) + 0.5;
   return mtime;
 }
 
-double timetaken(timespec *start, timespec *end){
+double timetaken(timespec *start, timespec *end) {
   long seconds, nseconds;
   seconds = end->tv_sec - start->tv_sec;
   nseconds = end->tv_nsec - start->tv_nsec;
@@ -327,33 +356,144 @@ double timetaken(timespec *start, timespec *end){
   return mstime;
 }
 
-void time_report(uint8_t point) {
-  if(point==1) {
-    ct_pos = clock();
-    clock_gettime(CLOCK_MONOTONIC, &time_pos);
-  }
-  if(point==2) {
-    ct_fetch = clock();
-    clock_gettime(CLOCK_MONOTONIC, &time_fetch);
-    clock_gettime(CLOCK_MONOTONIC, &time2);
-  }
-  if(point==3) {
-    clock_gettime(CLOCK_MONOTONIC, &time3);
-  }
-  if(point==4) {
-    clock_gettime(CLOCK_MONOTONIC, &time4);
-  }
-  if(point==5) {
-    clock_gettime(CLOCK_MONOTONIC, &time5);
+void time_report(int report_type, uint8_t level) {
+  //Compute based on report_type and update MB.
+
+  clockid_t clk_id = CLOCK_PROCESS_CPUTIME_ID;
+  static struct timespec start, end;
+ 
+  if(DET_MB_PARAMS.on == true) {
+
+    if(DET_MB_PARAMS.oram_type==0) {
+      //PathORAM part
+      if(report_type==PO_POSMAP_START) {
+        clock_gettime(clk_id, &start); 
+      }
+ 
+      if(report_type==PO_POSMAP_END) {
+        clock_gettime(clk_id, &end); 
+        double posmap_time = timetaken(&start, &end);
+        det_mb *ptr = MB[req_counter][0];
+        ptr->posmap_time = posmap_time;
+      } 
+
+      if(report_type==PO_DOWNLOAD_PATH_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==PO_DOWNLOAD_PATH_END) {
+        clock_gettime(clk_id, &end); 
+        double dp_time = timetaken(&start, &end);
+        printf("Download Time = %f", dp_time);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->download_path_time = dp_time;
+      }
+
+      if(report_type==PO_FETCH_BLOCK_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==PO_FETCH_BLOCK_END) {
+        clock_gettime(clk_id, &end); 
+        double fb_time = timetaken(&start, &end);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->fetch_block_time = fb_time;
+      }
+
+      if(report_type==PO_EVICTION_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==PO_EVICTION_END) {
+        clock_gettime(clk_id, &end); 
+        double el_time = timetaken(&start, &end);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->eviction_time = el_time;
+      }
+
+      if(report_type==PO_UPLOAD_PATH_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==PO_UPLOAD_PATH_END) {
+        clock_gettime(clk_id, &end); 
+        double up_time = timetaken(&start, &end);
+        printf("Upload Time = %f\n", up_time);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->upload_path_time = up_time;
+      }
+ 
+    }
+    else if(DET_MB_PARAMS.oram_type==1) {
+      //CircuitORAM part
+
+      if(report_type==CO_POSMAP_START) {
+        clock_gettime(clk_id, &start); 
+      }
+ 
+      if(report_type==CO_POSMAP_END) {
+        clock_gettime(clk_id, &end); 
+        double posmap_time = timetaken(&start, &end);
+        det_mb *ptr = MB[req_counter][0];
+        ptr->posmap_time = posmap_time;
+      } 
+
+      if(report_type==CO_DOWNLOAD_PATH_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==CO_DOWNLOAD_PATH_END) {
+        clock_gettime(clk_id, &end); 
+        double dp_time = timetaken(&start, &end);
+        //printf("Download Time = %f, %d", dp_time, level);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->download_path_time = dp_time;
+      }
+
+      if(report_type==CO_FETCH_BLOCK_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==CO_FETCH_BLOCK_END) {
+        clock_gettime(clk_id, &end); 
+        double fb_time = timetaken(&start, &end);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->fetch_block_time = fb_time;
+      }
+
+      if(report_type==CO_UPLOAD_PATH_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==CO_UPLOAD_PATH_END) {
+        clock_gettime(clk_id, &end); 
+        double up_time = timetaken(&start, &end);
+        //printf("Upload Time = %f\n", up_time);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->upload_path_time = up_time;
+      }
+
+      if(report_type==CO_EVICTION_START) {
+        clock_gettime(clk_id, &start); 
+      } 
+
+      if(report_type==CO_EVICTION_END) {
+        clock_gettime(clk_id, &end); 
+        double el_time = timetaken(&start, &end);
+        det_mb *ptr = MB[req_counter][level];
+        ptr->eviction_time = el_time;
+      }
+
+    }
   }
 }
 
-void setDetailedMicrobenchmarkParams(uint8_t oram_type, uint32_t num_requests){
+void setDetailedMicrobenchmarkParams(uint8_t oram_type, uint32_t num_requests) {
   DET_MB_PARAMS.oram_type = oram_type;
   DET_MB_PARAMS.num_requests = num_requests;
 }
 
-uint32_t ZT_New_LSORAM( uint32_t num_blocks, uint32_t key_size, uint32_t value_size, uint8_t mode, uint8_t oblivious_type, uint8_t populate_flag){
+uint32_t ZT_New_LSORAM( uint32_t num_blocks, uint32_t key_size, uint32_t value_size, uint8_t mode, uint8_t oblivious_type, uint8_t populate_flag) {
   sgx_status_t sgx_return;
   uint32_t instance_id;
   sgx_return = createNewLSORAMInstance(global_eid, &instance_id, key_size, value_size, num_blocks, mode, oblivious_type, populate_flag);
@@ -372,11 +512,11 @@ int8_t ZT_LSORAM_insert(uint32_t instance_id, unsigned char *encrypted_request, 
 }
 
 int8_t ZT_LSORAM_oprm_insert_pt(uint32_t instance_id, unsigned char *key_l, 
-       uint32_t key_size, unsigned char *value_l, uint32_t value_size){
+       uint32_t key_size, unsigned char *value_l, uint32_t value_size) {
 
   std::vector<tuple *> *LSORAM_store;
   auto search = ls_LSORAM.find(instance_id); 
-  if(search != ls_LSORAM.end()){
+  if(search != ls_LSORAM.end()) {
     LSORAM_store = search->second;
   }
   else{
@@ -395,7 +535,7 @@ int8_t ZT_LSORAM_oprm_insert_pt(uint32_t instance_id, unsigned char *key_l,
 }
 
 int8_t ZT_LSORAM_iprm_insert_pt(uint32_t instance_id, unsigned char *key_l, 
-       uint32_t key_size, unsigned char *value_l, uint32_t value_size){
+       uint32_t key_size, unsigned char *value_l, uint32_t value_size) {
 
   int8_t ret;
   sgx_status_t sgx_return;
@@ -443,20 +583,20 @@ int8_t ZT_HSORAM_fetch(uint32_t lsoram_iid, uint32_t oram_iid, uint8_t oram_type
   return ret;
 }
 
-int8_t ZT_LSORAM_evict(uint32_t id, unsigned char *key, uint32_t key_size){
+int8_t ZT_LSORAM_evict(uint32_t id, unsigned char *key, uint32_t key_size) {
   sgx_status_t sgx_return; 
   int8_t ret;
   sgx_return = LSORAMEvict(global_eid, &ret, id, key, key_size);
   return ret;
 }
 
-void ZT_LSORAM_delete(uint32_t id){
+void ZT_LSORAM_delete(uint32_t id) {
   sgx_status_t sgx_return;
   uint8_t ret;
   sgx_return = deleteLSORAMInstance(global_eid, &ret, id);
 }
 
-unsigned char *getOutsidePtr_OCALL(){
+unsigned char *getOutsidePtr_OCALL() {
   unsigned char *ptr = (unsigned char*) malloc (10);
   memcpy(ptr, "ABCD\n", 6);
   return ptr;
@@ -485,67 +625,29 @@ void* insertLSORAM_OCALL() {
 }
 
 
-void myprintf(char *buffer, uint32_t buffer_size){
+void myprintf(char *buffer, uint32_t buffer_size) {
   char buff_temp[buffer_size];
   sprintf(buff_temp, buffer, buffer_size);
   printf("%s", buff_temp);
 }
 
 uint8_t uploadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32_t leaf_label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level) {
-  clock_t s,e;
-  s = clock();
-  clock_gettime(CLOCK_MONOTONIC, &upload_start_time);
   ls.uploadPath(leaf_label, path_array, path_hash, level, D_level);
-  e = clock();
-  clock_gettime(CLOCK_MONOTONIC, &upload_end_time);
-  double mtime = timetaken(&upload_start_time, &upload_end_time);
-
-  if(recursion_levels_e >= 1) {
-    upload_time += mtime;	
-    cut += (e-s);
-  }
-  else {
-    upload_time = mtime;
-    cut = (e-s);
-  }
   return 1;
 }
 
 uint8_t uploadBucket_OCALL(unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
-  clock_gettime(CLOCK_MONOTONIC, &upload_start_time);
   ls.uploadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
-  clock_gettime(CLOCK_MONOTONIC, &upload_end_time);
-  double mtime = timetaken(&upload_start_time, &upload_end_time);
-  upload_time = mtime;
-  //printf("%ld\n",ut);
   return 1;
 }
 
 uint8_t downloadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32_t leaf_label, unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level) {	
-  clock_t s,e;
-  s = clock();
-  clock_gettime(CLOCK_MONOTONIC, &download_start_time);
   ls.downloadPath(leaf_label, path_array, path_hash, path_hash_size, level, D_level);
-  e = clock();	
-  clock_gettime(CLOCK_MONOTONIC, &download_end_time);
-  double mtime = timetaken(&download_start_time, &download_end_time);
-  if(recursion_levels_e >= 1) {
-    download_time+= mtime;
-    cdt+=(e-s);	
-  }
-  else {
-    download_time = mtime;	
-    cdt = (e-s);
-  }
   return 1;
 }
 
 uint8_t downloadBucket_OCALL(unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
-  clock_gettime(CLOCK_MONOTONIC, &download_start_time);
   uint8_t ret = ls.downloadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
-  clock_gettime(CLOCK_MONOTONIC, &download_end_time);
-  double mtime = timetaken(&download_start_time, &download_end_time);
-  download_time = mtime;
   return 1;
 }
 
@@ -554,7 +656,7 @@ void build_fetchChildHash(uint32_t left, uint32_t right, unsigned char* lchild, 
   ls.fetchHash(right,rchild,hash_size, recursion_level);
 }
 
-uint8_t computeRecursionLevels(uint32_t max_blocks, uint32_t recursion_data_size, uint64_t onchip_posmap_memory_limit){
+uint8_t computeRecursionLevels(uint32_t max_blocks, uint32_t recursion_data_size, uint64_t onchip_posmap_memory_limit) {
   uint8_t recursion_levels = 1;
   uint8_t x;
     
@@ -578,13 +680,38 @@ uint8_t computeRecursionLevels(uint32_t max_blocks, uint32_t recursion_data_size
   return recursion_levels;
 }
 
+#ifdef DETAILED_MICROBENCHMARKER
+  void setMicrobenchmarkerParams(uint32_t oram_type, uint32_t num_requests) {
+     DET_MB_PARAMS.oram_type = oram_type;
+     DET_MB_PARAMS.num_requests = num_requests;
+     DET_MB_PARAMS.on = false;
+  }
+
+  void initializeMicrobenchmarker() {
+   DET_MB_PARAMS.on = false;
+   uint8_t recursion_levels = DET_MB_PARAMS.recursion_levels;
+   uint32_t num_reqs = DET_MB_PARAMS.num_requests; 
+
+   
+  }
+
+  void initiateMicrobenchmarker(det_mb ***TC_MB) {
+    DET_MB_PARAMS.on = true;
+    MB=TC_MB;
+  }
+
+  uint8_t getRecursionLevels() {
+    return(DET_MB_PARAMS.recursion_levels);
+  }
+#endif
+
 int8_t ZT_Initialize(unsigned char *bin_x, unsigned char* bin_y, 
-       unsigned char *bin_r, unsigned char* bin_s, uint32_t buff_size){
+       unsigned char *bin_r, unsigned char* bin_s, uint32_t buff_size) {
   
   int8_t ret;
 
   // Initialize the enclave 
-  if(initialize_enclave() < 0){
+  if(initialize_enclave() < 0) {
     printf("Enter a character before exit ...\n");
     getchar();
     return -1; 
@@ -606,11 +733,11 @@ int8_t ZT_Initialize(unsigned char *bin_x, unsigned char* bin_y,
   return ret;
 }
 
-void ZT_Close(){
+void ZT_Close() {
         sgx_destroy_enclave(global_eid);
 }
 
-uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint32_t oram_type, uint8_t pZ){
+uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint32_t oram_type, uint8_t pZ) {
   sgx_status_t sgx_return = SGX_SUCCESS;
   int8_t rt;
   uint8_t urt;
@@ -632,14 +759,13 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
 
   ls.setParams(max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
 
-  #ifdef DETAILED_MICROBENCHMARKS   
+  #ifdef DETAILED_MICROBENCHMARKER  
+   printf("DET_MB_PARAMS.recursion_levels = %d\n", recursion_levels);
    DET_MB_PARAMS.recursion_levels = recursion_levels; 
    // Spawn required variables for microbenchmarker
-   // TODO: Differenciate between the ORAM W for initializing ORAM,
-   // and time only the actual read requests (num_requests)
+   initializeMicrobenchmarker();
    // Client flags the DET_MB_PARAMS, by setting a bool ON to start
    // the detailed microbenchmarking 
-   // initializeMicroBenchmarker();
   #endif
  
   #ifdef EXITLESS_MODE
@@ -662,7 +788,7 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
     *(req_struct.id) = 7;
 
     rc = pthread_create(&thread_hreq, NULL, HandleRequest, (void *)&td);
-    if (rc){
+    if (rc) {
         std::cout << "Error:unable to create thread," << rc << std::endl;
         exit(-1);
     }
@@ -681,11 +807,23 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
 }
 
 
-void ZT_Access(uint32_t instance_id, uint8_t oram_type, unsigned char *encrypted_request, unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size){
+void ZT_Access(uint32_t instance_id, uint8_t oram_type, unsigned char *encrypted_request, unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size) {
+
     accessInterface(global_eid, instance_id, oram_type, encrypted_request, encrypted_response, tag_in, tag_out, request_size, response_size, tag_size);
+  
+  #ifdef DETAILED_MICROBENCHMARKER
+    if(DET_MB_PARAMS.on == true) {
+      req_counter++; 
+        if(DET_MB_PARAMS.num_requests==req_counter) { 
+          req_counter=0;
+          DET_MB_PARAMS.on = false;
+        }
+    }
+  #endif
+ 
 }
 
-void ZT_Bulk_Read(uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char *encrypted_request, unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size){
+void ZT_Bulk_Read(uint32_t instance_id, uint8_t oram_type, uint32_t no_of_requests, unsigned char *encrypted_request, unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size) {
     accessBulkReadInterface(global_eid, instance_id, oram_type, no_of_requests, encrypted_request, encrypted_response, tag_in, tag_out, request_size, response_size, tag_size);
 }
 
@@ -708,7 +846,7 @@ if(resume_experiment) {
       
       //TODO : Fix restoreMerkle and restorePosmap in Enclave :
       //sgx_return = restoreEnclavePosmap(posmap,);			
-      for(uint8_t k = 1; k <=recursion_levels_e;k++){
+      for(uint8_t k = 1; k <=recursion_levels_e;k++) {
         uint32_t stash_size;
         unsigned char* stash = (unsigned char*) malloc (stash_size);
         //ls.restoreStash();	

@@ -52,7 +52,6 @@
 #include "App.h"
 #include "Enclave_u.h"
 #include "LocalStorage.hpp"
-#include "RandomRequestSource.hpp"
 #include <iostream>
 #include <fstream>
 #include <random>
@@ -66,12 +65,6 @@
 
 extern sgx_enclave_id_t global_eid;    /* global enclave id */
 
-typedef struct detailed_microbenchmark_params{
-  uint8_t oram_type;  
-  uint8_t recursion_levels;
-  uint32_t num_requests;
-  bool on;
-}det_mb_params;
 
 #if defined(__cplusplus)
 extern "C" {

@@ -108,7 +108,7 @@ enclave {
     uint8_t downloadBucket_OCALL([out,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [out,size = hash_size] unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t level);
     uint8_t downloadPath_OCALL([out,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label,[out,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_lev);
     uint8_t uploadPath_OCALL([in,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label, [in,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level);
-    void time_report(uint8_t point);
+    void time_report(int report_type, uint8_t level);
     //void ReturnResult([unsigned char *return_data, unsigned]);
   };
 

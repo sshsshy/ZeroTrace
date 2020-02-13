@@ -36,14 +36,6 @@
   #include <openssl/err.h>
   #include <openssl/obj_mac.h>
 
-  typedef struct detailed_microbenchmarks{
-   double posmap_time;
-   double download_path_time;
-   double fetch_block_time;
-   double eviction_logic_time;
-   double upload_time;  
-  }det_mb;
-
   class RandomRequestSource
   {
   public:

@@ -223,7 +223,6 @@ void prepareDataBlock(unsigned char *datablock, uint32_t index, uint32_t data_si
   }
   uint32_t index_stored;
   memcpy((unsigned char*) &index_stored, data_ptr, sizeof(uint32_t));
-  printf("PDB : Original index = %d, index_stored = %d\n", index, index_stored);
 }
 
 int checkFetchedDataBlock(unsigned char *datablock, uint32_t index, uint32_t data_size){

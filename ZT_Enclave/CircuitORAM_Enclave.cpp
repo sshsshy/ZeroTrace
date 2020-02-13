@@ -339,6 +339,11 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
     showPath_reverse(decrypted_path, Z, dlevel, data_size, leaf);
   #endif
 
+  
+  #ifdef DETAILED_MICROBENCHMARKER
+    time_report(CO_FETCH_BLOCK_START, level); 
+  #endif
+
   for(i=0;i < ( Z * (dlevel) ); i++) {
     if(oblivious_flag) {
       uint32_t block_id = getId(decrypted_path_ptr);
@@ -396,6 +401,7 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
     } 
   }
 
+
   // Use serialized_result_block to perform the Access operation
   // Obliviously read to data_out or obliviously write data_in to serialized_result_block
   // before inserting it into stash.
@@ -404,6 +410,13 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
   omove_buffer((unsigned char*) data_ptr, data_in, tdata_size, flag_w);
   bool flag_r = (opType == 'r');
   omove_buffer(data_out, (unsigned char*) data_ptr, tdata_size, flag_r);
+
+
+
+  #ifdef DETAILED_MICROBENCHMARKER
+    time_report(CO_FETCH_BLOCK_END, level); 
+    time_report(CO_UPLOAD_PATH_START, level);
+  #endif
 
   #ifdef ACCESS_DEBUG
     printf("Path before encrypt and upload: \n");
@@ -424,36 +437,23 @@ void CircuitORAM::CircuitORAM_FetchBlock(uint32_t *return_value, uint32_t leaf, 
       path_ptr = decrypted_path;
     #endif
 
-    //printf("CircuitORAM_Access: Before createNewPathHash\n");
-    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf, tblock_size, level);           	     //printf("CircuitORAM_Access: After createNewPathHash\n");
-   
-   /* 
-   for(i=0;i < Z * dlevel; i++) {
-      if(i%Z==0) {
-        uint32_t p = i/Z+1;
-        addToNewPathHash(path_ptr, old_path_hash_iter, new_path_hash_trail, new_path_hash_iter,(dlevel)-p, leaf_temp_prev, tblock_size, level);
-        leaf_temp_prev>>1;
-        path_ptr+=(Z*tblock_size);
-      }
-    }
-    */
+    createNewPathHash(path_ptr, path_hash, new_path_hash, leaf, tblock_size, level);
   #endif
-
-  // Time taken signal !
-  if(level==recursion_levels-1){
-    #ifdef TIME_PERFORMANCE
-      time_report(2);
-    #endif
-  }	
 
   uint32_t path_size = tblock_size * Z * D_level[level];
   uint32_t new_path_hash_size = HASH_LENGTH*D_level[level];
-  // WriteBack the path, arr_blocks
+
+
+
   #ifdef ENCRYPTION_ON
     uploadPath(leaf, encrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
   #else
     uploadPath(leaf, decrypted_path, path_size, new_path_hash, new_path_hash_size, level);			
   #endif	
+
+  #ifdef DETAILED_MICROBENCHMARKER
+    time_report(CO_UPLOAD_PATH_END, level);
+  #endif
 
   //Set newleaf for fetched_block
   setTreeLabel(serialized_result_block, newleaf);
@@ -567,7 +567,6 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
     encryptPath(eviction_path_left, encrypted_path, (Z*(dlevel)), tdata_size);
   #endif
 
-  //time_report(5);	
   uint32_t path_size = tblock_size * Z * D_level[level];
   uint32_t new_path_hash_size = HASH_LENGTH*D_level[level];
   #ifdef ENCRYPTION_ON
@@ -672,9 +671,7 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   #ifdef SHOW_STASH_COUNT_DEBUG
     print_stash_count(level, nlevel);
   #endif
-
-  time_report(4);
-  
+ 
 }
 
 uint32_t CircuitORAM::CircuitORAM_Access(char opType, uint32_t id, uint32_t position_in_id, uint32_t leaf, uint32_t newleaf, uint32_t newleaf_nextlevel, unsigned char* decrypted_path, unsigned char* path_hash, uint32_t level, unsigned char* data_in, unsigned char *data_out){
@@ -689,12 +686,7 @@ uint32_t CircuitORAM::CircuitORAM_Access(char opType, uint32_t id, uint32_t posi
     serialized_path = resp_struct->new_path;
     new_path_hash = resp_struct->new_path_hash;
   #endif	
-
-  //Pure Controller Time
-  #ifdef TIME_PERFORMANCE
-    time_report(3);
-  #endif
-            
+ 
   CircuitORAM_FetchBlock(&return_value, leaf, newleaf, opType, id, position_in_id, newleaf_nextlevel, level, data_in, data_out);
 
   //Free Result_block (Application/Use result_block otherwise)
@@ -704,7 +696,15 @@ uint32_t CircuitORAM::CircuitORAM_Access(char opType, uint32_t id, uint32_t posi
     printf("Done with Fetch\n\n");
   #endif
             
+  #ifdef DETAILED_MICROBENCHMARKER
+   time_report(CO_EVICTION_START, level);
+  #endif  
+
   EvictionRoutine(leaf, level);
+
+  #ifdef DETAILED_MICROBENCHMARKER
+   time_report(CO_EVICTION_END, level);
+  #endif  
 
   return return_value;	
 }
@@ -722,18 +722,33 @@ uint32_t CircuitORAM::access(uint32_t id, int32_t position_in_id, char opType, u
     rt = sgx_read_rand((unsigned char*) random_value, ID_SIZE_IN_BYTES);
     uint32_t newleaf = (N_level[0]) + (*((uint32_t *)random_value) % N_level[0]);
 
+    #ifdef DETAILED_MICROBENCHMARKER
+      time_report(CO_POSMAP_START, 0); 
+    #endif
+
     if(oblivious_flag) {
-      //oarray_search2(posmap, id, &leaf, newleaf, max_blocks_level[0]);
       oarray_search(posmap, id, &leaf, newleaf, max_blocks_level[0]);		
     }
     else{
       leaf = posmap[id];
       posmap[id] = newleaf;			
     }	
-    time_report(1);	
+
+    #ifdef DETAILED_MICROBENCHMARKER
+      time_report(CO_POSMAP_END, 0); 
+    #endif
+
  
-    //printf("In CircuitORAM::access: leaf = %d\n",leaf); 
+    #ifdef DETAILED_MICROBENCHMARKER
+      time_report(CO_DOWNLOAD_PATH_START, 0); 
+    #endif
+
     decrypted_path = downloadPath(leaf, path_hash, 0);			
+
+    #ifdef DETAILED_MICROBENCHMARKER
+      time_report(CO_DOWNLOAD_PATH_END, 0); 
+    #endif
+
     CircuitORAM_Access(opType, id, -1, leaf, newleaf, -1, decrypted_path, path_hash, level, data_in, data_out);
   }
 
@@ -765,7 +780,6 @@ uint32_t CircuitORAM::access(uint32_t id, int32_t position_in_id, char opType, u
       printf("access, Level = %d:  before access_oram_level : Block_id = %d, Newleaf = %d, Leaf from level = %d, Flag = %d\n",level,id,*prev_sampled_leaf,leaf,oblivious_flag);
     #endif
     //ORAM ACCESS of recursion_levels is to fetch entire Data block, no position_in_id, hence -1)
-    time_report(1);
     access_oram_level(opType, leaf, id, -1, level, *prev_sampled_leaf, -1, data_in, data_out);
     return 0;	
   }

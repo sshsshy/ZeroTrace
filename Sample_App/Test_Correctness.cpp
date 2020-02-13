@@ -17,6 +17,16 @@
 
 #include "Test_Correctness.hpp"
 
+#ifdef DETAILED_MICROBENCHMARKER
+  det_mb ***MB = NULL; 
+  uint8_t mb_recursion_levels;
+  uint32_t mb_request_length; 
+
+  uint8_t  NUM_EXPECTED_PARAMS=9;   
+  std::string LOG_FOLDER;
+  std::string LOG_FILE;
+ 
+#endif
 
 unsigned char *encrypted_request, *tag_in, *encrypted_response, *tag_out;
 //encrypted response size is same as response_size.
@@ -89,6 +99,7 @@ int initializeZeroTrace() {
 }
 
 int run_experiment(exp_params params){
+  
   uint32_t max_blocks = params.max_blocks;
   uint32_t data_size = params.data_size;
   uint32_t request_length = params.request_length; 
@@ -99,6 +110,21 @@ int run_experiment(exp_params params){
   uint8_t Z = params.Z;
 
   printf("PARAMS in run_experiment: max_blocks =%d, data_size =%d\n", max_blocks, data_size);
+
+  #ifdef DETAILED_MICROBENCHMARKER
+    if(MB) {
+      // free them up and reallocate for presumably new parameters 
+      for(uint32_t i = 0; i< mb_request_length; i++) {
+        for(uint32_t j=0; j< mb_recursion_levels; j++) {
+          free(MB[i][j]);
+        }
+        free(MB[i]);       
+      }
+      free(MB);
+    }
+    mb_request_length = request_length;
+    setMicrobenchmarkerParams(oram_type, request_length); 
+  #endif
 
   printf("Before ZT_New call\n"); 
   uint32_t zt_id = ZT_New(max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, oram_type, Z);
@@ -111,13 +137,7 @@ int run_experiment(exp_params params){
   uint32_t *rs = reqsource.GenerateRandomSequence(request_length, max_blocks);
   uint32_t *insert_seq =  reqsource.GenerateRandomPermutation(max_blocks); 
 
-
   uint32_t i = 0;
-
-  printf("Generated Insertion Permutation = \n");
-  for(i = 0; i<max_blocks; i++)
-    printf("%d, ", insert_seq[i]);
-  printf("\n");
 
   request_size = ID_SIZE_IN_BYTES + data_size;
   tag_in = (unsigned char*) malloc (TAG_SIZE);
@@ -156,6 +176,21 @@ int run_experiment(exp_params params){
   #endif	
 
 
+  #ifdef DETAILED_MICROBENCHMARKER
+    mb_recursion_levels = getRecursionLevels();
+
+    MB = (det_mb***) malloc (mb_request_length * sizeof(det_mb**));
+    for(uint32_t i = 0; i<mb_request_length; i++) {
+      MB[i] = (det_mb**) malloc (mb_recursion_levels * sizeof(det_mb*));
+      for(uint32_t j = 0; j<mb_recursion_levels; j++) {
+        MB[i][j] = (det_mb*) malloc(sizeof(det_mb));
+      }
+    }
+
+    initiateMicrobenchmarker(MB);
+  #endif
+
+
   start = clock();
   for(i=0;i<request_length;i++) {
     #ifdef PRINT_REQ_DETAILS		
@@ -189,7 +224,7 @@ int run_experiment(exp_params params){
     #ifdef RESULTS_DEBUG
         printf("datasize = %d, Fetched Data :", data_size);
         for(uint32_t j=0; j < data_size;j++){
-      printf("%c", data_out[j]);
+          printf("%c", data_out[j]);
         }
         printf("\n");
     #endif
@@ -208,7 +243,83 @@ int run_experiment(exp_params params){
       #endif
     #endif
   }
-  
+ 
+  #ifdef DETAILED_MICROBENCHMARKER
+    det_mb det_mb_avg;
+    det_mb det_mb_std;
+    uint8_t recursion_levels =mb_recursion_levels;     
+
+    //Position Map time 
+    double posmap_time[mb_request_length];
+    for(uint32_t i=0; i<mb_request_length; i++) {
+      posmap_time[i] = MB[i][0]->posmap_time;
+    }
+
+    double posmap_time_avg = compute_avg((double*) posmap_time, mb_request_length);
+    double posmap_time_std = compute_stddev((double*) posmap_time, mb_request_length);
+    printf("Posmap_time AVG = %lf, Posmap_time STDDEV = %lf\n", posmap_time_avg, posmap_time_std);
+
+    //Download Path time for all levels of recursion
+    double download_time_avg[mb_recursion_levels];
+    double download_time_std[mb_recursion_levels];
+    double download_time_level[mb_request_length];
+    for(uint32_t j=0; j<recursion_levels; j++) {
+      for(uint32_t i=0; i<mb_request_length; i++) {
+         download_time_level[i] = MB[i][j]->download_path_time;
+      }
+      download_time_avg[j]=compute_avg((double*)download_time_level, mb_request_length);  
+      download_time_std[j]=compute_stddev((double*)download_time_level, mb_request_length); 
+      printf("Download_time_avg[%d] = %lf, Download_time_std[%d] = %lf\n", j, download_time_avg[j], j, download_time_std[j]);
+    }
+
+    //Fetch Block time for all levels of recursion
+    double fetch_block_time_avg[mb_recursion_levels];
+    double fetch_block_time_std[mb_recursion_levels];
+    double fetch_block_time_level[mb_request_length];
+    for(uint32_t j=0; j<recursion_levels; j++) {
+      for(uint32_t i=0; i<mb_request_length; i++) {
+         fetch_block_time_level[i] = MB[i][j]->fetch_block_time;
+      }
+      fetch_block_time_avg[j]=compute_avg((double*)fetch_block_time_level, mb_request_length);  
+      fetch_block_time_std[j]=compute_stddev((double*)fetch_block_time_level, mb_request_length); 
+      printf("Fetch_block_time_avg[%d] = %lf, Fetch_block_time_std[%d] = %lf\n", j, fetch_block_time_avg[j], j, fetch_block_time_std[j]);
+    }
+
+    //Eviction time for all levels of recursion
+    double eviction_time_avg[mb_recursion_levels];
+    double eviction_time_std[mb_recursion_levels];
+    double eviction_time_level[mb_request_length];
+    for(uint32_t j=0; j<recursion_levels; j++) {
+      for(uint32_t i=0; i<mb_request_length; i++) {
+         eviction_time_level[i] = MB[i][j]->eviction_time;
+      }
+      eviction_time_avg[j]=compute_avg((double*)eviction_time_level, mb_request_length);  
+      eviction_time_std[j]=compute_stddev((double*)eviction_time_level, mb_request_length); 
+      printf("Eviction_logic_time_avg[%d] = %lf, Eviction_logic_time_std[%d] = %lf\n", j, eviction_time_avg[j], j, eviction_time_std[j]);
+    }
+
+
+    //Upload Path time for all levels of recursion
+    double upload_time_avg[mb_recursion_levels];
+    double upload_time_std[mb_recursion_levels];
+    double upload_time_level[mb_request_length];
+    for(uint32_t j=0; j<recursion_levels; j++) {
+      for(uint32_t i=0; i<mb_request_length; i++) {
+         upload_time_level[i] = MB[i][j]->upload_path_time;
+      }
+      upload_time_avg[j]=compute_avg((double*)upload_time_level, mb_request_length);  
+      upload_time_std[j]=compute_stddev((double*)upload_time_level, mb_request_length); 
+      printf("Upload_time_avg[%d] = %lf, Upload_time_std[%d] = %lf\n", j, upload_time_avg[j], j, upload_time_std[j]);
+    }
+
+        // Compute stats on all the accesses and populate 
+        // det_mb_avg and det_mb_std.
+        // The client will invoke a DET_MB_get_results call to 
+        // fetch the pointers to these structures and then display the results as required
+      
+  #endif
+
+ 
   end = clock();
   tclock = end - start;
 
@@ -229,53 +340,113 @@ int run_experiment(exp_params params){
 }
 
 
+void getParams(int argc, char* argv[])
+{
+  if(argc!=NUM_EXPECTED_PARAMS) {
+    printf("Command line parameters error, received: %d, expected :%d\n",
+           argc, NUM_EXPECTED_PARAMS);
+    printf(" <N> <No_of_requests> <Stash_size> <Data_block_size> <Recursion_block_size> <\"path(0)\"/\"circuit(1)\"> <Z> <LogFolder (Must Exist)>\n\n");
+    exit(0);
+  }
+
+  std::string str = argv[1];
+  MAX_BLOCKS = std::stoi(str);
+  str = argv[2];
+  REQUEST_LENGTH = std::stoi(str);
+  str = argv[3];
+  STASH_SIZE = std::stoi(str);
+  str = argv[4];
+  DATA_SIZE = std::stoi(str);	
+  str = argv[5];	
+  RECURSION_DATA_SIZE = std::stoi(str);
+  str = argv[6];
+  if(str=="path"||std::stoi(str)==0)
+    ORAM_TYPE = 0;
+  if(str=="circuit"||std::stoi(str)==1)
+    ORAM_TYPE = 1;
+  str=argv[7];
+  Z = std::stoi(str);
+  str = argv[8];
+  LOG_FOLDER = str;
+  std::string ot;
+  if(ORAM_TYPE==0)
+    ot = "PO";
+  else
+    ot = "CO";
+  LOG_FILE = LOG_FOLDER+'/'+
+             ot +"_"+ std::to_string(MAX_BLOCKS) +"_"+ std::to_string(DATA_SIZE) +"_"+ std::to_string(STASH_SIZE) +"_"+
+             std::to_string(Z) +"_"+ std::to_string(REQUEST_LENGTH);
+  printf("LOG_FILE = %s", LOG_FILE.c_str()); 
+  //std::string qfile_name = "ZT_"+std::to_string(MAX_BLOCKS)+"_"+std::to_string(DATA_SIZE);
+  //iquery_file = fopen(qfile_name.c_str(),"w");
+}
+
+
 int main(int argc, char *argv[]) {
 
   initializeZeroTrace();
+  printf("Done with initializeZeroTrace\n");
 
   // DATA_SIZE, MAX_BLOCKS, REQ_LENGTH, STASH_SIZE, OBLIVIOUS_FLAG, RECURSION_DATA_SIZE, ORAM_TYPE, Z
-  exp_params EXP1 = {32, 10000, 100, 200, 1, 64, 0, 2};
-  exp_params EXP2 = {256, 10000, 100, 150, 1, 64, 0, 4};
-  exp_params EXP3 = {1024,100000, 100, 150, 1, 64, 0, 4}; 
 
-  exp_params EXP4 = {32, 10000, 100, 20, 1, 64, 1, 3};
-  exp_params EXP5 = {256, 100000, 100, 20, 1, 64, 1, 3};
-  exp_params EXP6 = {1024,100000, 100, 10, 1, 64, 1, 3}; 
-
-  if(run_experiment(EXP1))
-    printf("EXP1: Failed! \n");
-  else
-    printf("EXP1: SUCCESS! \n");
-
-  /*
-  if(run_experiment(EXP2))
-    printf("EXP2: Failed! \n");
-  else
-    printf("EXP2: SUCCESS! \n");
-
-  if(run_experiment(EXP3))
-    printf("EXP3: Failed! \n");
-  else
-    printf("EXP3: SUCCESS! \n");
-  */
+  #ifdef DETAILED_MICROBENCHMARKER
+    getParams(argc, argv);
+    exp_params EXP;
+    EXP.max_blocks = MAX_BLOCKS; 
+    EXP.data_size = DATA_SIZE;
+    EXP.request_length = REQUEST_LENGTH;
+    EXP.stash_size = STASH_SIZE;
+    EXP.recursion_data_size = RECURSION_DATA_SIZE;
+    //Currently hard-coded Oblivious mode.
+    EXP.oblivious_flag = 1;
+    EXP.oram_type = ORAM_TYPE;
+    EXP.Z = Z;
+  
+    if(run_experiment(EXP))
+      printf("EXP Failed! \n");
+    else
+      printf("EXP SUCCESS! \n");
  
-  if(run_experiment(EXP4))
-    printf("EXP4: Failed! \n");
-  else
-    printf("EXP4: SUCCESS! \n");
+  #else
+    exp_params EXP1 = {128, 10000, 100, 70, 1, 64, 0, 4};
+    exp_params EXP2 = {128, 10000, 100, 60, 1, 64, 0, 3};
+    exp_params EXP3 = {128, 10000, 100, 50, 1, 64, 0, 3}; 
 
-  /*
-  if(run_experiment(EXP5))
-    printf("EXP5: Failed! \n");
-  else
-    printf("EXP5: SUCCESS! \n");
+    exp_params EXP4 = {128, 10000, 100, 10, 1, 64, 1, 4};
+    exp_params EXP5 = {128, 10000, 100, 15, 1, 64, 1, 3};
+    exp_params EXP6 = {128, 10000, 100, 15, 1, 64, 1, 3}; 
 
-  if(run_experiment(EXP3))
-    printf("EXP6: Failed! \n");
-  else
-    printf("EXP6: SUCCESS! \n");
-  */
+    if(run_experiment(EXP1))
+      printf("EXP1: Failed! \n");
+    else
+      printf("EXP1: SUCCESS! \n");
 
+    if(run_experiment(EXP2))
+      printf("EXP2: Failed! \n");
+    else
+      printf("EXP2: SUCCESS! \n");
+
+    if(run_experiment(EXP3))
+      printf("EXP3: Failed! \n");
+    else
+      printf("EXP3: SUCCESS! \n");
+   
+    if(run_experiment(EXP4))
+      printf("EXP4: Failed! \n");
+    else
+      printf("EXP4: SUCCESS! \n");
+
+    if(run_experiment(EXP5))
+      printf("EXP5: Failed! \n");
+    else
+      printf("EXP5: SUCCESS! \n");
+
+    if(run_experiment(EXP6))
+      printf("EXP6: Failed! \n");
+    else
+      printf("EXP6: SUCCESS! \n");
+  #endif
+ 
   return 0;
 }
 

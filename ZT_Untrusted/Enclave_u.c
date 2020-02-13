@@ -326,7 +326,8 @@ typedef struct ms_uploadPath_OCALL_t {
 } ms_uploadPath_OCALL_t;
 
 typedef struct ms_time_report_t {
-	uint8_t ms_point;
+	int ms_report_type;
+	uint8_t ms_level;
 } ms_time_report_t;
 
 typedef struct ms_ocall_pointer_user_check_t {
@@ -456,7 +457,7 @@ static sgx_status_t SGX_CDECL Enclave_uploadPath_OCALL(void* pms)
 static sgx_status_t SGX_CDECL Enclave_time_report(void* pms)
 {
 	ms_time_report_t* ms = SGX_CAST(ms_time_report_t*, pms);
-	time_report(ms->ms_point);
+	time_report(ms->ms_report_type, ms->ms_level);
 
 	return SGX_SUCCESS;
 }

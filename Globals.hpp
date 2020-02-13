@@ -76,6 +76,14 @@
     unsigned char *value;
   }tuple;
 
+  typedef struct detailed_microbenchmarks{
+   double posmap_time;
+   double download_path_time;
+   double fetch_block_time;
+   double eviction_time;
+   double upload_path_time;  
+  }det_mb;
+
   //Inline Functions
   inline uint32_t iBitsPrefix(uint32_t n, uint32_t w, uint32_t i){
     return (~((1<<(w-i)) - 1)) & n;
