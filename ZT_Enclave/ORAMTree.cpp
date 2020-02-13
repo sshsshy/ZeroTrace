@@ -255,7 +255,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
   //+1 to depth pD, since ptreeSize = 2 *pN	
   D_level[level] = pD+1;
   N_level[level] = pN;
-  printf("In ORAMTree:BuildTreeLevel N_level[%d]=%d\n", N_level[level]);
+  printf("In ORAMTree:BuildTreeLevel N_level[%d]=%d\n", level, N_level[level]);
 
   #ifdef BUILDTREE_DEBUG				
     printf("\n\nBuildTreeLevel,\nLevel : %d, Params - D = %d, N = %d, treeSize = %d, x = %d\n",level,pD,pN,ptreeSize,x);

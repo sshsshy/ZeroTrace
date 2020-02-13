@@ -35,6 +35,8 @@
     int32_t *target_position;
     unsigned char *serialized_block_hold;
     unsigned char *serialized_block_write;
+    //For deterministic reverse lexicographic eviction
+    uint32_t *access_counter;
 
     CircuitORAM(){};
 

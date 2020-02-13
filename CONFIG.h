@@ -29,6 +29,7 @@
   // of time taken in each of part of the ORAM Access operation  
   #define DETAILED_MICROBENCHMARKER 1
 
+  #define REVERSE_LEXICOGRAPHIC_EVICTION 1
 
   #define __ZT_CONFIG__ 
 #endif 

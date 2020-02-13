@@ -14,12 +14,12 @@ EXEC_LOGFILE="exec_log"
 
 NUM_REQUESTS=100
 RECURSION_DATA_SIZE=64
-ORAM_TYPE={0,1}
+ORAM_TYPE={1}
 
-N=[(lambda x: 2**x)(i) for i in {17}]
+N=[(lambda x: 2**x)(i) for i in {10,14}]
 #N = 1024, 16384,
 M={128}
-SS=[[100],[20]]
+SS=[[100],[8]]
 Z =[[3],[3]]
 #N=[(lambda x: 2**x)(i) for i in {5,8,10,14,17,20}]
 #M={128,256,1024}

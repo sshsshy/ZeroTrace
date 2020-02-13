@@ -25,6 +25,19 @@ void oarray_search2(uint32_t *array, uint32_t loc, uint32_t *leaf, uint32_t newL
     return;
 }
 
+uint32_t reverseBits(uint32_t n) {
+  n = (n >> 1) & 0x55555555 | (n << 1) & 0xaaaaaaaa;
+  n = (n >> 2) & 0x33333333 | (n << 2) & 0xcccccccc;
+  n = (n >> 4) & 0x0f0f0f0f | (n << 4) & 0xf0f0f0f0;
+  n = (n >> 8) & 0x00ff00ff | (n << 8) & 0xff00ff00;
+  n = (n >> 16) & 0x0000ffff | (n << 16) & 0xffff0000;
+  return n;
+}
+
+uint32_t firstkbits(uint32_t n, uint32_t k){
+  return(n>>(32-k));
+}
+
 void CircuitORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels){
   #ifdef BUILDTREE_DEBUG
     printf("In CircuitORAM::Initialize, Started Initialize\n");
@@ -46,7 +59,24 @@ void CircuitORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_si
   target_position = (int32_t*) malloc ((d_largest+1) * sizeof(uint32_t) );
   serialized_block_hold = (unsigned char*) malloc (data_size + ADDITIONAL_METADATA_SIZE);
   serialized_block_write = (unsigned char*) malloc (data_size + ADDITIONAL_METADATA_SIZE);	
-
+  
+  access_counter = (uint32_t*) malloc((recursion_levels) * sizeof(uint32_t));
+  for(uint8_t i =0; i< recursion_levels; i++)
+    access_counter[i]=0;
+ 
+  /* 
+  printf("Testing Deterministic Reverse Lexicographic Eviction leaf label generation\n");
+  uint32_t n = N_level[0];
+  //-1 because D accounts for the additional level of leafs as well.
+  uint32_t d = D_level[0]-1;
+  uint32_t ac = 0;
+  for(uint32_t i=0; i<n/2; i++){
+    uint32_t leaf_l = firstkbits(reverseBits(ac),d);
+    uint32_t leaf_r = firstkbits(reverseBits(ac+1),d);
+    printf("leaf_l = %d, leaf_r = %d\n", leaf_l, leaf_r);
+    ac+=2;
+  }
+  */
   #ifdef BUILDTREE_DEBUG
     printf("Finished Initialize\n");
   #endif
@@ -509,12 +539,24 @@ void CircuitORAM::EvictionRoutine(uint32_t leaf, uint32_t level) {
   #ifdef SHOW_STASH_COUNT_DEBUG
     print_stash_count(level, nlevel);	
   #endif
-    
+  
+  #ifdef REVERSE_LEXICOGRAPHIC_EVICTION
+    uint32_t ac = access_counter[level];
+    uint32_t ll = firstkbits(reverseBits(ac),D_level[level]-1);
+    uint32_t lr = firstkbits(reverseBits(ac+1),D_level[level]-1);
+    leaf_left = nlevel + ll;
+    leaf_right = nlevel + lr;
+    access_counter[level]+=2;
+    if(ac==N_level[level])
+      access_counter[level]=0;
+  #else
+    sgx_read_rand((unsigned char*) &temp_n, 4);
+    leaf_left = nlevel + (temp_n % (nlevel/2));
+    sgx_read_rand((unsigned char*) &temp_n, 4);
+    leaf_right = nlevel + (nlevel/2) + (temp_n % (nlevel/2));
+  #endif
+ 
   //Sample the leaves for eviction
-  sgx_read_rand((unsigned char*) &temp_n, 4);
-  leaf_left = nlevel + (temp_n % (nlevel/2));
-  sgx_read_rand((unsigned char*) &temp_n, 4);
-  leaf_right = nlevel + (nlevel/2) + (temp_n % (nlevel/2));
 
   eviction_path_left = downloadPath(leaf_left, path_hash, level);
   for(uint32_t e = 0; e <dlevel+1; e++){
