@@ -809,10 +809,19 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
 
 void ZT_Access(uint32_t instance_id, uint8_t oram_type, unsigned char *encrypted_request, unsigned char *encrypted_response, unsigned char *tag_in, unsigned char* tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size) {
 
+  #ifdef DETAILED_MICROBENCHMARKER
+    static struct timespec start, end;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+  #endif
+
     accessInterface(global_eid, instance_id, oram_type, encrypted_request, encrypted_response, tag_in, tag_out, request_size, response_size, tag_size);
   
   #ifdef DETAILED_MICROBENCHMARKER
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    double total_time = timetaken(&start, &end);
+
     if(DET_MB_PARAMS.on == true) {
+      MB[req_counter][0]->total_time=total_time;
       req_counter++; 
         if(DET_MB_PARAMS.num_requests==req_counter) { 
           req_counter=0;

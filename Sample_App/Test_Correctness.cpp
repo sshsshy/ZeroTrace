@@ -247,70 +247,159 @@ int run_experiment(exp_params params){
   #ifdef DETAILED_MICROBENCHMARKER
     det_mb det_mb_avg;
     det_mb det_mb_std;
-    uint8_t recursion_levels =mb_recursion_levels;     
+    uint8_t recursion_levels =mb_recursion_levels; 
 
-    //Position Map time 
-    double posmap_time[mb_request_length];
-    for(uint32_t i=0; i<mb_request_length; i++) {
-      posmap_time[i] = MB[i][0]->posmap_time;
-    }
+    if(mb_recursion_levels==1){
 
-    double posmap_time_avg = compute_avg((double*) posmap_time, mb_request_length);
-    double posmap_time_std = compute_stddev((double*) posmap_time, mb_request_length);
-    printf("Posmap_time AVG = %lf, Posmap_time STDDEV = %lf\n", posmap_time_avg, posmap_time_std);
+      double download_time_avg, download_time_std, posmap_time_avg, posmap_time_std,
+             fetch_block_time_avg, fetch_block_time_std, eviction_time_avg, eviction_time_std,
+             upload_time_avg, upload_time_std, total_time_avg, total_time_std;
 
-    //Download Path time for all levels of recursion
-    double download_time_avg[mb_recursion_levels];
-    double download_time_std[mb_recursion_levels];
-    double download_time_level[mb_request_length];
-    for(uint32_t j=0; j<recursion_levels; j++) {
+      double posmap_time[mb_request_length], download_time_level[mb_request_length], 
+             fetch_block_time_level[mb_request_length], eviction_time_level[mb_request_length],
+             upload_time_level[mb_request_length], total_time[mb_request_length];  
+
       for(uint32_t i=0; i<mb_request_length; i++) {
-         download_time_level[i] = MB[i][j]->download_path_time;
+        posmap_time[i] = MB[i][0]->posmap_time;
       }
-      download_time_avg[j]=compute_avg((double*)download_time_level, mb_request_length);  
-      download_time_std[j]=compute_stddev((double*)download_time_level, mb_request_length); 
-      printf("Download_time_avg[%d] = %lf, Download_time_std[%d] = %lf\n", j, download_time_avg[j], j, download_time_std[j]);
-    }
-
-    //Fetch Block time for all levels of recursion
-    double fetch_block_time_avg[mb_recursion_levels];
-    double fetch_block_time_std[mb_recursion_levels];
-    double fetch_block_time_level[mb_request_length];
-    for(uint32_t j=0; j<recursion_levels; j++) {
+      posmap_time_avg = compute_avg((double*) posmap_time, mb_request_length);
+      posmap_time_std = compute_stddev((double*) posmap_time, mb_request_length);
+      //printf("Posmap_time AVG = %lf, Posmap_time STDDEV = %lf\n", posmap_time_avg, posmap_time_std);
+      
       for(uint32_t i=0; i<mb_request_length; i++) {
-         fetch_block_time_level[i] = MB[i][j]->fetch_block_time;
+         download_time_level[i] = MB[i][0]->download_path_time;
       }
-      fetch_block_time_avg[j]=compute_avg((double*)fetch_block_time_level, mb_request_length);  
-      fetch_block_time_std[j]=compute_stddev((double*)fetch_block_time_level, mb_request_length); 
-      printf("Fetch_block_time_avg[%d] = %lf, Fetch_block_time_std[%d] = %lf\n", j, fetch_block_time_avg[j], j, fetch_block_time_std[j]);
-    }
+      download_time_avg=compute_avg((double*)download_time_level, mb_request_length);  
+      download_time_std=compute_stddev((double*)download_time_level, mb_request_length); 
+      //printf("Download_time_avg = %lf, Download_time_std = %lf\n", 
+      //         download_time_avg, download_time_std);
 
-    //Eviction time for all levels of recursion
-    double eviction_time_avg[mb_recursion_levels];
-    double eviction_time_std[mb_recursion_levels];
-    double eviction_time_level[mb_request_length];
-    for(uint32_t j=0; j<recursion_levels; j++) {
       for(uint32_t i=0; i<mb_request_length; i++) {
-         eviction_time_level[i] = MB[i][j]->eviction_time;
+         fetch_block_time_level[i] = MB[i][0]->fetch_block_time;
       }
-      eviction_time_avg[j]=compute_avg((double*)eviction_time_level, mb_request_length);  
-      eviction_time_std[j]=compute_stddev((double*)eviction_time_level, mb_request_length); 
-      printf("Eviction_logic_time_avg[%d] = %lf, Eviction_logic_time_std[%d] = %lf\n", j, eviction_time_avg[j], j, eviction_time_std[j]);
-    }
-
-
-    //Upload Path time for all levels of recursion
-    double upload_time_avg[mb_recursion_levels];
-    double upload_time_std[mb_recursion_levels];
-    double upload_time_level[mb_request_length];
-    for(uint32_t j=0; j<recursion_levels; j++) {
+      fetch_block_time_avg=compute_avg((double*)fetch_block_time_level, mb_request_length);  
+      fetch_block_time_std=compute_stddev((double*)fetch_block_time_level, mb_request_length); 
+      //printf("Fetch_block_time_avg = %lf, Fetch_block_time_std = %lf\n", 
+      //       fetch_block_time_avg, fetch_block_time_std);
+    
+ 
       for(uint32_t i=0; i<mb_request_length; i++) {
-         upload_time_level[i] = MB[i][j]->upload_path_time;
+         eviction_time_level[i] = MB[i][0]->eviction_time;
       }
-      upload_time_avg[j]=compute_avg((double*)upload_time_level, mb_request_length);  
-      upload_time_std[j]=compute_stddev((double*)upload_time_level, mb_request_length); 
-      printf("Upload_time_avg[%d] = %lf, Upload_time_std[%d] = %lf\n", j, upload_time_avg[j], j, upload_time_std[j]);
+      eviction_time_avg=compute_avg((double*)eviction_time_level, mb_request_length);  
+      eviction_time_std=compute_stddev((double*)eviction_time_level, mb_request_length); 
+      //printf("Eviction_logic_time_avg = %lf, Eviction_logic_time_std = %lf\n", 
+      //       eviction_time_avg, eviction_time_std);
+
+
+      for(uint32_t i=0; i<mb_request_length; i++) {
+         upload_time_level[i] = MB[i][0]->upload_path_time;
+      }
+      upload_time_avg=compute_avg((double*)upload_time_level, mb_request_length);  
+      upload_time_std=compute_stddev((double*)upload_time_level, mb_request_length); 
+      printf("Upload_time_avg = %lf, Upload_time_std = %lf\n", upload_time_avg, upload_time_std);
+
+
+      for(uint32_t i=0; i<mb_request_length; i++) {
+        total_time[i] = MB[i][0]->total_time;
+      }
+      total_time_avg = compute_avg((double*) total_time, mb_request_length);
+      total_time_std = compute_stddev((double*) total_time, mb_request_length);
+
+      //Populate LOG_FILE, LOG_FILE_avg and, LOG_FILE_std
+      printf("Log_file = %s\n", LOG_FILE.c_str());
+      std::string LOG_FILE_AVG = LOG_FILE+"_AVG";
+      std::string LOG_FILE_STD = LOG_FILE+"_STD";
+      FILE *log_file = fopen(LOG_FILE.c_str(),"w");
+      if(log_file==NULL)
+        printf("fopen failed\n");
+
+      printf("Before logfile loop\n"); 
+      for(uint32_t i=0; i<mb_request_length; i++){
+        double p = posmap_time[i];
+        double d = download_time_level[i];
+        double f = fetch_block_time_level[i];
+        double e = eviction_time_level[i];
+        double u = upload_time_level[i];
+        double t = total_time[i];
+        fprintf(log_file, "%f, %f, %f, %f, %f, %f\n", p, d, f, e, u, t);
+      } 
+      printf("Done with logfile loop\n"); 
+      fclose(log_file);
+
+      FILE *log_file_avg = fopen(LOG_FILE_AVG.c_str(), "w");
+      fprintf(log_file_avg, "%f, %f, %f, %f, %f, %f\n", posmap_time_avg, download_time_avg,
+              fetch_block_time_avg, eviction_time_avg, upload_time_avg, total_time_avg);
+      fclose(log_file_avg);
+
+      FILE *log_file_std = fopen(LOG_FILE_STD.c_str(), "w");
+      fprintf(log_file_std, "%f, %f, %f, %f, %f, %f\n", posmap_time_std, download_time_std,
+              fetch_block_time_std, eviction_time_std, upload_time_std, total_time_std);
+      fclose(log_file_std);
     }
+    else{
+      //Position Map time is only in level 0, so no need to iterate over recursion_levels;
+      //TODO: Posmap time for recursion( Put into the highest recursion level?)
+ 
+      //Download Path time for all levels of recursion
+      double download_time_avg[mb_recursion_levels];
+      double download_time_std[mb_recursion_levels];
+      double download_time_level[mb_request_length];
+      for(uint32_t j=0; j<recursion_levels; j++) {
+        for(uint32_t i=0; i<mb_request_length; i++) {
+           download_time_level[i] = MB[i][j]->download_path_time;
+        }
+        download_time_avg[j]=compute_avg((double*)download_time_level, mb_request_length);  
+        download_time_std[j]=compute_stddev((double*)download_time_level, mb_request_length); 
+        printf("Download_time_avg[%d] = %lf, Download_time_std[%d] = %lf\n", j, download_time_avg[j], j, download_time_std[j]);
+      }
+
+      //Fetch Block time for all levels of recursion
+      double fetch_block_time_avg[mb_recursion_levels];
+      double fetch_block_time_std[mb_recursion_levels];
+      double fetch_block_time_level[mb_request_length];
+      for(uint32_t j=0; j<recursion_levels; j++) {
+        for(uint32_t i=0; i<mb_request_length; i++) {
+           fetch_block_time_level[i] = MB[i][j]->fetch_block_time;
+        }
+        fetch_block_time_avg[j]=compute_avg((double*)fetch_block_time_level, mb_request_length);  
+        fetch_block_time_std[j]=compute_stddev((double*)fetch_block_time_level, mb_request_length); 
+        printf("Fetch_block_time_avg[%d] = %lf, Fetch_block_time_std[%d] = %lf\n", j, fetch_block_time_avg[j], j, fetch_block_time_std[j]);
+      }
+
+      //Eviction time for all levels of recursion
+      double eviction_time_avg[mb_recursion_levels];
+      double eviction_time_std[mb_recursion_levels];
+      double eviction_time_level[mb_request_length];
+      for(uint32_t j=0; j<recursion_levels; j++) {
+        for(uint32_t i=0; i<mb_request_length; i++) {
+           eviction_time_level[i] = MB[i][j]->eviction_time;
+        }
+        eviction_time_avg[j]=compute_avg((double*)eviction_time_level, mb_request_length);  
+        eviction_time_std[j]=compute_stddev((double*)eviction_time_level, mb_request_length); 
+        printf("Eviction_logic_time_avg[%d] = %lf, Eviction_logic_time_std[%d] = %lf\n", j, eviction_time_avg[j], j, eviction_time_std[j]);
+      }
+
+
+      //Upload Path time for all levels of recursion
+      double upload_time_avg[mb_recursion_levels];
+      double upload_time_std[mb_recursion_levels];
+      double upload_time_level[mb_request_length];
+      for(uint32_t j=0; j<recursion_levels; j++) {
+        for(uint32_t i=0; i<mb_request_length; i++) {
+           upload_time_level[i] = MB[i][j]->upload_path_time;
+        }
+        upload_time_avg[j]=compute_avg((double*)upload_time_level, mb_request_length);  
+        upload_time_std[j]=compute_stddev((double*)upload_time_level, mb_request_length); 
+        printf("Upload_time_avg[%d] = %lf, Upload_time_std[%d] = %lf\n", j, upload_time_avg[j], j, upload_time_std[j]);
+      }
+
+    }
+
+
+
+
+
 
         // Compute stats on all the accesses and populate 
         // det_mb_avg and det_mb_std.

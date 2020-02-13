@@ -81,7 +81,8 @@
    double download_path_time;
    double fetch_block_time;
    double eviction_time;
-   double upload_path_time;  
+   double upload_path_time; 
+   double total_time; 
   }det_mb;
 
   //Inline Functions
