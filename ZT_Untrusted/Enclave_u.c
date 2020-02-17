@@ -1,15 +1,21 @@
 #include "Enclave_u.h"
 #include <errno.h>
 
-typedef struct ms_createNewORAMInstance_t {
+typedef struct ms_getNewORAMInstanceID_t {
 	uint32_t ms_retval;
+	uint8_t ms_oram_type;
+} ms_getNewORAMInstanceID_t;
+
+typedef struct ms_createNewORAMInstance_t {
+	uint8_t ms_retval;
+	uint32_t ms_instance_id;
 	uint32_t ms_maxBlocks;
 	uint32_t ms_dataSize;
 	uint32_t ms_stashSize;
 	uint32_t ms_oblivious_flag;
 	uint32_t ms_recursion_data_size;
 	int8_t ms_recursion_levels;
-	uint32_t ms_oram_type;
+	uint8_t ms_oram_type;
 	uint8_t ms_pZ;
 } ms_createNewORAMInstance_t;
 
@@ -273,6 +279,8 @@ typedef struct ms_createLSORAM_OCALL_t {
 } ms_createLSORAM_OCALL_t;
 
 typedef struct ms_build_fetchChildHash_t {
+	uint32_t ms_instance_id;
+	uint8_t ms_oram_type;
 	uint32_t ms_left;
 	uint32_t ms_right;
 	unsigned char* ms_lchild;
@@ -283,6 +291,8 @@ typedef struct ms_build_fetchChildHash_t {
 
 typedef struct ms_uploadBucket_OCALL_t {
 	uint8_t ms_retval;
+	uint32_t ms_instance_id;
+	uint8_t ms_oram_type;
 	unsigned char* ms_serialized_bucket;
 	uint32_t ms_bucket_size;
 	uint32_t ms_label;
@@ -294,6 +304,8 @@ typedef struct ms_uploadBucket_OCALL_t {
 
 typedef struct ms_downloadBucket_OCALL_t {
 	uint8_t ms_retval;
+	uint32_t ms_instance_id;
+	uint8_t ms_oram_type;
 	unsigned char* ms_serialized_bucket;
 	uint32_t ms_bucket_size;
 	uint32_t ms_label;
@@ -305,6 +317,8 @@ typedef struct ms_downloadBucket_OCALL_t {
 
 typedef struct ms_downloadPath_OCALL_t {
 	uint8_t ms_retval;
+	uint32_t ms_instance_id;
+	uint8_t ms_oram_type;
 	unsigned char* ms_serialized_path;
 	uint32_t ms_path_size;
 	uint32_t ms_label;
@@ -316,6 +330,8 @@ typedef struct ms_downloadPath_OCALL_t {
 
 typedef struct ms_uploadPath_OCALL_t {
 	uint8_t ms_retval;
+	uint32_t ms_instance_id;
+	uint8_t ms_oram_type;
 	unsigned char* ms_serialized_path;
 	uint32_t ms_path_size;
 	uint32_t ms_label;
@@ -417,7 +433,7 @@ static sgx_status_t SGX_CDECL Enclave_createLSORAM_OCALL(void* pms)
 static sgx_status_t SGX_CDECL Enclave_build_fetchChildHash(void* pms)
 {
 	ms_build_fetchChildHash_t* ms = SGX_CAST(ms_build_fetchChildHash_t*, pms);
-	build_fetchChildHash(ms->ms_left, ms->ms_right, ms->ms_lchild, ms->ms_rchild, ms->ms_hash_size, ms->ms_recursion_level);
+	build_fetchChildHash(ms->ms_instance_id, ms->ms_oram_type, ms->ms_left, ms->ms_right, ms->ms_lchild, ms->ms_rchild, ms->ms_hash_size, ms->ms_recursion_level);
 
 	return SGX_SUCCESS;
 }
@@ -425,7 +441,7 @@ static sgx_status_t SGX_CDECL Enclave_build_fetchChildHash(void* pms)
 static sgx_status_t SGX_CDECL Enclave_uploadBucket_OCALL(void* pms)
 {
 	ms_uploadBucket_OCALL_t* ms = SGX_CAST(ms_uploadBucket_OCALL_t*, pms);
-	ms->ms_retval = uploadBucket_OCALL(ms->ms_serialized_bucket, ms->ms_bucket_size, ms->ms_label, ms->ms_hash, ms->ms_hash_size, ms->ms_size_for_level, ms->ms_recursion_level);
+	ms->ms_retval = uploadBucket_OCALL(ms->ms_instance_id, ms->ms_oram_type, ms->ms_serialized_bucket, ms->ms_bucket_size, ms->ms_label, ms->ms_hash, ms->ms_hash_size, ms->ms_size_for_level, ms->ms_recursion_level);
 
 	return SGX_SUCCESS;
 }
@@ -433,7 +449,7 @@ static sgx_status_t SGX_CDECL Enclave_uploadBucket_OCALL(void* pms)
 static sgx_status_t SGX_CDECL Enclave_downloadBucket_OCALL(void* pms)
 {
 	ms_downloadBucket_OCALL_t* ms = SGX_CAST(ms_downloadBucket_OCALL_t*, pms);
-	ms->ms_retval = downloadBucket_OCALL(ms->ms_serialized_bucket, ms->ms_bucket_size, ms->ms_label, ms->ms_hash, ms->ms_hash_size, ms->ms_size_for_level, ms->ms_level);
+	ms->ms_retval = downloadBucket_OCALL(ms->ms_instance_id, ms->ms_oram_type, ms->ms_serialized_bucket, ms->ms_bucket_size, ms->ms_label, ms->ms_hash, ms->ms_hash_size, ms->ms_size_for_level, ms->ms_level);
 
 	return SGX_SUCCESS;
 }
@@ -441,7 +457,7 @@ static sgx_status_t SGX_CDECL Enclave_downloadBucket_OCALL(void* pms)
 static sgx_status_t SGX_CDECL Enclave_downloadPath_OCALL(void* pms)
 {
 	ms_downloadPath_OCALL_t* ms = SGX_CAST(ms_downloadPath_OCALL_t*, pms);
-	ms->ms_retval = downloadPath_OCALL(ms->ms_serialized_path, ms->ms_path_size, ms->ms_label, ms->ms_path_hash, ms->ms_path_hash_size, ms->ms_level, ms->ms_D_lev);
+	ms->ms_retval = downloadPath_OCALL(ms->ms_instance_id, ms->ms_oram_type, ms->ms_serialized_path, ms->ms_path_size, ms->ms_label, ms->ms_path_hash, ms->ms_path_hash_size, ms->ms_level, ms->ms_D_lev);
 
 	return SGX_SUCCESS;
 }
@@ -449,7 +465,7 @@ static sgx_status_t SGX_CDECL Enclave_downloadPath_OCALL(void* pms)
 static sgx_status_t SGX_CDECL Enclave_uploadPath_OCALL(void* pms)
 {
 	ms_uploadPath_OCALL_t* ms = SGX_CAST(ms_uploadPath_OCALL_t*, pms);
-	ms->ms_retval = uploadPath_OCALL(ms->ms_serialized_path, ms->ms_path_size, ms->ms_label, ms->ms_path_hash, ms->ms_path_hash_size, ms->ms_level, ms->ms_D_level);
+	ms->ms_retval = uploadPath_OCALL(ms->ms_instance_id, ms->ms_oram_type, ms->ms_serialized_path, ms->ms_path_size, ms->ms_label, ms->ms_path_hash, ms->ms_path_hash_size, ms->ms_level, ms->ms_D_level);
 
 	return SGX_SUCCESS;
 }
@@ -578,10 +594,21 @@ static const struct {
 		(void*)Enclave_sgx_thread_set_multiple_untrusted_events_ocall,
 	}
 };
-sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint32_t oram_type, uint8_t pZ)
+sgx_status_t getNewORAMInstanceID(sgx_enclave_id_t eid, uint32_t* retval, uint8_t oram_type)
+{
+	sgx_status_t status;
+	ms_getNewORAMInstanceID_t ms;
+	ms.ms_oram_type = oram_type;
+	status = sgx_ecall(eid, 0, &ocall_table_Enclave, &ms);
+	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
+	return status;
+}
+
+sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint8_t* retval, uint32_t instance_id, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint8_t oram_type, uint8_t pZ)
 {
 	sgx_status_t status;
 	ms_createNewORAMInstance_t ms;
+	ms.ms_instance_id = instance_id;
 	ms.ms_maxBlocks = maxBlocks;
 	ms.ms_dataSize = dataSize;
 	ms.ms_stashSize = stashSize;
@@ -590,7 +617,7 @@ sgx_status_t createNewORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uint3
 	ms.ms_recursion_levels = recursion_levels;
 	ms.ms_oram_type = oram_type;
 	ms.ms_pZ = pZ;
-	status = sgx_ecall(eid, 0, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 1, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -605,7 +632,7 @@ sgx_status_t createNewLSORAMInstance(sgx_enclave_id_t eid, uint32_t* retval, uin
 	ms.ms_mem_mode = mem_mode;
 	ms.ms_oblivious_type = oblivious_type;
 	ms.ms_dummy_populate = dummy_populate;
-	status = sgx_ecall(eid, 1, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 2, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -623,7 +650,7 @@ sgx_status_t accessInterface(sgx_enclave_id_t eid, uint32_t instance_id, uint8_t
 	ms.ms_request_size = request_size;
 	ms.ms_response_size = response_size;
 	ms.ms_tag_size = tag_size;
-	status = sgx_ecall(eid, 2, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 3, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -641,7 +668,7 @@ sgx_status_t accessBulkReadInterface(sgx_enclave_id_t eid, uint32_t instance_id,
 	ms.ms_request_size = request_size;
 	ms.ms_response_size = response_size;
 	ms.ms_tag_size = tag_size;
-	status = sgx_ecall(eid, 3, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 4, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -654,7 +681,7 @@ sgx_status_t InitializeKeys(sgx_enclave_id_t eid, int8_t* retval, unsigned char*
 	ms.ms_bin_r = bin_r;
 	ms.ms_bin_s = bin_s;
 	ms.ms_size_bin = size_bin;
-	status = sgx_ecall(eid, 4, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 5, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -672,7 +699,7 @@ sgx_status_t LSORAMInsert(sgx_enclave_id_t eid, int8_t* retval, uint32_t instanc
 	ms.ms_pubkey_size = pubkey_size;
 	ms.ms_pubkey_size_x = pubkey_size_x;
 	ms.ms_pubkey_size_y = pubkey_size_y;
-	status = sgx_ecall(eid, 5, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 6, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -686,7 +713,7 @@ sgx_status_t LSORAMInsert_pt(sgx_enclave_id_t eid, int8_t* retval, uint32_t inst
 	ms.ms_key_size = key_size;
 	ms.ms_value = value;
 	ms.ms_value_size = value_size;
-	status = sgx_ecall(eid, 6, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 7, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -707,7 +734,7 @@ sgx_status_t LSORAMFetch(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance
 	ms.ms_pubkey_size = pubkey_size;
 	ms.ms_pubkey_size_x = pubkey_size_x;
 	ms.ms_pubkey_size_y = pubkey_size_y;
-	status = sgx_ecall(eid, 7, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 8, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -728,7 +755,7 @@ sgx_status_t HSORAMInsert(sgx_enclave_id_t eid, int8_t* retval, uint32_t lsoram_
 	ms.ms_pubkey_size = pubkey_size;
 	ms.ms_pubkey_size_x = pubkey_size_x;
 	ms.ms_pubkey_size_y = pubkey_size_y;
-	status = sgx_ecall(eid, 8, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 9, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -751,7 +778,7 @@ sgx_status_t HSORAMFetch(sgx_enclave_id_t eid, int8_t* retval, uint32_t lsoram_i
 	ms.ms_pubkey_size = pubkey_size;
 	ms.ms_pubkey_size_x = pubkey_size_x;
 	ms.ms_pubkey_size_y = pubkey_size_y;
-	status = sgx_ecall(eid, 9, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 10, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -763,7 +790,7 @@ sgx_status_t LSORAMEvict(sgx_enclave_id_t eid, int8_t* retval, uint32_t instance
 	ms.ms_instance_id = instance_id;
 	ms.ms_key = key;
 	ms.ms_key_size = key_size;
-	status = sgx_ecall(eid, 10, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 11, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -773,7 +800,7 @@ sgx_status_t deleteLSORAMInstance(sgx_enclave_id_t eid, uint8_t* retval, uint32_
 	sgx_status_t status;
 	ms_deleteLSORAMInstance_t ms;
 	ms.ms_instance_id = instance_id;
-	status = sgx_ecall(eid, 11, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 12, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -783,7 +810,7 @@ sgx_status_t ecall_type_char(sgx_enclave_id_t eid, char val)
 	sgx_status_t status;
 	ms_ecall_type_char_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 12, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 13, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -792,7 +819,7 @@ sgx_status_t ecall_type_int(sgx_enclave_id_t eid, int val)
 	sgx_status_t status;
 	ms_ecall_type_int_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 13, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 14, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -801,7 +828,7 @@ sgx_status_t ecall_type_float(sgx_enclave_id_t eid, float val)
 	sgx_status_t status;
 	ms_ecall_type_float_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 14, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 15, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -810,7 +837,7 @@ sgx_status_t ecall_type_double(sgx_enclave_id_t eid, double val)
 	sgx_status_t status;
 	ms_ecall_type_double_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 15, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 16, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -819,7 +846,7 @@ sgx_status_t ecall_type_size_t(sgx_enclave_id_t eid, size_t val)
 	sgx_status_t status;
 	ms_ecall_type_size_t_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 16, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 17, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -828,7 +855,7 @@ sgx_status_t ecall_type_wchar_t(sgx_enclave_id_t eid, wchar_t val)
 	sgx_status_t status;
 	ms_ecall_type_wchar_t_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 17, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 18, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -837,7 +864,7 @@ sgx_status_t ecall_type_struct(sgx_enclave_id_t eid, struct struct_foo_t val)
 	sgx_status_t status;
 	ms_ecall_type_struct_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 18, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 19, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -847,7 +874,7 @@ sgx_status_t ecall_type_enum_union(sgx_enclave_id_t eid, enum enum_foo_t val1, u
 	ms_ecall_type_enum_union_t ms;
 	ms.ms_val1 = val1;
 	ms.ms_val2 = val2;
-	status = sgx_ecall(eid, 19, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 20, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -857,7 +884,7 @@ sgx_status_t ecall_pointer_user_check(sgx_enclave_id_t eid, size_t* retval, void
 	ms_ecall_pointer_user_check_t ms;
 	ms.ms_val = val;
 	ms.ms_sz = sz;
-	status = sgx_ecall(eid, 20, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 21, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -867,7 +894,7 @@ sgx_status_t ecall_pointer_in(sgx_enclave_id_t eid, int* val)
 	sgx_status_t status;
 	ms_ecall_pointer_in_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 21, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 22, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -876,7 +903,7 @@ sgx_status_t ecall_pointer_out(sgx_enclave_id_t eid, int* val)
 	sgx_status_t status;
 	ms_ecall_pointer_out_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 22, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 23, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -885,7 +912,7 @@ sgx_status_t ecall_pointer_in_out(sgx_enclave_id_t eid, int* val)
 	sgx_status_t status;
 	ms_ecall_pointer_in_out_t ms;
 	ms.ms_val = val;
-	status = sgx_ecall(eid, 23, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 24, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -895,7 +922,7 @@ sgx_status_t ecall_pointer_string(sgx_enclave_id_t eid, char* str)
 	ms_ecall_pointer_string_t ms;
 	ms.ms_str = (char*)str;
 	ms.ms_str_len = str ? strlen(str) + 1 : 0;
-	status = sgx_ecall(eid, 24, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 25, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -905,7 +932,7 @@ sgx_status_t ecall_pointer_string_const(sgx_enclave_id_t eid, const char* str)
 	ms_ecall_pointer_string_const_t ms;
 	ms.ms_str = (char*)str;
 	ms.ms_str_len = str ? strlen(str) + 1 : 0;
-	status = sgx_ecall(eid, 25, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 26, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -915,7 +942,7 @@ sgx_status_t ecall_pointer_size(sgx_enclave_id_t eid, void* ptr, size_t len)
 	ms_ecall_pointer_size_t ms;
 	ms.ms_ptr = ptr;
 	ms.ms_len = len;
-	status = sgx_ecall(eid, 26, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 27, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -925,7 +952,7 @@ sgx_status_t ecall_pointer_count(sgx_enclave_id_t eid, int* arr, int cnt)
 	ms_ecall_pointer_count_t ms;
 	ms.ms_arr = arr;
 	ms.ms_cnt = cnt;
-	status = sgx_ecall(eid, 27, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 28, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -935,14 +962,14 @@ sgx_status_t ecall_pointer_isptr_readonly(sgx_enclave_id_t eid, buffer_t buf, si
 	ms_ecall_pointer_isptr_readonly_t ms;
 	ms.ms_buf = (buffer_t)buf;
 	ms.ms_len = len;
-	status = sgx_ecall(eid, 28, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 29, &ocall_table_Enclave, &ms);
 	return status;
 }
 
 sgx_status_t ocall_pointer_attr(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 29, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 30, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -951,7 +978,7 @@ sgx_status_t ecall_array_user_check(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_user_check_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 30, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 31, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -960,7 +987,7 @@ sgx_status_t ecall_array_in(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_in_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 31, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 32, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -969,7 +996,7 @@ sgx_status_t ecall_array_out(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_out_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 32, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 33, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -978,7 +1005,7 @@ sgx_status_t ecall_array_in_out(sgx_enclave_id_t eid, int arr[4])
 	sgx_status_t status;
 	ms_ecall_array_in_out_t ms;
 	ms.ms_arr = (int*)arr;
-	status = sgx_ecall(eid, 33, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 34, &ocall_table_Enclave, &ms);
 	return status;
 }
 
@@ -987,21 +1014,21 @@ sgx_status_t ecall_array_isary(sgx_enclave_id_t eid, array_t arr)
 	sgx_status_t status;
 	ms_ecall_array_isary_t ms;
 	ms.ms_arr = (array_t *)&arr[0];
-	status = sgx_ecall(eid, 34, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 35, &ocall_table_Enclave, &ms);
 	return status;
 }
 
 sgx_status_t ecall_function_calling_convs(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 35, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 36, &ocall_table_Enclave, NULL);
 	return status;
 }
 
 sgx_status_t ecall_function_public(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 36, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 37, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -1009,7 +1036,7 @@ sgx_status_t ecall_function_private(sgx_enclave_id_t eid, int* retval)
 {
 	sgx_status_t status;
 	ms_ecall_function_private_t ms;
-	status = sgx_ecall(eid, 37, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 38, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -1017,7 +1044,7 @@ sgx_status_t ecall_function_private(sgx_enclave_id_t eid, int* retval)
 sgx_status_t ecall_malloc_free(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 38, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 39, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -1027,21 +1054,21 @@ sgx_status_t ecall_sgx_cpuid(sgx_enclave_id_t eid, int cpuinfo[4], int leaf)
 	ms_ecall_sgx_cpuid_t ms;
 	ms.ms_cpuinfo = (int*)cpuinfo;
 	ms.ms_leaf = leaf;
-	status = sgx_ecall(eid, 39, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 40, &ocall_table_Enclave, &ms);
 	return status;
 }
 
 sgx_status_t ecall_exception(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 40, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 41, &ocall_table_Enclave, NULL);
 	return status;
 }
 
 sgx_status_t ecall_map(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 41, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 42, &ocall_table_Enclave, NULL);
 	return status;
 }
 
@@ -1049,7 +1076,7 @@ sgx_status_t ecall_increase_counter(sgx_enclave_id_t eid, size_t* retval)
 {
 	sgx_status_t status;
 	ms_ecall_increase_counter_t ms;
-	status = sgx_ecall(eid, 42, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 43, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -1057,14 +1084,14 @@ sgx_status_t ecall_increase_counter(sgx_enclave_id_t eid, size_t* retval)
 sgx_status_t ecall_producer(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 43, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 44, &ocall_table_Enclave, NULL);
 	return status;
 }
 
 sgx_status_t ecall_consumer(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 44, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 45, &ocall_table_Enclave, NULL);
 	return status;
 }
 

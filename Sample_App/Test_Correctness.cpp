@@ -428,48 +428,48 @@ int run_experiment(exp_params params){
   return 0;
 }
 
+#ifdef DETAILED_MICROBENCHMARKER
+  void getParams(int argc, char* argv[])
+  {
+    if(argc!=NUM_EXPECTED_PARAMS) {
+      printf("Command line parameters error, received: %d, expected :%d\n",
+             argc, NUM_EXPECTED_PARAMS);
+      printf(" <N> <No_of_requests> <Stash_size> <Data_block_size> <Recursion_block_size> <\"path(0)\"/\"circuit(1)\"> <Z> <LogFolder (Must Exist)>\n\n");
+      exit(0);
+    }
 
-void getParams(int argc, char* argv[])
-{
-  if(argc!=NUM_EXPECTED_PARAMS) {
-    printf("Command line parameters error, received: %d, expected :%d\n",
-           argc, NUM_EXPECTED_PARAMS);
-    printf(" <N> <No_of_requests> <Stash_size> <Data_block_size> <Recursion_block_size> <\"path(0)\"/\"circuit(1)\"> <Z> <LogFolder (Must Exist)>\n\n");
-    exit(0);
+    std::string str = argv[1];
+    MAX_BLOCKS = std::stoi(str);
+    str = argv[2];
+    REQUEST_LENGTH = std::stoi(str);
+    str = argv[3];
+    STASH_SIZE = std::stoi(str);
+    str = argv[4];
+    DATA_SIZE = std::stoi(str);	
+    str = argv[5];	
+    RECURSION_DATA_SIZE = std::stoi(str);
+    str = argv[6];
+    if(str=="path"||std::stoi(str)==0)
+      ORAM_TYPE = 0;
+    if(str=="circuit"||std::stoi(str)==1)
+      ORAM_TYPE = 1;
+    str=argv[7];
+    Z = std::stoi(str);
+    str = argv[8];
+    LOG_FOLDER = str;
+    std::string ot;
+    if(ORAM_TYPE==0)
+      ot = "PO";
+    else
+      ot = "CO";
+    LOG_FILE = LOG_FOLDER+'/'+
+               ot +"_"+ std::to_string(MAX_BLOCKS) +"_"+ std::to_string(DATA_SIZE) +"_"+ std::to_string(STASH_SIZE) +"_"+
+               std::to_string(Z) +"_"+ std::to_string(REQUEST_LENGTH);
+    printf("LOG_FILE = %s", LOG_FILE.c_str()); 
+    //std::string qfile_name = "ZT_"+std::to_string(MAX_BLOCKS)+"_"+std::to_string(DATA_SIZE);
+    //iquery_file = fopen(qfile_name.c_str(),"w");
   }
-
-  std::string str = argv[1];
-  MAX_BLOCKS = std::stoi(str);
-  str = argv[2];
-  REQUEST_LENGTH = std::stoi(str);
-  str = argv[3];
-  STASH_SIZE = std::stoi(str);
-  str = argv[4];
-  DATA_SIZE = std::stoi(str);	
-  str = argv[5];	
-  RECURSION_DATA_SIZE = std::stoi(str);
-  str = argv[6];
-  if(str=="path"||std::stoi(str)==0)
-    ORAM_TYPE = 0;
-  if(str=="circuit"||std::stoi(str)==1)
-    ORAM_TYPE = 1;
-  str=argv[7];
-  Z = std::stoi(str);
-  str = argv[8];
-  LOG_FOLDER = str;
-  std::string ot;
-  if(ORAM_TYPE==0)
-    ot = "PO";
-  else
-    ot = "CO";
-  LOG_FILE = LOG_FOLDER+'/'+
-             ot +"_"+ std::to_string(MAX_BLOCKS) +"_"+ std::to_string(DATA_SIZE) +"_"+ std::to_string(STASH_SIZE) +"_"+
-             std::to_string(Z) +"_"+ std::to_string(REQUEST_LENGTH);
-  printf("LOG_FILE = %s", LOG_FILE.c_str()); 
-  //std::string qfile_name = "ZT_"+std::to_string(MAX_BLOCKS)+"_"+std::to_string(DATA_SIZE);
-  //iquery_file = fopen(qfile_name.c_str(),"w");
-}
-
+#endif
 
 int main(int argc, char *argv[]) {
 
@@ -510,6 +510,7 @@ int main(int argc, char *argv[]) {
     else
       printf("EXP1: SUCCESS! \n");
 
+  /*
     if(run_experiment(EXP2))
       printf("EXP2: Failed! \n");
     else
@@ -534,6 +535,7 @@ int main(int argc, char *argv[]) {
       printf("EXP6: Failed! \n");
     else
       printf("EXP6: SUCCESS! \n");
+  */
   #endif
  
   return 0;

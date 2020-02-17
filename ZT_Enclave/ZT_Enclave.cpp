@@ -121,9 +121,14 @@ int8_t InitializeKeys(unsigned char *bin_x,  unsigned char* bin_y,
   return 1;
 }
 
+uint32_t getNewORAMInstanceID(uint8_t oram_type){
+  if(oram_type==0)
+    return poram_instance_id++;
+  else if(oram_type==1)
+    return coram_instance_id++;
+}
 
-uint32_t createNewORAMInstance(uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint32_t oram_type, uint8_t pZ){
-
+uint8_t createNewORAMInstance(uint32_t instance_id, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint8_t oram_type, uint8_t pZ){
 
   if(oram_type==0){
     PathORAM *new_poram_instance = new PathORAM();
@@ -133,11 +138,11 @@ uint32_t createNewORAMInstance(uint32_t max_blocks, uint32_t data_size, uint32_t
 	    printf("In createNewORAMInstance, before Create, recursion_levels = %d\n", recursion_levels);	
     #endif
     
-    new_poram_instance->Create(pZ, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels);
+    new_poram_instance->Create(instance_id, oram_type, pZ, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels);
     #ifdef DEBUG_ZT_ENCLAVE
 	    printf("In createNewORAMInstance, after Create\n");	
     #endif			
-    return poram_instance_id++;
+    return 0;
   }
   else if(oram_type==1){
     CircuitORAM *new_coram_instance = new CircuitORAM();
@@ -147,8 +152,8 @@ uint32_t createNewORAMInstance(uint32_t max_blocks, uint32_t data_size, uint32_t
     printf("Just before Create\n");
     #endif
 
-    new_coram_instance->Create(pZ, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels);
-    return coram_instance_id++;
+    new_coram_instance->Create(instance_id, oram_type, pZ, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels);
+    return 0;
   }
 }
 

@@ -49,7 +49,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "sgx_urts.h"
-#include "App.h"
 #include "Enclave_u.h"
 #include "LocalStorage.hpp"
 #include <iostream>

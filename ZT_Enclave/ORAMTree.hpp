@@ -32,8 +32,10 @@
     bool oblivious_flag;
     uint8_t recursion_levels;
     uint32_t recursion_data_size;
-    //Oram_type might not be a param anymore in the OOP version
-    uint32_t oram_type;
+
+    //Params to tie ORAM to corresponding LS backend
+    uint32_t instance_id;
+    uint8_t oram_type;
 
     //Buffers
     unsigned char* encrypted_path;
@@ -78,7 +80,7 @@
     // For non-recursive, simply invoke BuildTreeRecursive(0,NULL)
     void BuildTreeRecursive(uint8_t level, uint32_t *prev_pmap);
     void Initialize();
-    void SetParams(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels);
+    void SetParams(uint32_t instance_id, uint8_t oram_type, uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels);
     void SampleKey();
 
     //Constructor & Destructor

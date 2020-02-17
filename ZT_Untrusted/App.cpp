@@ -72,6 +72,8 @@ bool inmem_flag = true;
 // Storage Backends:
 //TODO: Switch to LS for each LSORAM, Path, Circuit
 LocalStorage ls;
+std::map<uint32_t, LocalStorage*> ls_PORAM;
+std::map<uint32_t, LocalStorage*> ls_CORAM;
 std::map<uint32_t, std::vector<tuple*>*> ls_LSORAM;
 
 double compute_stddev(double *elements, uint32_t num_elements) {
@@ -356,142 +358,6 @@ double timetaken(timespec *start, timespec *end) {
   return mstime;
 }
 
-void time_report(int report_type, uint8_t level) {
-  //Compute based on report_type and update MB.
-
-  clockid_t clk_id = CLOCK_PROCESS_CPUTIME_ID;
-  static struct timespec start, end;
- 
-  if(DET_MB_PARAMS.on == true) {
-
-    if(DET_MB_PARAMS.oram_type==0) {
-      //PathORAM part
-      if(report_type==PO_POSMAP_START) {
-        clock_gettime(clk_id, &start); 
-      }
- 
-      if(report_type==PO_POSMAP_END) {
-        clock_gettime(clk_id, &end); 
-        double posmap_time = timetaken(&start, &end);
-        det_mb *ptr = MB[req_counter][0];
-        ptr->posmap_time = posmap_time;
-      } 
-
-      if(report_type==PO_DOWNLOAD_PATH_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==PO_DOWNLOAD_PATH_END) {
-        clock_gettime(clk_id, &end); 
-        double dp_time = timetaken(&start, &end);
-        printf("Download Time = %f", dp_time);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->download_path_time = dp_time;
-      }
-
-      if(report_type==PO_FETCH_BLOCK_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==PO_FETCH_BLOCK_END) {
-        clock_gettime(clk_id, &end); 
-        double fb_time = timetaken(&start, &end);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->fetch_block_time = fb_time;
-      }
-
-      if(report_type==PO_EVICTION_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==PO_EVICTION_END) {
-        clock_gettime(clk_id, &end); 
-        double el_time = timetaken(&start, &end);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->eviction_time = el_time;
-      }
-
-      if(report_type==PO_UPLOAD_PATH_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==PO_UPLOAD_PATH_END) {
-        clock_gettime(clk_id, &end); 
-        double up_time = timetaken(&start, &end);
-        printf("Upload Time = %f\n", up_time);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->upload_path_time = up_time;
-      }
- 
-    }
-    else if(DET_MB_PARAMS.oram_type==1) {
-      //CircuitORAM part
-
-      if(report_type==CO_POSMAP_START) {
-        clock_gettime(clk_id, &start); 
-      }
- 
-      if(report_type==CO_POSMAP_END) {
-        clock_gettime(clk_id, &end); 
-        double posmap_time = timetaken(&start, &end);
-        det_mb *ptr = MB[req_counter][0];
-        ptr->posmap_time = posmap_time;
-      } 
-
-      if(report_type==CO_DOWNLOAD_PATH_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==CO_DOWNLOAD_PATH_END) {
-        clock_gettime(clk_id, &end); 
-        double dp_time = timetaken(&start, &end);
-        //printf("Download Time = %f, %d", dp_time, level);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->download_path_time = dp_time;
-      }
-
-      if(report_type==CO_FETCH_BLOCK_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==CO_FETCH_BLOCK_END) {
-        clock_gettime(clk_id, &end); 
-        double fb_time = timetaken(&start, &end);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->fetch_block_time = fb_time;
-      }
-
-      if(report_type==CO_UPLOAD_PATH_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==CO_UPLOAD_PATH_END) {
-        clock_gettime(clk_id, &end); 
-        double up_time = timetaken(&start, &end);
-        //printf("Upload Time = %f\n", up_time);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->upload_path_time = up_time;
-      }
-
-      if(report_type==CO_EVICTION_START) {
-        clock_gettime(clk_id, &start); 
-      } 
-
-      if(report_type==CO_EVICTION_END) {
-        clock_gettime(clk_id, &end); 
-        double el_time = timetaken(&start, &end);
-        det_mb *ptr = MB[req_counter][level];
-        ptr->eviction_time = el_time;
-      }
-
-    }
-  }
-}
-
-void setDetailedMicrobenchmarkParams(uint8_t oram_type, uint32_t num_requests) {
-  DET_MB_PARAMS.oram_type = oram_type;
-  DET_MB_PARAMS.num_requests = num_requests;
-}
 
 uint32_t ZT_New_LSORAM( uint32_t num_blocks, uint32_t key_size, uint32_t value_size, uint8_t mode, uint8_t oblivious_type, uint8_t populate_flag) {
   sgx_status_t sgx_return;
@@ -631,29 +497,104 @@ void myprintf(char *buffer, uint32_t buffer_size) {
   printf("%s", buff_temp);
 }
 
-uint8_t uploadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32_t leaf_label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level) {
-  ls.uploadPath(leaf_label, path_array, path_hash, level, D_level);
+uint8_t uploadPath_OCALL(uint32_t instance_id, uint8_t oram_type, unsigned char* path_array, uint32_t path_size, uint32_t leaf_label, unsigned char* path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level) {
+  LocalStorage *ls;
+  if(oram_type==0) {
+    auto search = ls_PORAM.find(instance_id); 
+    if(search != ls_PORAM.end()) {
+      ls = search->second;
+    }
+    ls->uploadPath(leaf_label, path_array, path_hash, level, D_level);
+  }
+  else if(oram_type==1) {
+    auto search = ls_CORAM.find(instance_id); 
+    if(search != ls_CORAM.end()) {
+      ls = search->second;
+    }
+    ls->uploadPath(leaf_label, path_array, path_hash, level, D_level);
+  }
   return 1;
 }
 
-uint8_t uploadBucket_OCALL(unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
-  ls.uploadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
+uint8_t uploadBucket_OCALL(uint32_t instance_id, uint8_t oram_type, unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
+  LocalStorage *ls;
+  if(oram_type==0) {
+    auto search = ls_PORAM.find(instance_id); 
+    if(search != ls_PORAM.end()) {
+      ls = search->second;
+      ls->uploadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
+    }else{
+      //printf("Did NOT find corresponding backend in ls_PORAM\n");
+    }
+
+  }
+  else if(oram_type==1) {
+    auto search = ls_CORAM.find(instance_id); 
+    if(search != ls_CORAM.end()) {
+      ls = search->second;
+    }
+    ls->uploadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
+   }
   return 1;
 }
 
-uint8_t downloadPath_OCALL(unsigned char* path_array, uint32_t path_size, uint32_t leaf_label, unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level) {	
-  ls.downloadPath(leaf_label, path_array, path_hash, path_hash_size, level, D_level);
+uint8_t downloadPath_OCALL(uint32_t instance_id, uint8_t oram_type, unsigned char* path_array, uint32_t path_size, uint32_t leaf_label, unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level) {	
+  LocalStorage *ls;
+  if(oram_type==0) {
+    auto search = ls_PORAM.find(instance_id); 
+    if(search != ls_PORAM.end()) {
+      ls = search->second;
+    }
+    ls->downloadPath(leaf_label, path_array, path_hash, path_hash_size, level, D_level);
+   }
+  else if(oram_type==1) {
+    auto search = ls_CORAM.find(instance_id); 
+    if(search != ls_CORAM.end()) {
+      ls = search->second;
+    }
+    ls->downloadPath(leaf_label, path_array, path_hash, path_hash_size, level, D_level);
+   }
+
   return 1;
 }
 
-uint8_t downloadBucket_OCALL(unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
-  uint8_t ret = ls.downloadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
+uint8_t downloadBucket_OCALL(uint32_t instance_id, uint8_t oram_type, unsigned char* serialized_bucket, uint32_t bucket_size, uint32_t label, unsigned char* hash, uint32_t hashsize, uint32_t size_for_level, uint8_t recursion_level) {
+  LocalStorage *ls;
+  if(oram_type==0) {
+    auto search = ls_PORAM.find(instance_id); 
+    if(search != ls_PORAM.end()) {
+      ls = search->second;
+    }
+    ls->downloadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
+   }
+  else if(oram_type==1) {
+    auto search = ls_CORAM.find(instance_id); 
+    if(search != ls_CORAM.end()) {
+      ls = search->second;
+    }
+    ls->downloadBucket(label, serialized_bucket, size_for_level, hash, hashsize, recursion_level);
+   }
   return 1;
 }
 
-void build_fetchChildHash(uint32_t left, uint32_t right, unsigned char* lchild, unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level) {
-  ls.fetchHash(left,lchild,hash_size, recursion_level);
-  ls.fetchHash(right,rchild,hash_size, recursion_level);
+void build_fetchChildHash(uint32_t instance_id, uint8_t oram_type, uint32_t left, uint32_t right, unsigned char* lchild, unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level) {
+  LocalStorage *ls;
+  if(oram_type==0) {
+    auto search = ls_PORAM.find(instance_id); 
+    if(search != ls_PORAM.end()) {
+      ls = search->second;
+    }
+    ls->fetchHash(left, lchild, hash_size, recursion_level);
+    ls->fetchHash(right, rchild, hash_size, recursion_level);
+   }
+  else if(oram_type==1) {
+    auto search = ls_CORAM.find(instance_id); 
+    if(search != ls_CORAM.end()) {
+      ls = search->second;
+    }
+    ls->fetchHash(left,lchild,hash_size, recursion_level);
+    ls->fetchHash(right,rchild,hash_size, recursion_level);
+   }
 }
 
 uint8_t computeRecursionLevels(uint32_t max_blocks, uint32_t recursion_data_size, uint64_t onchip_posmap_memory_limit) {
@@ -681,7 +622,8 @@ uint8_t computeRecursionLevels(uint32_t max_blocks, uint32_t recursion_data_size
 }
 
 #ifdef DETAILED_MICROBENCHMARKER
-  void setMicrobenchmarkerParams(uint32_t oram_type, uint32_t num_requests) {
+
+  void setMicrobenchmarkerParams(uint8_t oram_type, uint32_t num_requests) {
      DET_MB_PARAMS.oram_type = oram_type;
      DET_MB_PARAMS.num_requests = num_requests;
      DET_MB_PARAMS.on = false;
@@ -703,7 +645,143 @@ uint8_t computeRecursionLevels(uint32_t max_blocks, uint32_t recursion_data_size
   uint8_t getRecursionLevels() {
     return(DET_MB_PARAMS.recursion_levels);
   }
+
 #endif
+
+void time_report(int report_type, uint8_t level) {
+  //Compute based on report_type and update MB.
+
+  clockid_t clk_id = CLOCK_PROCESS_CPUTIME_ID;
+  static struct timespec start, end;
+  
+  #ifdef DETAILED_MICROBENCHMARKER
+    if(DET_MB_PARAMS.on == true) {
+
+      if(DET_MB_PARAMS.oram_type==0) {
+        //PathORAM part
+        if(report_type==PO_POSMAP_START) {
+          clock_gettime(clk_id, &start); 
+        }
+   
+        if(report_type==PO_POSMAP_END) {
+          clock_gettime(clk_id, &end); 
+          double posmap_time = timetaken(&start, &end);
+          det_mb *ptr = MB[req_counter][0];
+          ptr->posmap_time = posmap_time;
+        } 
+
+        if(report_type==PO_DOWNLOAD_PATH_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==PO_DOWNLOAD_PATH_END) {
+          clock_gettime(clk_id, &end); 
+          double dp_time = timetaken(&start, &end);
+          printf("Download Time = %f", dp_time);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->download_path_time = dp_time;
+        }
+
+        if(report_type==PO_FETCH_BLOCK_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==PO_FETCH_BLOCK_END) {
+          clock_gettime(clk_id, &end); 
+          double fb_time = timetaken(&start, &end);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->fetch_block_time = fb_time;
+        }
+
+        if(report_type==PO_EVICTION_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==PO_EVICTION_END) {
+          clock_gettime(clk_id, &end); 
+          double el_time = timetaken(&start, &end);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->eviction_time = el_time;
+        }
+
+        if(report_type==PO_UPLOAD_PATH_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==PO_UPLOAD_PATH_END) {
+          clock_gettime(clk_id, &end); 
+          double up_time = timetaken(&start, &end);
+          printf("Upload Time = %f\n", up_time);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->upload_path_time = up_time;
+        }
+   
+      }
+      else if(DET_MB_PARAMS.oram_type==1) {
+        //CircuitORAM part
+
+        if(report_type==CO_POSMAP_START) {
+          clock_gettime(clk_id, &start); 
+        }
+   
+        if(report_type==CO_POSMAP_END) {
+          clock_gettime(clk_id, &end); 
+          double posmap_time = timetaken(&start, &end);
+          det_mb *ptr = MB[req_counter][0];
+          ptr->posmap_time = posmap_time;
+        } 
+
+        if(report_type==CO_DOWNLOAD_PATH_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==CO_DOWNLOAD_PATH_END) {
+          clock_gettime(clk_id, &end); 
+          double dp_time = timetaken(&start, &end);
+          //printf("Download Time = %f, %d", dp_time, level);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->download_path_time = dp_time;
+        }
+
+        if(report_type==CO_FETCH_BLOCK_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==CO_FETCH_BLOCK_END) {
+          clock_gettime(clk_id, &end); 
+          double fb_time = timetaken(&start, &end);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->fetch_block_time = fb_time;
+        }
+
+        if(report_type==CO_UPLOAD_PATH_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==CO_UPLOAD_PATH_END) {
+          clock_gettime(clk_id, &end); 
+          double up_time = timetaken(&start, &end);
+          //printf("Upload Time = %f\n", up_time);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->upload_path_time = up_time;
+        }
+
+        if(report_type==CO_EVICTION_START) {
+          clock_gettime(clk_id, &start); 
+        } 
+
+        if(report_type==CO_EVICTION_END) {
+          clock_gettime(clk_id, &end); 
+          double el_time = timetaken(&start, &end);
+          det_mb *ptr = MB[req_counter][level];
+          ptr->eviction_time = el_time;
+        }
+
+      }
+    }
+  #endif
+}
+
 
 int8_t ZT_Initialize(unsigned char *bin_x, unsigned char* bin_y, 
        unsigned char *bin_r, unsigned char* bin_s, uint32_t buff_size) {
@@ -743,7 +821,8 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
   uint8_t urt;
   uint32_t instance_id;
   int8_t recursion_levels;
-    
+  LocalStorage *ls_oram = new LocalStorage();    
+
   // RecursionLevels is really number of levels of ORAM
   // So if no recursion, recursion_levels = 1 
   recursion_levels = computeRecursionLevels(max_blocks, recursion_data_size, MEM_POSMAP_LIMIT);
@@ -757,7 +836,7 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
   // And functions without treating recursive and non-recursive backends differently
   // Hence recursion_levels passed = recursion_levels,
 
-  ls.setParams(max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
+  ls_oram->setParams(max_blocks,D,pZ,stash_size,data_size + ADDITIONAL_METADATA_SIZE,inmem_flag, recursion_data_size + ADDITIONAL_METADATA_SIZE, recursion_levels);
 
   #ifdef DETAILED_MICROBENCHMARKER  
    printf("DET_MB_PARAMS.recursion_levels = %d\n", recursion_levels);
@@ -794,16 +873,28 @@ uint32_t ZT_New( uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, u
     }
   #else
 
-    //Pass the On-chip Posmap Memory size limit as a parameter.
-    sgx_return = createNewORAMInstance(global_eid, &instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, oram_type, pZ);
+    sgx_return = getNewORAMInstanceID(global_eid, &instance_id, oram_type);
     printf("INSTANCE_ID returned = %d\n", instance_id);  
+
+    if(oram_type==0){
+      ls_PORAM.insert(std::make_pair(instance_id, ls_oram));
+      printf("Inserted instance_id = %d into ls_PORAM\n", instance_id);
+    }
+    else if(oram_type==1) {
+      ls_CORAM.insert(std::make_pair(instance_id, ls_oram));
+      printf("Inserted instance_id = %d into ls_CORAM\n", instance_id);
+    }
+
+    uint8_t ret;
+    sgx_return = createNewORAMInstance(global_eid, &ret, instance_id, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels, oram_type, pZ);
+    
 
   #endif
 
-    #ifdef DEBUG_PRINT
-        printf("initialize_oram Successful\n");
-    #endif
-    return (instance_id);
+  #ifdef DEBUG_PRINT
+      printf("initialize_oram Successful\n");
+  #endif
+  return (instance_id);
 }
 
 

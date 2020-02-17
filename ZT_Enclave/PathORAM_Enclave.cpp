@@ -29,14 +29,14 @@ PathORAM::PathORAM(uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash
 };
 */
 
-void PathORAM::Initialize(uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels){
-  ORAMTree::SetParams(pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels);
+void PathORAM::Initialize(uint32_t instance_id, uint8_t oram_type, uint8_t pZ, uint32_t pmax_blocks, uint32_t pdata_size, uint32_t pstash_size, uint32_t poblivious_flag, uint32_t precursion_data_size, uint8_t precursion_levels){
+  ORAMTree::SetParams(instance_id, oram_type, pZ, pmax_blocks, pdata_size, pstash_size, poblivious_flag, precursion_data_size, precursion_levels);
   ORAMTree::Initialize();
 }
 
 
-void PathORAM::Create(uint8_t Z, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint8_t recursion_levels){
-  Initialize(Z, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels);
+void PathORAM::Create(uint32_t instance_id, uint8_t oram_type, uint8_t Z, uint32_t max_blocks, uint32_t data_size, uint32_t stash_size, uint32_t oblivious_flag, uint32_t recursion_data_size, uint8_t recursion_levels){
+  Initialize(instance_id, oram_type, Z, max_blocks, data_size, stash_size, oblivious_flag, recursion_data_size, recursion_levels);
 }
 
 

@@ -19,7 +19,7 @@
 #ifdef DETAILED_MICROBENCHMARKER
   void initiateMicrobenchmarker(det_mb ***MB);
   uint8_t getRecursionLevels();
-  void setMicrobenchmarkerParams(uint32_t oram_type, uint32_t request_length);
+  void setMicrobenchmarkerParams(uint8_t oram_type, uint32_t request_length);
 #endif
 
 int8_t ZT_Initialize(unsigned char *bin_x, unsigned char *bin_y, unsigned char *bin_r, unsigned char *bin_s, uint32_t buff_size);

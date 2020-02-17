@@ -356,7 +356,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
     sgx_sha256_msg(serialized_bucket, block_size * Z, (sgx_sha256_hash_t*) &(current_bucket_hash));
 
     //Upload Bucket
-    uploadBucket_OCALL(&ret, serialized_bucket, Z*block_size ,i, (unsigned char*) &(current_bucket_hash), HASH_LENGTH, block_size, level);
+    uploadBucket_OCALL(&ret, instance_id, oram_type, serialized_bucket, Z*block_size ,i, (unsigned char*) &(current_bucket_hash), HASH_LENGTH, block_size, level);
 
     #ifdef BUILDTREE_VERIFICATION_DEBUG
     printf("Level = %d, Bucket no = %d, Hash = ",level, i);
@@ -400,7 +400,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
     uint8_t ret;
 
     //Hash 	
-    build_fetchChildHash(i*2, i*2 +1, hash_lchild, hash_rchild, HASH_LENGTH, level);		
+    build_fetchChildHash(instance_id, oram_type, i*2, i*2 +1, hash_lchild, hash_rchild, HASH_LENGTH, level);		
     sgx_sha_state_handle_t p_sha_handle;
     sgx_sha256_init(&p_sha_handle);
     sgx_sha256_update(serialized_bucket, block_size * Z, p_sha_handle);					
@@ -410,7 +410,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
     sgx_sha256_close(p_sha_handle);	
 
     //Upload Bucket 
-    uploadBucket_OCALL(&ret, serialized_bucket, Z*block_size ,i, (unsigned char*) &(merkle_root_hash_level[level]), HASH_LENGTH, block_size, level);
+    uploadBucket_OCALL(&ret, instance_id, oram_type, serialized_bucket, Z*block_size ,i, (unsigned char*) &(merkle_root_hash_level[level]), HASH_LENGTH, block_size, level);
 
     #ifdef BUILDTREE_VERIFICATION_DEBUG
     printf("Level = %d, Bucket no = %d, Hash = ",level, i);
@@ -431,7 +431,7 @@ uint32_t* ORAMTree::BuildTreeLevel(uint8_t level, uint32_t* prev_pmap){
     printf("tdata_size = %d, block_size = %d\n", tdata_size, block_size);
 
     for(uint32_t i=1; i<ptreeSize; i++){
-      downloadBucket_OCALL(&ret, serialized_bucket, Z*block_size, i, temp_hash, HASH_LENGTH, block_size, level); 
+      downloadBucket_OCALL(&ret, instance_id, oram_type, serialized_bucket, Z*block_size, i, temp_hash, HASH_LENGTH, block_size, level); 
       unsigned char *bucket_iter = serialized_bucket;
       printf("Bucket %d\n", i);
       for(uint8_t j=0; j<Z; j++){
@@ -623,9 +623,9 @@ void ORAMTree::uploadPath(uint32_t leaf, unsigned char *path, uint64_t path_size
   uint8_t ret;
 
   #ifdef ENCRYPTION_ON
-    uploadPath_OCALL(&ret, encrypted_path, path_size, leaf, path_hash, path_hash_size, level, d);
+    uploadPath_OCALL(&ret, instance_id, oram_type, encrypted_path, path_size, leaf, path_hash, path_hash_size, level, d);
   #else
-    uploadPath_OCALL(&ret, decrypted_path, path_size, leaf, path_hash, path_hash_size, level, d);
+    uploadPath_OCALL(&ret, instance_id, oram_type, decrypted_path, path_size, leaf, path_hash, path_hash_size, level, d);
   #endif
   
 }
@@ -661,7 +661,7 @@ unsigned char* ORAMTree::downloadPath(uint32_t leaf, unsigned char *path_hash, u
     // NOTE DO NOT FREE THESE IN EXITLESS MODE
     //Set path_array from resp_struct					
   #else
-    downloadPath_OCALL(&rt, fetched_path_array, path_size, leaf, path_hash, path_hash_size, level, d);
+    downloadPath_OCALL(&rt, instance_id, oram_type, fetched_path_array, path_size, leaf, path_hash, path_hash_size, level, d);
   #endif
 
   #ifndef PASSIVE_ADVERSARY
@@ -963,8 +963,10 @@ void ORAMTree::showPath_reverse(unsigned char *decrypted_path, uint8_t Z, uint32
   }
 }
 
-void ORAMTree::SetParams(uint8_t pZ, uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash_size, uint32_t oblivious, uint32_t s_recursion_data_size, uint8_t precursion_levels){
+void ORAMTree::SetParams(uint32_t s_instance_id, uint8_t s_oram_type, uint8_t pZ, uint32_t s_max_blocks, uint32_t s_data_size, uint32_t s_stash_size, uint32_t oblivious, uint32_t s_recursion_data_size, uint8_t precursion_levels){
   printf("IN ORAMTree::SetParams!!\n");
+  instance_id = s_instance_id;
+  oram_type = s_oram_type;
   data_size = s_data_size;
   stash_size = s_stash_size;
   oblivious_flag = (oblivious==1);

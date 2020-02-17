@@ -56,6 +56,6 @@ typedef struct experiment_parameters{
   uint32_t stash_size;
   uint32_t oblivious_flag;
   uint32_t recursion_data_size;
-  uint32_t oram_type;
+  uint8_t oram_type;
   uint8_t Z;
 }exp_params;

@@ -27,7 +27,7 @@
 
   // If turned on, the client (TestCorrectness) will have a detailed microbenchmark
   // of time taken in each of part of the ORAM Access operation  
-  #define DETAILED_MICROBENCHMARKER 1
+  //#define DETAILED_MICROBENCHMARKER 1
 
   #define REVERSE_LEXICOGRAPHIC_EVICTION 1
 

@@ -49,7 +49,8 @@ enclave {
     from "TrustedLibrary/Thread.edl" import *;
 
   trusted {
-    public uint32_t createNewORAMInstance(uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint32_t oram_type, uint8_t pZ);
+    public uint32_t getNewORAMInstanceID(uint8_t oram_type);
+    public uint8_t createNewORAMInstance(uint32_t instance_id, uint32_t maxBlocks, uint32_t dataSize, uint32_t stashSize, uint32_t oblivious_flag, uint32_t recursion_data_size, int8_t recursion_levels, uint8_t oram_type, uint8_t pZ);
     public uint32_t createNewLSORAMInstance(uint32_t key_size, uint32_t value_size, uint32_t num_blocks, uint8_t mem_mode, uint8_t oblivious_type, uint8_t dummy_populate);
  
     public void accessInterface(uint32_t instance_id, uint8_t oram_type, [in, size = request_size] unsigned char* encrypted_request, [out, size = response_size] unsigned char *encrypted_response, [in, size = tag_size] unsigned char *tag_in, [out, size = tag_size] unsigned char *tag_out, uint32_t request_size, uint32_t response_size, uint32_t tag_size);
@@ -103,11 +104,11 @@ enclave {
     unsigned char* getOutsidePtr_OCALL();
     void myprintf([in, size = buffer_size] char *buffer, uint32_t buffer_size);
     void* createLSORAM_OCALL(uint32_t id, uint32_t key_size, uint32_t value_size, uint32_t num_blocks_p, uint8_t oblv_mode);
-    void build_fetchChildHash(uint32_t left, uint32_t right, [out, size=hash_size] unsigned char* lchild, [out, size=hash_size] unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level);
-    uint8_t uploadBucket_OCALL([in,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [in,size = hash_size] unsigned char* hash, uint32_t hash_size , uint32_t size_for_level, uint8_t recursion_level);
-    uint8_t downloadBucket_OCALL([out,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [out,size = hash_size] unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t level);
-    uint8_t downloadPath_OCALL([out,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label,[out,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_lev);
-    uint8_t uploadPath_OCALL([in,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label, [in,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level);
+    void build_fetchChildHash(uint32_t instance_id, uint8_t oram_type, uint32_t left, uint32_t right, [out, size=hash_size] unsigned char* lchild, [out, size=hash_size] unsigned char* rchild, uint32_t hash_size, uint32_t recursion_level);
+    uint8_t uploadBucket_OCALL(uint32_t instance_id, uint8_t oram_type, [in,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [in,size = hash_size] unsigned char* hash, uint32_t hash_size , uint32_t size_for_level, uint8_t recursion_level);
+    uint8_t downloadBucket_OCALL(uint32_t instance_id, uint8_t oram_type, [out,size = bucket_size] unsigned char* serialized_bucket, uint32_t bucket_size , uint32_t label, [out,size = hash_size] unsigned char* hash, uint32_t hash_size, uint32_t size_for_level, uint8_t level);
+    uint8_t downloadPath_OCALL(uint32_t instance_id, uint8_t oram_type, [out,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label,[out,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_lev);
+    uint8_t uploadPath_OCALL(uint32_t instance_id, uint8_t oram_type, [in,size = path_size] unsigned char* serialized_path, uint32_t path_size , uint32_t label, [in,size = path_hash_size] unsigned char *path_hash, uint32_t path_hash_size, uint8_t level, uint32_t D_level);
     void time_report(int report_type, uint8_t level);
     //void ReturnResult([unsigned char *return_data, unsigned]);
   };
