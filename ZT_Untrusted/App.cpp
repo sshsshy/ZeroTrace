@@ -677,7 +677,6 @@ void time_report(int report_type, uint8_t level) {
         if(report_type==PO_DOWNLOAD_PATH_END) {
           clock_gettime(clk_id, &end); 
           double dp_time = timetaken(&start, &end);
-          printf("Download Time = %f", dp_time);
           det_mb *ptr = MB[req_counter][level];
           ptr->download_path_time = dp_time;
         }
@@ -711,7 +710,6 @@ void time_report(int report_type, uint8_t level) {
         if(report_type==PO_UPLOAD_PATH_END) {
           clock_gettime(clk_id, &end); 
           double up_time = timetaken(&start, &end);
-          printf("Upload Time = %f\n", up_time);
           det_mb *ptr = MB[req_counter][level];
           ptr->upload_path_time = up_time;
         }

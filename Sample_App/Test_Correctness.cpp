@@ -297,7 +297,7 @@ int run_experiment(exp_params params){
       }
       upload_time_avg=compute_avg((double*)upload_time_level, mb_request_length);  
       upload_time_std=compute_stddev((double*)upload_time_level, mb_request_length); 
-      printf("Upload_time_avg = %lf, Upload_time_std = %lf\n", upload_time_avg, upload_time_std);
+      //printf("Upload_time_avg = %lf, Upload_time_std = %lf\n", upload_time_avg, upload_time_std);
 
 
       for(uint32_t i=0; i<mb_request_length; i++) {
@@ -391,7 +391,7 @@ int run_experiment(exp_params params){
         }
         upload_time_avg[j]=compute_avg((double*)upload_time_level, mb_request_length);  
         upload_time_std[j]=compute_stddev((double*)upload_time_level, mb_request_length); 
-        printf("Upload_time_avg[%d] = %lf, Upload_time_std[%d] = %lf\n", j, upload_time_avg[j], j, upload_time_std[j]);
+        //printf("Upload_time_avg[%d] = %lf, Upload_time_std[%d] = %lf\n", j, upload_time_avg[j], j, upload_time_std[j]);
       }
 
     }
@@ -501,16 +501,15 @@ int main(int argc, char *argv[]) {
     exp_params EXP2 = {128, 10000, 100, 60, 1, 64, 0, 3};
     exp_params EXP3 = {128, 10000, 100, 50, 1, 64, 0, 3}; 
 
-    exp_params EXP4 = {128, 10000, 100, 10, 1, 64, 1, 4};
-    exp_params EXP5 = {128, 10000, 100, 15, 1, 64, 1, 3};
-    exp_params EXP6 = {128, 10000, 100, 15, 1, 64, 1, 3}; 
+    exp_params EXP4 = {128, 1024, 100, 15, 1, 64, 1, 2};
+    exp_params EXP5 = {128, 1024, 100, 15, 1, 64, 1, 3};
+    exp_params EXP6 = {128, 16384, 100, 15, 1, 64, 1, 3}; 
 
     if(run_experiment(EXP1))
       printf("EXP1: Failed! \n");
     else
       printf("EXP1: SUCCESS! \n");
 
-  /*
     if(run_experiment(EXP2))
       printf("EXP2: Failed! \n");
     else
@@ -535,7 +534,7 @@ int main(int argc, char *argv[]) {
       printf("EXP6: Failed! \n");
     else
       printf("EXP6: SUCCESS! \n");
-  */
+  
   #endif
  
   return 0;

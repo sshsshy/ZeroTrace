@@ -18,12 +18,11 @@ NUM_REQUESTS=100
 RECURSION_DATA_SIZE=64
 ORAM_TYPE={0,1}
 
-N=[(lambda x: 2**x)(i) for i in {5,8,10,14,17}]
+N=[(lambda x: 2**x)(i) for i in {10,14,17}]
+#N=[(lambda x: 2**x)(i) for i in {5,8,10,14,17}]
 #N = 1024, 16384,
-M={256}
-SS=[[0],[8,10]]
-Z =[[3],[3,2]]
-SS_Z=[[[0,3]],[[8,3],[12,2]]]
+M={128,256,1024}
+SS_Z=[[[150,3],[150,4]],[[16,2],[8,3]]]
 PSS=[]
 #N=[(lambda x: 2**x)(i) for i in {5,8,10,14,17,20}]
 #M={128,256,1024}
@@ -41,13 +40,9 @@ for mode in ORAM_TYPE:
       for l in SS_Z[mode]:
         s=l[0]
         z=l[1]
-        if(mode==0):
-          print(l)
-          z = l[1]
-          s = int(math.log(n,2))*z + 50;
-          PSS.append(s)
         print("./testcorrectness "+str(n)+" "+str(NUM_REQUESTS)+" "+str(s)+" "+str(m)+" "+str(RECURSION_DATA_SIZE)+" "+str(mode)+" "+str(z)+" "+LOG_FOLDER)
-       
+        print LOG_FOLDER;
+             
         command = "./testcorrectness "+str(n)+" "+str(NUM_REQUESTS)+" "+str(s)+" "+str(m)+" "+str(RECURSION_DATA_SIZE)+" "+str(mode)+" "+str(z)+" "+LOG_FOLDER
         os.system(command+" > "+EXEC_LOGFILE)
 
@@ -55,8 +50,7 @@ for mode in ORAM_TYPE:
           exec_file = f.read()
           if((("EXP Failed!") in exec_file) or (("STASH OVERFLOW") in exec_file) ):
             print("This experiment failed due to stash overflow or correctness errors\n.")
-
-          # Test if EXEC_LOG threw any Stash Overflows, or failed Experiment, Reject values if so.
+            # Test if EXEC_LOG threw any Stash Overflows, or failed Experiment, Reject values if so.
             if(mode==0):
               prefix='PO'
             elif(mode==1):
@@ -78,29 +72,47 @@ for mode in ORAM_TYPE:
 #Use PSS for pathOram stash sizes
 #Produce result file with comparison table 
 
-#| N | datasize | stashsize | Z | Posmap | Download | FetchBlock | Eviction | Upload | Total |
-#TODO: Write this line in with 12 space formatting between |'s
-# So per column allocate 12 chars
-'''
-with open(RESULT_FILE) as rf:
+# Produce CSV file:
+# ORAM | N | datasize | stashsize | Z | Posmap | Download | FetchBlock | Eviction | Upload | Total |
+
+mstr = ''
+prefix = ''
+with open(RESULT_FILE,'w') as rf:
+  rf.write("ORAM, N, datasize, stashsize, Z, PositionMap Time, Download Path Time, Fetch Block Time, Eviction Time, Upload Path Time, Total Time\n")
   for mode in ORAM_TYPE:
     # Loop over N
-    rf.write("CircuitORAM:")
+    if (mode==0):
+      mstr = 'Path'
+      prefix = 'PO'
+    elif (mode==1):
+      mstr = 'Circuit'
+      prefix = 'CO'
     for n in N:
       # Loop over data_size
       for m in M:
-          if(mode==1): 
-            for l in SS_Z[mode]:
-              s=l[0]
-              z=l[1]
+        for l in SS_Z[mode]:
+          #z=l[1]
+          #s=PSS[PSS_ctr]
+          s=l[0]
+          z=l[1]
+           
+          #Extract details from LOG_FILE_AVG 
+          LOG_FILE_NAME=prefix+'_'+str(n)+'_'+str(m)+'_'+str(s)+'_'+str(z)+'_'+str(NUM_REQUESTS)
+          LOG_FILE=LOG_FOLDER+LOG_FILE_NAME
+          LOG_FILE_AVG=LOG_FILE+"_AVG" 
 
-              #Extract details from LOG_FILE_AVG 
-              LOG_FILE_NAME=prefix+'_'+str(n)+'_'+str(m)+'_'+str(s)+'_'+str(z)+'_'+str(NUM_REQUESTS)
-              LOG_FILE=LOG_FOLDER+LOG_FILE_NAME
-              LOG_FILE_AVG=LOG_FILE+"_AVG" 
-              
-              with open(LOG_FILE_AVG) as f:
-                line = f.readline()
-                words = line.split[',']
-                RESULT_LINE=
-'''              
+          RESULT_LINE_PARAMS=mstr+','+str(n)+','+str(m)+','+str(s)+','+str(z)+','
+          RESULT_LINE_VALUES=''
+          if(os.path.exists(LOG_FILE_AVG)):
+            with open(LOG_FILE_AVG) as f:
+              line = f.readline()
+              line = line.strip()
+              words = line.split(',')
+              RESULT_LINE_VALUES=words[0].strip()+','+words[1].strip()+','+words[2].strip()+','+words[3].strip()+','+words[4].strip()+','+ words[5].strip()
+              RESULT_LINE=RESULT_LINE_PARAMS+RESULT_LINE_VALUES+'\n'
+          else:
+            RESULT_LINE_VALUES='NA,NA,NA,NA,NA,NA' 
+          
+          RESULT_LINE=RESULT_LINE_PARAMS+RESULT_LINE_VALUES+'\n'
+          rf.write(RESULT_LINE)
+
