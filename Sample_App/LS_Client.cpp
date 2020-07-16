@@ -86,8 +86,11 @@ int initializeZeroTrace() {
   memcpy(serialized_public_key, bin_x, PRIME256V1_KEY_SIZE);
   memcpy(serialized_public_key + PRIME256V1_KEY_SIZE, bin_y, PRIME256V1_KEY_SIZE);
  
-  sig_enclave->r = BN_bin2bn(signature_r, PRIME256V1_KEY_SIZE, NULL);
-  sig_enclave->s = BN_bin2bn(signature_s, PRIME256V1_KEY_SIZE, NULL);
+  // This syntax was for older versions of OpenSSL
+  //sig_enclave->r = BN_bin2bn(signature_r, PRIME256V1_KEY_SIZE, NULL);
+  //sig_enclave->s = BN_bin2bn(signature_s, PRIME256V1_KEY_SIZE, NULL);	
+  // New syntax
+  ECDSA_SIG_set0(sig_enclave, BN_bin2bn(signature_r, PRIME256V1_KEY_SIZE, NULL), BN_bin2bn(signature_s, PRIME256V1_KEY_SIZE, NULL));
  
   ret = ECDSA_do_verify((const unsigned char*) serialized_public_key, PRIME256V1_KEY_SIZE*2, sig_enclave, enclave_verification_key);
 
