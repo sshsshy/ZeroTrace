@@ -324,13 +324,8 @@ int main(int argc, char *argv[]) {
 
     inserts_start = clock();
    
-    if(store_mode==1){
-      ZT_LSORAM_oprm_insert_pt(zt_lsoram_id, key, key_size, value, value_size);
-    }
-    else{
-      ZT_LSORAM_iprm_insert_pt(zt_lsoram_id, key, key_size, value, value_size);
-      //client_LSORAM_Insert(zt_lsoram_id, zt_oram_id, key, key_size, value, value_size);
-    }
+    client_HSORAM_Insert(zt_lsoram_id, zt_oram_iid, key, key_size, value, value_size);
+
     inserts_stop = clock();
     std::string key_str, value_str;
     key_str.assign((const char*) key, key_size);
