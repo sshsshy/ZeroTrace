@@ -324,7 +324,7 @@ int main(int argc, char *argv[]) {
 
     inserts_start = clock();
    
-    client_HSORAM_Insert(zt_lsoram_id, zt_oram_iid, key, key_size, value, value_size);
+    client_HSORAM_Insert(zt_lsoram_id, zt_oram_id, key, key_size, value, value_size);
 
     inserts_stop = clock();
     std::string key_str, value_str;
