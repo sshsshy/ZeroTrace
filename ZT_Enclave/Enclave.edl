@@ -43,6 +43,7 @@ enclave {
     from "Edger8rSyntax/Pointers.edl" import *;
     from "Edger8rSyntax/Arrays.edl" import *;
     from "Edger8rSyntax/Functions.edl" import *;
+    from "sgx_pthread.edl" import *;
 
     from "TrustedLibrary/Libc.edl" import *;
     from "TrustedLibrary/Libcxx.edl" import ecall_exception, ecall_map;

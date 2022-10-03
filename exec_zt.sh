@@ -43,7 +43,7 @@ Z=4
 bulk_request_size=0
 logfile=lfile
 
-exec_command="Sample_App/sampleapp "$N" "$no_of_req" "$stash_size" "$block_size" "$new" "$backend" "$oblivious_flag" "$recursion_data_size" "$oram_type" "$Z" "$bulk_request_size" "$logfile
+exec_command="Sample_App/sampleapp "$N" "$no_of_req" "$stash_size" "$block_size" "$new" "$oblivious_flag" "$recursion_data_size" "$oram_type" "$Z" "$bulk_request_size" "$logfile
 echo $exec_command
 $exec_command
 #Sample_App/sampleapp 10000 10 100 4096 new memory 1 64 path 4 0

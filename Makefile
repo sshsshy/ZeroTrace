@@ -37,6 +37,7 @@ COMMON_ELEOS = /home/ssasy/Projects/oram_tester/eleos/eleos_core/trustedlib_lib_
 ######## SGX SDK Settings ########
 
 SGX_SDK ?= /opt/intel/sgxsdk
+SGX_SSL ?= /opt/intel/sgxssl
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
@@ -50,11 +51,13 @@ endif
 ifeq ($(SGX_ARCH), x86)
 	SGX_COMMON_CFLAGS := -m32
 	SGX_LIBRARY_PATH := $(SGX_SDK)/lib
+	SGX_SSL_LIBRARY_PATH := $(SGX_SSL)/lib
 	SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x86/sgx_sign
 	SGX_EDGER8R := $(SGX_SDK)/bin/x86/sgx_edger8r
 else
 	SGX_COMMON_CFLAGS := -m64
 	SGX_LIBRARY_PATH := $(SGX_SDK)/lib64
+	SGX_SSL_LIBRARY_PATH := $(SGX_SSL)/lib64
 	SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x64/sgx_sign
 	SGX_EDGER8R := $(SGX_SDK)/bin/x64/sgx_edger8r
 endif
@@ -155,10 +158,10 @@ SgxSSL_Link_Libraries := -L$(OPENSSL_LIBRARY_PATH) -Wl,--whole-archive -l$(SGXSS
 #       Use `--start-group' and `--end-group' to link these libraries.
 # Do NOT move the libraries linked with `--start-group' and `--end-group' within `--whole-archive' and `--no-whole-archive' options.
 # Otherwise, you may get some undesirable errors.
-Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
+Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH)  -L$(SGX_SSL_LIBRARY_PATH)\
         -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive -lsgx_tsgxssl_crypto\
         -Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
-        -Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
+        -Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -lsgx_pthread -Wl,--end-group \
         -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
         -Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
         -Wl,--defsym,__ImageBase=0 \
