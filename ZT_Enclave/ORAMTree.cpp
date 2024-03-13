@@ -822,6 +822,7 @@ void ORAMTree::OAssignNewLabelToBlock(uint32_t id, uint32_t position_in_id, uint
 
 uint32_t ORAMTree::FillResultBlock(uint32_t id, unsigned char *result_data, uint32_t block_size){
   recursive_stash[recursion_levels-1].ObliviousFillResultData(id, result_data);
+  return 0;
 }
 
 //PathORAM_Access(opType, id_adj, id,leaf, newleaf, newleaf_nextleaf,arr_blocks,  path_hash,level,D_level[level],N_level[level]);
