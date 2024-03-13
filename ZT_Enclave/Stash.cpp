@@ -48,7 +48,7 @@ void Stash::setParams(uint32_t param_stash_data_size, uint32_t param_STASH_SIZE,
     
 void Stash::PerformAccessOperation(char opType, uint32_t id, uint32_t newleaf, unsigned char *data_in, unsigned char *data_out) {
 	struct nodev2 *iter = getStart();
-	uint8_t cntr = 1;
+	uint32_t cntr = 1;
 	uint32_t flag_id = 0, flag_w = 0, flag_r = 0;
 	unsigned char *data_ptr;
 	uint32_t *leaflabel_ptr;
@@ -114,7 +114,7 @@ void Stash::PerformAccessOperation(char opType, uint32_t id, uint32_t newleaf, u
     
 void Stash::ObliviousFillResultData(uint32_t id, unsigned char *result_data) {
     struct nodev2 *iter = getStart();
-    uint8_t cntr = 1;
+    uint32_t cntr = 1;
     uint32_t flag = 0;
     uint32_t *data_ptr;
     while(iter&&cntr<=STASH_SIZE)	{
@@ -314,7 +314,7 @@ void Stash::pass_insert(unsigned char *serialized_block, bool is_dummy)
 {
     struct nodev2 *iter = start;
     bool block_written = false;
-    uint8_t cntr = 1;
+    uint32_t cntr = 1;
     #ifdef STASH_OVERFLOW_DEBUG
         bool inserted = false;
     #endif

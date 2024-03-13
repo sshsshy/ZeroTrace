@@ -338,7 +338,7 @@ void *HandleRequest(void *arg) {
 
     //pthread_exit(NULL);
   }
-    
+  return nullptr;
 }
 
 uint64_t timediff(struct timeval *start, struct timeval *end) {
@@ -488,6 +488,7 @@ void* createLSORAM_OCALL(uint32_t id, uint32_t key_size, uint32_t value_size, ui
 }
 
 void* insertLSORAM_OCALL() {
+  return nullptr;
 }
 
 
